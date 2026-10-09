@@ -136,7 +136,12 @@ module PartiduoAdmin
       def self.pruned(task : Task, ok : Bool, now : Time) : Nil
         return unless ok
         ids = task.params_json["backup_ids"]?.try(&.as_a.map(&.as_i64)) || [] of Int64
-        Backup.filter(id__in: ids, frozen: false).update(state: "pruned", pruned_at: now)
+        # Sauvegardes d'un autre serveur (dossier déplacé) : gardées par
+        # l'exécutant, pas marquées élaguées (D-CHF-024).
+        kept = task.result_json["kept"]?.try(&.as_a?).try(&.compact_map(&.as_s?)) || [] of String
+        scope = Backup.filter(id__in: ids, frozen: false)
+        scope = scope.exclude(path__in: kept) unless kept.empty?
+        scope.update(state: "pruned", pruned_at: now)
       end
 
       def self.test_restored(task : Task, ok : Bool, now : Time) : Nil
@@ -195,30 +200,47 @@ module PartiduoAdmin
 
       def self.record_backup(task : Task, dossier : Dossier, kind : String, data : JSON::Any, now : Time) : Backup
         taken = data["taken_at"]?.try(&.as_s?).try { |value| Time.parse_rfc3339(value) rescue nil } || now
-        mode, fingerprint, commitment, wrapped = encryption_fields(data["encryption"]?)
+        text = ->(key : String, limit : Int32) { data[key]?.try(&.as_s?).try(&.[0, limit]?) || "" }
+        sealing = sealing_fields(data["encryption"]?)
         Backup.create!(
-          encryption_mode: mode, key_fingerprint: fingerprint, key_commitment: commitment, wrapped_key: wrapped,
-          media_sha256: data["media_sha256"]?.try(&.as_s?) || "",
+          encryption_mode: sealing[:mode], key_fingerprint: sealing[:key_fingerprint], recipient: sealing[:recipient],
+          capsule: sealing[:capsule], capsule_keys: sealing[:capsule_keys],
+          origin: text.call("server", 64).presence || dossier.server.try(&.name.to_s) || "",
+          manifest: text.call("manifest", 16_384),
+          manifest_signature: text.call("signature", 4096),
+          signing_key: signing_fingerprint(data),
+          media_sha256: text.call("media_sha256", 64),
           dossier: dossier, task: task, kind: kind, state: "done",
-          path: data["path"]?.try(&.as_s?) || "",
-          media_path: data["media_path"]?.try(&.as_s?) || "",
+          path: text.call("path", 512),
+          media_path: text.call("media_path", 512),
           size_bytes: data["size_bytes"]?.try(&.as_i64?),
-          sha256: data["sha256"]?.try(&.as_s?) || "",
+          sha256: text.call("sha256", 64),
           version: data["version"]?.try(&.as_s?) || dossier.version.to_s,
           taken_at: taken,
           keep_until: taken + (dossier.backup_retention_days || 30).days,
         )
       end
 
-      # Chiffrement rendu par l'exécutant : mode, empreinte de la clé,
-      # engagement ; la clé de données enveloppée n'est gardée que pour la
-      # clé du cabinet (déchiffrée dans le navigateur de son admin).
-      def self.encryption_fields(encryption : JSON::Any?) : {String, String, String, String}
-        text = ->(key : String) { encryption.try(&.[key]?).try(&.as_s?) || "" }
-        mode = text.call("mode")
+      # Chiffrement rendu par l'exécutant : mode, empreinte de la clé du
+      # cabinet, destinataire de la clé de sauvegarde, capsule et empreintes
+      # des clés d'exploitation qu'elle vise (D-CHF-014).
+      def self.sealing_fields(encryption : JSON::Any?)
+        text = ->(key : String, limit : Int32) { encryption.try(&.[key]?).try(&.as_s?).try(&.[0, limit]?) || "" }
+        mode = text.call("mode", 16)
         mode = "none" unless BackupEncryption::MODES.includes?(mode)
-        wrapped = mode == "cabinet" ? text.call("wrapped_key")[0, 2048]? || "" : ""
-        {mode, text.call("key_fingerprint")[0, 64]? || "", text.call("commitment")[0, 64]? || "", wrapped}
+        sealed = mode != "none"
+        keys = encryption.try(&.["capsule_keys"]?).try(&.as_a?).try(&.compact_map(&.as_s?)) || [] of String
+        {mode:            mode,
+         key_fingerprint: mode == "cabinet" ? text.call("key_fingerprint", 64) : "",
+         recipient:       sealed ? text.call("recipient", 4096) : "",
+         capsule:         sealed ? text.call("capsule", 65_536) : "",
+         capsule_keys:    keys.select(&.matches?(/\A[0-9a-f]{64}\z/)).join(',')}
+      end
+
+      # Empreinte de la clé qui a signé le manifeste (`SHA256:…`).
+      def self.signing_fingerprint(data : JSON::Any) : String
+        line = data["signing_key"]?.try(&.as_s?).try { |value| BackupCrypto::Signature.normalize(value) }
+        line ? BackupCrypto::Signature.fingerprint(line) : ""
       end
 
       def self.record_certificate(dossier : Dossier, result : JSON::Any, now : Time) : Nil

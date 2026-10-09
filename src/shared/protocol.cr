@@ -13,8 +13,12 @@ module PartiduoAdmin
     # 1.2.0 : `approval_mode` des opérations sensibles, D-VAL2-005 ;
     # 2.0.0 : type `instance.upgrade` et état `waiting` retirés, paramètre
     # `version` remplacé par `package` — la mise à jour des paquets relève
-    # de beryl, chaque instance se migre à son démarrage).
-    API_VERSION = "2.0.0"
+    # de beryl, chaque instance se migre à son démarrage ;
+    # 3.0.0 : mode de chiffrement `server` retiré, `exploitation` ajouté ;
+    # `commitment` remplacé par `recipient` ; emplacements des sauvegardes
+    # dans le stockage ; `signers` des paramètres, `server`, `manifest`,
+    # `signature`, `signing_key`, `capsule` et `kept` du résultat, D-CHF-021).
+    API_VERSION = "3.0.0"
 
     # Mode de validation d'une opération sensible (`instance.delete`,
     # `instance.admin_invite`) : `single`, une personne qui a confirmé seule

@@ -80,9 +80,22 @@ module PartiduoAgent
     # l'administration, qui l'envoie (D-ADM-009).
     property mail_command : String = ""
     property mail_from : String = ""
-    # Clé du serveur des sauvegardes chiffrées (D-CHF-003) : vide, le
-    # fichier `backup-server.key` de `state_dir`.
-    property server_key_file : String = ""
+    # Nom de ce serveur (celui de l'administration) : répertoire des
+    # sauvegardes qu'il prend dans le stockage, signataire de leurs
+    # manifestes (D-CHF-018, D-CHF-024). Vide : nom court de la machine.
+    property server_name : String = ""
+    # Stockage des sauvegardes hors du serveur (D-CHF-024) : commande, sans
+    # shell, qui parle le protocole de `partiduo-agent store-serve` (en
+    # production, `ssh` vers le serveur de sauvegarde ; obligatoire) ; vide,
+    # le répertoire `store_dir` de la machine (développement).
+    property store_command : String = ""
+    property store_dir : String = ""
+    # Clés publiques d'exploitation (`age1pq1…`, une par ligne, D-CHF-015)
+    # et clé de signature Ed25519 du serveur (D-CHF-018), posées par beryl en
+    # production ; ailleurs, dans `state_dir` (la clé de signature y est
+    # créée au premier usage).
+    property recipients_file : String = ""
+    property signing_key_file : String = ""
     property poll_interval : Time::Span = 15.seconds
     property once : Bool = false
     # À blanc : fait échouer la première opération dont le nom contient
@@ -116,8 +129,19 @@ module PartiduoAgent
           config.mail_command = value
         end
         parser.on("--mail-from ADRESSE", "expéditeur des invitations remises par le serveur") { |value| config.mail_from = value }
-        parser.on("--server-key FICHIER", "clé du serveur des sauvegardes chiffrées (défaut : <state-dir>/backup-server.key)") do |value|
-          config.server_key_file = value
+        parser.on("--server-name NOM", "nom de ce serveur dans l'administration (défaut : nom court de la machine)") do |value|
+          config.server_name = value
+        end
+        parser.on("--store-command COMMANDE", "stockage des sauvegardes hors du serveur " \
+                                              "(ex. « /usr/bin/ssh -T partiduo-store@quantas »)") do |value|
+          config.store_command = value
+        end
+        parser.on("--store-dir RÉP", "hors production : stockage dans un répertoire de la machine") { |value| config.store_dir = value }
+        parser.on("--recipients FICHIER", "clés publiques d'exploitation (défaut en production : #{ETC}/exploitation.recipients)") do |value|
+          config.recipients_file = value
+        end
+        parser.on("--signing-key FICHIER", "clé de signature Ed25519 du serveur (défaut en production : #{ETC}/backup-signing.key)") do |value|
+          config.signing_key_file = value
         end
         parser.on("--poll SECONDES", "intervalle d'interrogation") { |value| config.poll_interval = value.to_i.seconds }
         parser.on("--once", "traite au plus une tâche puis s'arrête") { config.once = true }
@@ -149,6 +173,15 @@ module PartiduoAgent
       raise ArgumentError.new("le mode production exige --domain") if mode.production? && domain.empty?
       validate_fail_on!
       validate_mail!
+      validate_store!
+    end
+
+    # Production : les sauvegardes quittent le serveur (D-CHF-024).
+    private def validate_store! : Nil
+      raise ArgumentError.new("nom de serveur invalide : #{server}") unless Locator.valid_server?(server)
+      return unless mode.production?
+      raise ArgumentError.new("le mode production exige --store-command (sauvegardes hors du serveur)") if store_argv.empty?
+      raise ArgumentError.new("--store-dir est réservé au développement") unless store_dir.empty?
     end
 
     # Remise des invitations par le serveur : expéditeur obligatoire.
@@ -162,8 +195,27 @@ module PartiduoAgent
       raise ArgumentError.new("--fail-on n'est permis qu'à blanc") if fail_on && !mode.dry_run?
     end
 
-    def server_key_path : String
-      server_key_file.presence || File.join(state_dir, "backup-server.key")
+    # Configuration posée par beryl en production.
+    ETC = "/usr/local/etc/partiduo-agent"
+
+    def server : String
+      server_name.presence || ::System.hostname.split('.').first.downcase
+    end
+
+    def store_argv : Array(String)
+      store_command.split(' ', remove_empty: true)
+    end
+
+    def store_path : String
+      store_dir.presence || File.join(state_dir, "store")
+    end
+
+    def recipients_path : String
+      recipients_file.presence || File.join(production? ? ETC : state_dir, "exploitation.recipients")
+    end
+
+    def signing_key_path : String
+      signing_key_file.presence || File.join(production? ? ETC : state_dir, "backup-signing.key")
     end
 
     def local? : Bool

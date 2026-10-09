@@ -5,15 +5,16 @@ require "base64"
 
 module PartiduoAdmin
   # Chiffrement des sauvegardes, réglé dans l'administration (DECISIONS
-  # D-CHF-001 à D-CHF-012) :
+  # D-CHF-001 à D-CHF-024) :
   #
   # [cols="1,3"]
   # |===
   # |Mode |Effet
-  # |`none` |aucun chiffrement (comme avant)
-  # |`server` |clé du serveur : protège les copies hors site ; le serveur restaure seul
-  # |`cabinet` |clé publique du cabinet : le serveur ne peut pas lire les sauvegardes ;
-  #   restauration avec la clé privée de l'admin du cabinet, déchiffrée dans son navigateur
+  # |`none` |aucun chiffrement
+  # |`exploitation` |clé d'exploitation (défaut) : le serveur n'a que des clés publiques ; restauration
+  #   avec la clé de la sauvegarde, sortie de sa capsule sur le poste de l'exploitant
+  # |`cabinet` |clé publique du cabinet : ni le serveur ni l'exploitant ne lisent les sauvegardes ;
+  #   restauration avec la clé privée de l'admin du cabinet, utilisée dans son navigateur
   # |===
   #
   # Réglage du cabinet (valeur par défaut), surchargeable par dossier ; un
@@ -24,7 +25,7 @@ module PartiduoAdmin
   # appartient à l'admin du cabinet seul — l'exploitant du parc ne peut pas
   # affaiblir le choix d'un cabinet (D-CHF-008).
   module BackupEncryption
-    MODES = %w[none server cabinet]
+    MODES = BackupCrypto::MODES
 
     alias Outcome = Fleet::Outcome
 
@@ -121,27 +122,60 @@ module PartiduoAdmin
         return if firm.backup_key?.nil?
         Tasks.any({"mode" => "cabinet", "public_key" => firm.backup_public_key.to_s,
                    "key_fingerprint" => firm.backup_key_fingerprint.to_s})
-      when "server" then Tasks.any({"mode" => "server"})
-      else               Tasks.any({"mode" => "none"})
+      when "exploitation" then Tasks.any({"mode" => "exploitation"})
+      else                     Tasks.any({"mode" => "none"})
       end
     end
 
     # Description de la sauvegarde à lire (`backup_encryption`).
     def self.source(backup : Backup) : JSON::Any
-      Tasks.any({"mode" => backup.encryption_mode.to_s, "key_fingerprint" => backup.key_fingerprint.to_s,
-                 "commitment" => backup.key_commitment.to_s})
+      Tasks.any({"mode" => backup.encryption_mode.to_s, "recipient" => backup.recipient.to_s,
+                 "key_fingerprint" => backup.key_fingerprint.to_s})
     end
 
-    # Clé de données d'une sauvegarde « clé du cabinet », déchiffrée dans le
-    # navigateur de l'admin du cabinet : acceptée si son engagement est celui
-    # de la sauvegarde (une mauvaise clé est refusée tout de suite, sans
-    # tâche). Rend la clé normalisée (base64) ou `nil`.
+    # Clé de sauvegarde remise pour une sauvegarde chiffrée : sortie de sa
+    # capsule sur le poste de l'exploitant (`age -d`) ou dans le navigateur
+    # de l'admin du cabinet. Acceptée si son destinataire est celui de la
+    # sauvegarde (une mauvaise clé est refusée tout de suite, sans tâche).
+    # Rend la clé normalisée ou `nil`.
     def self.accept_data_key(backup : Backup, value : String) : String?
-      return unless backup.cabinet_sealed
-      bytes = Base64.decode(value.strip) rescue return
-      return unless bytes.size == BackupCrypto::KEY_SIZE
-      return unless BackupCrypto.commitment(bytes).hexstring == backup.key_commitment
-      Base64.strict_encode(bytes)
+      return unless backup.sealed
+      identity = value.strip
+      return unless BackupCrypto.valid_identity?(identity)
+      recipient = BackupCrypto.recipient_of(identity) rescue nil
+      return if recipient.nil? || backup.recipient.to_s.empty? || recipient != backup.recipient
+      identity
+    end
+
+    # --- Clés de signature des serveurs (D-CHF-018) ---------------------------
+
+    # Lignes `allowed_signers` du serveur qui a pris la sauvegarde : ses clés,
+    # une clé révoquée ne valant que pour les sauvegardes prises avant.
+    def self.signers(backup : Backup) : Array(String)
+      server = Server.filter(name: backup.origin.to_s).first || return [] of String
+      server.signing_keys.map do |key|
+        BackupCrypto::Signature.allowed_signer(server.name.to_s, key.public_key.to_s, key.revoked_at)
+      end
+    end
+
+    def self.add_signing_key(user : User, server : Server, text : String) : Outcome(SigningKey)
+      return Outcome(SigningKey).failure("base", "admin.errors.forbidden") unless Access.fleet?(user)
+      public_key = BackupCrypto::Signature.normalize(text) || return Outcome(SigningKey).failure("public_key", "admin.errors.signing_key.invalid")
+      fingerprint = BackupCrypto::Signature.fingerprint(public_key)
+      return Outcome(SigningKey).failure("public_key", "admin.errors.signing_key.taken") if SigningKey.filter(fingerprint: fingerprint).exists?
+      key = SigningKey.create!(server: server, public_key: public_key, fingerprint: fingerprint)
+      Audit.log(user, "signing_key.add", target: server, detail: {"fingerprint" => fingerprint})
+      Outcome(SigningKey).new(key)
+    end
+
+    # Révocation (serveur compromis, clé changée) : les sauvegardes prises
+    # après ne sont plus authentifiées par cette clé.
+    def self.revoke_signing_key(user : User, key : SigningKey) : Bool
+      return false unless Access.fleet?(user) && key.revoked_at.nil?
+      key.revoked_at = Config.now
+      key.save!
+      Audit.log(user, "signing_key.revoke", target: key.server!, detail: {"fingerprint" => key.fingerprint.to_s})
+      true
     end
   end
 end

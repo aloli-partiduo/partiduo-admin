@@ -31,6 +31,27 @@ module PartiduoAdmin
     def disk_free_percent : String
       disk_free_ratio.try { |ratio| "#{(ratio * 100).round.to_i} %" } || "—"
     end
+
+    def signing_keys : Array(SigningKey)
+      SigningKey.filter(server_id: pk).order("created_at").to_a
+    end
+  end
+
+  # Clé publique de signature d'un serveur (D-CHF-018) : `ssh-ed25519 …`,
+  # déclarée par le super-admin ; elle authentifie les manifestes des
+  # sauvegardes que ce serveur prend. Révoquée, elle ne vaut plus pour les
+  # sauvegardes prises après `revoked_at`.
+  class SigningKey < Marten::Model
+    field :id, :big_int, primary_key: true, auto: true
+    field :server, :many_to_one, to: PartiduoAdmin::Server, on_delete: :cascade
+    field :public_key, :string, max_size: 255
+    field :fingerprint, :string, max_size: 128, unique: true
+    field :created_at, :date_time, auto_now_add: true
+    field :revoked_at, :date_time, null: true, blank: true
+
+    def revoked : Bool
+      !revoked_at.nil?
+    end
   end
 
   # Dossier (inventaire, ADR-001 D2) : une instance, sa base, son URL. Aucune
@@ -110,7 +131,7 @@ module PartiduoAdmin
     # Chiffrement effectif des prochaines sauvegardes : celui du dossier,
     # sinon celui du cabinet.
     def effective_encryption : String
-      backup_encryption.presence || firm.try(&.backup_encryption) || "server"
+      backup_encryption.presence || firm.try(&.backup_encryption) || "exploitation"
     end
 
     def effective_encryption_key : String
@@ -268,15 +289,23 @@ module PartiduoAdmin
     field :test_restored_at, :date_time, null: true, blank: true
     field :keep_until, :date_time, null: true, blank: true
     field :pruned_at, :date_time, null: true, blank: true
-    # Chiffrement (D-CHF-001) : mode de la sauvegarde, figé à sa prise ;
-    # empreinte de la clé, engagement sur la clé de données et clé de
-    # données enveloppée (déchiffrée dans le navigateur de l'admin du
-    # cabinet pour une restauration).
+    # Chiffrement (D-CHF-013 à D-CHF-019) : mode de la sauvegarde, figé à sa
+    # prise ; destinataire de sa clé de sauvegarde (`age1pq1…`, contrôle
+    # d'une clé remise) ; capsule (base64) qui garde la clé de sauvegarde,
+    # pour les clés d'exploitation (`capsule_keys`, empreintes) ou pour la
+    # clé du cabinet (`key_fingerprint`).
     field :encryption_mode, :string, max_size: 16, default: "none"
     field :key_fingerprint, :string, max_size: 64, blank: true, default: ""
-    field :key_commitment, :string, max_size: 64, blank: true, default: ""
-    field :wrapped_key, :text, blank: true, default: ""
+    field :recipient, :text, blank: true, default: ""
+    field :capsule, :text, blank: true, default: ""
+    field :capsule_keys, :text, blank: true, default: ""
     field :media_sha256, :string, max_size: 64, blank: true, default: ""
+    # Serveur qui l'a prise, manifeste signé par sa clé (D-CHF-018) ;
+    # `path` et `media_path` : emplacements dans le stockage (D-CHF-024).
+    field :origin, :string, max_size: 64, blank: true, default: ""
+    field :manifest, :text, blank: true, default: ""
+    field :manifest_signature, :text, blank: true, default: ""
+    field :signing_key, :string, max_size: 128, blank: true, default: ""
     # Dernière restauration test : `full` (relue) ou `envelope` (clé du
     # cabinet absente : empreinte et enveloppe seulement).
     field :test_check, :string, max_size: 16, blank: true, default: ""
@@ -292,6 +321,25 @@ module PartiduoAdmin
 
     def cabinet_sealed : Bool
       encryption_mode == "cabinet"
+    end
+
+    def exploitation_sealed : Bool
+      encryption_mode == "exploitation"
+    end
+
+    # Chiffrée : sa clé de sauvegarde est exigée pour la relire.
+    def sealed : Bool
+      encryption_mode != "none"
+    end
+
+    # Nom du fichier de la capsule, tel qu'à côté de la sauvegarde.
+    def capsule_name : String
+      stem = File.basename(path.to_s).sub(/\.dump(\.age)?\z/, "")
+      stem + (cabinet_sealed ? ".key.rsa" : ".key.age")
+    end
+
+    def capsule_fingerprints : Array(String)
+      capsule_keys.to_s.split(',', remove_empty: true)
     end
 
     def short_fingerprint : String

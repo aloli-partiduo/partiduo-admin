@@ -206,9 +206,9 @@ module PartiduoAdmin
     end
   end
 
-  # Restauration à une date. Si la sauvegarde retenue est chiffrée par la
-  # clé du cabinet et qu'aucune clé de données n'accompagne la demande, la
-  # page de la clé du cabinet la demande d'abord (D-CHF-005).
+  # Restauration à une date. Si la sauvegarde retenue est chiffrée et
+  # qu'aucune clé de sauvegarde n'accompagne la demande, la page de la clé
+  # la demande d'abord (D-CHF-005, D-CHF-016).
   class DossierRestoreHandler < ScreenHandler
     def post
       dossier = dossier!
@@ -216,7 +216,7 @@ module PartiduoAdmin
       backup_id = field("backup_id").to_i64?
       if date && backup_id.nil? && field("data_key").empty? && Access.can?(user, :restore, dossier)
         backup = Fleet.backup_for(dossier, date)
-        if backup && backup.cabinet_sealed
+        if backup && backup.sealed
           search = URI::Params.encode({"purpose" => "restore", "target" => field("target"), "new_slug" => field("new_slug"),
                                        "date" => field("date")})
           return go("/backups/#{backup.pk}/unlock?#{search}")

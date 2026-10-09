@@ -33,11 +33,14 @@ private def params(slug = "garde", **extra) : Hash(String, JSON::Any)
   base
 end
 
+# `seed` : une sauvegarde en clair du dossier déjà au stockage simulé,
+# dont les paramètres de lecture complètent ceux de la tâche.
 private def run_dry(admin : AdminSpec::FakeAdmin, id : Int64, kind : String, task_params : Hash,
-                    config = admin.config, databases = [] of String) : {JSON::Any, PartiduoAgent::DrySystem}
-  admin.push(id, kind, task_params)
+                    config = admin.config, databases = [] of String, seed : Bool = false) : {JSON::Any, PartiduoAgent::DrySystem}
   runner = PartiduoAgent::Runner.new(config)
   dry = runner.build_system(->(_line : String) { nil }).as(PartiduoAgent::DrySystem)
+  task_params = AdminSpec.seed_dry_backup(dry).merge(task_params) if seed
+  admin.push(id, kind, task_params)
   databases.each { |database| dry.databases << database; dry.provisioned << database }
   runner.run_once.should be_true
   {admin.finished[id], dry}
@@ -223,10 +226,9 @@ describe "partiduo-agent : paquet et restaurations" do
   it "installe une restauration en instance neuve comme une création (D-AFN-009)" do
     with_admin do |admin|
       config = admin.config
-      path = File.join(config.backup_dir, "garde", "b.dump")
-      media = File.join(config.backup_dir, "garde", "b.media.tar.gz")
-      task_params = params(path: path, media_path: media, target: "new", new_slug: "copie", new_host: "copie.partiduo.localhost")
-      report, dry = run_dry(admin, 73_i64, "backup.restore", task_params, config)
+      media = File.join(config.backup_dir, "garde", "#{AdminSpec::DRY_STEM}.media.tar.gz")
+      task_params = params(target: "new", new_slug: "copie", new_host: "copie.partiduo.localhost")
+      report, dry = run_dry(admin, 73_i64, "backup.restore", task_params, config, seed: true)
       report["ok"].as_bool.should be_true
       dry.calls.should contain("partiduo-provision --files-only copie partiduo_adm_copie app")
       dry.packages["copie"].should eq("app")
@@ -244,9 +246,8 @@ describe "partiduo-agent : paquet et restaurations" do
   it "arrête le service avant la sauvegarde de sûreté d'un remplacement" do
     with_admin do |admin|
       config = admin.config
-      path = File.join(config.backup_dir, "garde", "b.dump")
-      report, dry = run_dry(admin, 75_i64, "backup.restore", params(path: path, target: "replace"), config,
-        databases: ["partiduo_adm_garde"])
+      report, dry = run_dry(admin, 75_i64, "backup.restore", params(target: "replace"), config,
+        databases: ["partiduo_adm_garde"], seed: true)
       report["ok"].as_bool.should be_true
       dry.calls.index!("service stop garde").should be < dry.calls.index!(&.starts_with?("pg_dump"))
       dry.calls.index!(&.starts_with?("pg_dump")).should be < dry.calls.index!("dropdb partiduo_adm_garde")

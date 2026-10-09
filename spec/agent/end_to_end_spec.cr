@@ -42,6 +42,7 @@ describe "Exécutant contre l'administration" do
       config.token = token
       config.state_dir = File.join(Dir.tempdir, "partiduo-agent-e2e-#{Random::Secure.hex(4)}")
       config.backup_dir = File.join(config.state_dir, "backups")
+      config.server_name = server.name.to_s
       runner = PartiduoAgent::Runner.new(config)
 
       drain(runner).should eq(1)

@@ -200,8 +200,8 @@ module PartiduoAdmin
       Outcome(Task).new(task)
     end
 
-    # Paramètres de lecture d'une sauvegarde : fichiers, empreintes, mode et
-    # enveloppe (D-CHF-001).
+    # Paramètres de lecture d'une sauvegarde : emplacements dans le stockage,
+    # empreintes, mode et destinataire de sa clé (D-CHF-016).
     private def self.source_params(params : Tasks::Params, backup : Backup) : Nil
       params["backup_id"] = any(backup.pk!.as(Int64))
       params["path"] = any(backup.path)
@@ -209,12 +209,16 @@ module PartiduoAdmin
       params["sha256"] = any(backup.sha256)
       params["media_sha256"] = any(backup.media_sha256) unless backup.media_sha256.to_s.empty?
       params["backup_encryption"] = BackupEncryption.source(backup) unless backup.encryption_mode == "none"
+      # Clés de signature du serveur qui l'a prise : le manifeste est
+      # authentifié avant toute lecture (D-CHF-018).
+      params["signers"] = any(BackupEncryption.signers(backup))
     end
 
-    # Restauration test. Sauvegarde « clé du cabinet » : sans `data_key`,
-    # l'exécutant ne vérifie que l'empreinte et l'enveloppe ; avec la clé de
-    # données déchiffrée dans le navigateur de l'admin du cabinet, il la
-    # relit en entier (D-CHF-007).
+    # Restauration test. Sauvegarde chiffrée : sans `data_key`, l'exécutant
+    # ne vérifie que la signature, les empreintes et la structure ; avec la
+    # clé de la sauvegarde (capsule ouverte par la clé d'exploitation ou
+    # dans le navigateur de l'admin du cabinet), il la relit en entier
+    # (D-CHF-017).
     def self.test_restore(user : User?, backup : Backup, data_key : String = "") : Outcome(Task)
       dossier = backup.dossier!
       if user && !Access.can?(user, :test_restore, dossier)
@@ -247,11 +251,12 @@ module PartiduoAdmin
     # avant, dans une instance neuve (`new`, sous-domaine `new_slug`) ou en
     # remplacement (`replace`, après une sauvegarde de sûreté).
     #
-    # Sauvegarde « clé du cabinet » (D-CHF-005) : `data_key` est la clé de
-    # données que le navigateur de l'admin du cabinet a déchiffrée avec sa
-    # clé privée ; elle est contrôlée ici (engagement), remise une seule
-    # fois à l'exécutant, jamais conservée ni journalisée. `backup_id` fixe
-    # la sauvegarde dont la clé a été déchiffrée.
+    # Sauvegarde chiffrée (D-CHF-005, D-CHF-016) : `data_key` est sa clé de
+    # sauvegarde, sortie de la capsule sur le poste de l'exploitant ou dans
+    # le navigateur de l'admin du cabinet ; elle est contrôlée ici
+    # (destinataire), remise une seule fois à l'exécutant, jamais conservée
+    # ni journalisée. `backup_id` fixe la sauvegarde dont la clé a été
+    # fournie.
     def self.restore(user : User, dossier : Dossier, date : Time, target : String, new_slug : String = "",
                      backup_id : Int64? = nil, data_key : String = "") : Outcome(Task)
       return Outcome(Task).failure("base", "admin.errors.forbidden") unless Access.can?(user, :restore, dossier)
@@ -303,10 +308,10 @@ module PartiduoAdmin
       Backup.filter(id: backup_id, dossier_id: dossier.pk, state__in: %w[done verified]).first
     end
 
-    # Clé de données à remettre (sauvegarde « clé du cabinet ») ou motif du
-    # refus : absente ou fausse.
+    # Clé de sauvegarde à remettre (sauvegarde chiffrée) ou motif du refus :
+    # absente ou fausse.
     private def self.restore_keys(backup : Backup, data_key : String) : {Array(String)?, String?}
-      return {nil, nil} unless backup.cabinet_sealed
+      return {nil, nil} unless backup.sealed
       return {nil, "admin.errors.encryption.key_required"} if data_key.empty?
       accepted = BackupEncryption.accept_data_key(backup, data_key)
       accepted ? {[accepted], nil} : {nil, "admin.errors.encryption.wrong_key"}

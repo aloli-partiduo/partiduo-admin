@@ -32,6 +32,7 @@ Marten.routes.draw do
   path "/dossiers/<id:int>/encryption", PartiduoAdmin::DossierEncryptionHandler, name: "dossier_encryption"
   path "/backups/<id:int>/test", PartiduoAdmin::BackupTestHandler, name: "backup_test"
   path "/backups/<id:int>/unlock", PartiduoAdmin::BackupUnlockHandler, name: "backup_unlock"
+  path "/backups/<id:int>/capsule", PartiduoAdmin::BackupCapsuleHandler, name: "backup_capsule"
   path "/approvals", PartiduoAdmin::ApprovalsHandler, name: "approvals"
   path "/approvals/<id:int>/confirm", PartiduoAdmin::ApprovalConfirmHandler, name: "approval_confirm"
   path "/approvals/<id:int>/<decision:str>", PartiduoAdmin::ApprovalDecisionHandler, name: "approval_decision"
@@ -56,6 +57,8 @@ Marten.routes.draw do
   path "/users/<id:int>/<command:str>", PartiduoAdmin::UserCommandHandler, name: "user_command"
   path "/servers", PartiduoAdmin::ServersHandler, name: "servers"
   path "/servers/<id:int>/rotate", PartiduoAdmin::ServerRotateHandler, name: "server_rotate"
+  path "/servers/<id:int>/signing-keys", PartiduoAdmin::ServerSigningKeyHandler, name: "server_signing_key"
+  path "/servers/<id:int>/signing-keys/<key_id:int>/revoke", PartiduoAdmin::ServerSigningKeyRevokeHandler, name: "server_signing_key_revoke"
 
   # API de l'exécutant (ADR-008 D4).
   path "/api/agent/v1/claim", PartiduoAdmin::AgentClaimHandler, name: "agent_claim"

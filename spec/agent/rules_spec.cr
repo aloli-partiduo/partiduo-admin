@@ -91,10 +91,12 @@ describe "partiduo-agent : garde-fous" do
   it "n'efface aucun fichier hors du répertoire des sauvegardes, même à blanc" do
     with_admin do |admin|
       config = admin.config
-      inside = File.join(config.backup_dir, "garde", "b.dump")
+      inside = File.join(config.backup_dir, "garde", "backup-20260901T000000Z.dump")
       report, runner = run_task(admin, config, 33_i64, "backup.prune", base_params.merge({"paths" => [inside]}))
       report["ok"].as_bool.should be_true
-      dry_calls(runner).should contain("rm #{inside}")
+      dry_calls(runner).should contain("stockage del loulou/garde/backup-20260901T000000Z.dump")
+      report, _ = run_task(admin, config, 37_i64, "backup.prune", base_params.merge({"paths" => [File.join(config.backup_dir, "garde", "b.dump")]}))
+      report["error"].as_s.should contain("fichier de sauvegarde refusé")
 
       %w[/etc/passwd ../../etc/passwd].each_with_index do |path, index|
         outside = path.starts_with?('/') ? path : File.join(config.backup_dir, path)
@@ -111,7 +113,7 @@ describe "partiduo-agent : garde-fous" do
   it "ne relit pas une sauvegarde dont l'empreinte a changé" do
     with_admin do |admin|
       config = admin.config
-      path = File.join(config.backup_dir, "garde", "b.dump")
+      path = "loulou/garde/backup-20260901T000000Z.dump"
       report, runner = run_task(admin, config, 37_i64, "backup.test_restore", base_params.merge({"path" => path, "sha256" => "0" * 64}))
       report["ok"].as_bool.should be_false
       report["error"].as_s.should contain("empreinte")
@@ -122,7 +124,7 @@ describe "partiduo-agent : garde-fous" do
   it "refuse une restauration dans une instance neuve au sous-domaine réservé" do
     with_admin do |admin|
       config = admin.config
-      path = File.join(config.backup_dir, "garde", "b.dump")
+      path = "loulou/garde/backup-20260901T000000Z.dump"
       report, _ = run_task(admin, config, 38_i64, "backup.restore",
         base_params.merge({"path" => path, "target" => "new", "new_slug" => "admin", "new_host" => "admin.partiduo.localhost"}))
       report["ok"].as_bool.should be_false
@@ -158,8 +160,8 @@ describe "partiduo-agent : garde-fous" do
       report["ok"].as_bool.should be_true
       calls = dry_calls(runner)
       calls.index!(&.starts_with?("retrait")).should be < calls.index!(&.starts_with?("dropdb"))
-      calls.index!(&.starts_with?("dropdb")).should be < calls.index!(&.starts_with?("rm"))
-      calls.count(&.starts_with?("rm")).should eq(2)
+      calls.index!(&.starts_with?("dropdb")).should be < calls.index!(&.starts_with?("stockage del"))
+      calls.count(&.starts_with?("stockage del")).should eq(2)
       admin.logs[40_i64].join("\n").should contain("DV-AAAA-BBBB")
     end
   end

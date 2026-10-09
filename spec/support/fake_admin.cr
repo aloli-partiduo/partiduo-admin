@@ -46,6 +46,7 @@ module AdminSpec
       config.state_dir = File.join(Dir.tempdir, "partiduo-agent-spec-#{Random::Secure.hex(4)}")
       config.backup_dir = File.join(config.state_dir, "backups")
       config.work_dir = File.join(config.state_dir, "work")
+      config.server_name = "loulou"
       config.once = true
       config
     end

@@ -1,98 +1,51 @@
 # SPDX-License-Identifier: AGPL-3.0-or-later
 
-require "base64"
 require "../shared/backup_crypto"
 
 module PartiduoAgent
   alias BackupCrypto = PartiduoAdmin::BackupCrypto
 
-  # Clés dont dispose l'exécutant pour une tâche (D-CHF-003, D-CHF-006) :
+  # Clés de sauvegarde dont dispose l'exécutant pour une tâche (D-CHF-014,
+  # D-CHF-016) :
   #
-  # * la clé du serveur (`--server-key`, créée au premier usage, 0600, dans
-  #   l'état de l'exécutant) ;
-  # * les clés de données des sauvegardes que la tâche vient de prendre
-  #   (journal de reprise, clés `secret.*`, effacées à la fin de la tâche) ;
-  # * les clés de données remises par l'administration pour lire une
-  #   sauvegarde chiffrée par la clé du cabinet (déchiffrées dans le
-  #   navigateur de l'admin du cabinet, remises une seule fois, gardées en
-  #   mémoire).
+  # * celles que la tâche vient de tirer (journal de reprise, clés
+  #   `secret.*`, effacées à la fin de la tâche) ;
+  # * celles que l'administration remet pour lire une sauvegarde chiffrée :
+  #   capsule ouverte sur le poste de l'exploitant (clé d'exploitation) ou
+  #   dans le navigateur de l'admin du cabinet (clé du cabinet), remises une
+  #   seule fois, gardées en mémoire.
   #
-  # La clé privée d'un cabinet n'est jamais ici.
+  # Ni la clé privée d'exploitation, ni celle d'un cabinet ne sont jamais
+  # ici : le serveur n'a que des clés publiques.
   class Keyring
     SECRET_PREFIX = "secret."
 
-    @server_key : BackupCrypto::ServerKey?
-    @given : Array(Bytes)
+    @given : Array(String)
+    @recipients = {} of String => String?
 
-    def initialize(@config : Config, @journal : Journal, data_keys : Array(String) = [] of String,
-                   @log : Proc(String, Nil) = ->(_line : String) { nil })
-      @given = data_keys.compact_map { |value| decode(value) }.select { |key| key.size == BackupCrypto::KEY_SIZE }
+    # `resolve` : destinataire d'une clé de sauvegarde (`age-keygen -y`, ou
+    # simulé à blanc).
+    def initialize(@journal : Journal, data_keys : Array(String), @resolve : Proc(String, String?))
+      @given = data_keys.map(&.strip).select { |value| BackupCrypto.valid_identity?(value) }
     end
 
-    # Clé du serveur. À blanc : une clé éphémère, jamais écrite.
-    def server_key : BackupCrypto::ServerKey
-      @server_key ||= begin
-        if @config.mode.dry_run?
-          BackupCrypto::ServerKey.new(BackupCrypto.random_key)
-        else
-          key, created = BackupCrypto::ServerKey.load_or_create(@config.server_key_path)
-          if created
-            @log.call("clé du serveur créée (#{@config.server_key_path}, empreinte #{key.fingerprint[0, 16]}…) : " \
-                      "copiez-la hors du serveur, sans elle les sauvegardes « clé du serveur » sont perdues")
-          end
-          key
-        end
-      end
-    rescue ex : BackupCrypto::Error | File::Error
-      raise StepError.new("clé du serveur : #{ex.message}")
-    end
-
-    # Clés de données connues : remises par l'administration, puis celles du
-    # journal de la tâche.
-    def data_keys : Array(Bytes)
+    # Clés de sauvegarde connues : remises par l'administration, puis celles
+    # du journal de la tâche.
+    def identities : Array(String)
       @given + @journal.values.compact_map do |key, value|
-        decode(value) if key.starts_with?(SECRET_PREFIX)
+        value if key.starts_with?(SECRET_PREFIX) && BackupCrypto.valid_identity?(value)
       end
     end
 
-    private def decode(value : String) : Bytes?
-      Base64.decode(value)
-    rescue Base64::Error
-      nil
+    # Clé de sauvegarde dont le destinataire est `recipient`, ou `nil`.
+    def identity_for(recipient : String) : String?
+      return if recipient.empty?
+      identities.find { |identity| recipient_of(identity) == recipient }
     end
 
-    # Clé de données connue dont l'engagement est `commitment` (hexadécimal).
-    def data_key?(commitment : String) : Bytes?
-      data_keys.find { |key| BackupCrypto.commitment(key).hexstring == commitment }
-    end
-
-    # Clé de données d'un fichier chiffré, d'après son en-tête.
-    def data_key_for(header : BackupCrypto::Header) : Bytes
-      if header.mode == BackupCrypto::SERVER
-        key = server_key
-        unless BackupCrypto.same?(key.id, header.key_id)
-          raise StepError.new("sauvegarde chiffrée par une autre clé du serveur (#{header.key_id.hexstring[0, 16]}…) : " \
-                              "restaurez la clé d'origine avec --server-key", "refused")
-        end
-        return key.unwrap(header.wrapped)
-      end
-      data_key?(header.commitment.hexstring) ||
-        raise StepError.new("sauvegarde chiffrée par la clé du cabinet (#{header.key_id.hexstring[0, 16]}…) : " \
-                            "la restauration exige que l'admin du cabinet fournisse sa clé", "key_required")
-    rescue ex : BackupCrypto::Error
-      raise StepError.new("sauvegarde chiffrée : #{ex.message}", "refused")
-    end
-
-    # Ouvre un fichier chiffré en flux déchiffrant.
-    def open(path : String, & : BackupCrypto::Reader -> T) : T forall T
-      File.open(path, "rb") do |file|
-        header = BackupCrypto::Header.read(file)
-        yield BackupCrypto::Reader.new(file, header, data_key_for(header))
-      end
-    rescue ex : BackupCrypto::Error
-      raise StepError.new("sauvegarde chiffrée #{File.basename(path)} : #{ex.message}", "refused")
-    rescue ex : File::Error
-      raise StepError.new("sauvegarde illisible : #{ex.message}")
+    private def recipient_of(identity : String) : String?
+      return @recipients[identity] if @recipients.has_key?(identity)
+      @recipients[identity] = @resolve.call(identity)
     end
   end
 end

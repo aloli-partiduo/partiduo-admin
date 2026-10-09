@@ -67,9 +67,13 @@ module AdminSpec
     PartiduoAdmin::Auth::Sessions.open(user, level, "spec", now: SPEC_NOW).token
   end
 
+  # Sauvegarde en clair rangée dans le stockage par le serveur du dossier
+  # (`<serveur>/<dossier>/<fichier>`, D-CHF-024).
   def self.backup(dossier : PartiduoAdmin::Dossier, taken_at : Time = SPEC_NOW - 1.day, kind : String = "scheduled") : PartiduoAdmin::Backup
-    PartiduoAdmin::Backup.create!(dossier: dossier, kind: kind, state: "done", path: "/var/backups/partiduo/#{dossier.slug}/b.dump",
-      media_path: "/var/backups/partiduo/#{dossier.slug}/b.media.tar.gz", sha256: "0" * 64, taken_at: taken_at,
+    origin = dossier.server.try(&.name.to_s) || "srv"
+    stem = "#{origin}/#{dossier.slug}/backup-#{taken_at.to_s("%Y%m%dT%H%M%SZ")}"
+    PartiduoAdmin::Backup.create!(dossier: dossier, kind: kind, state: "done", path: "#{stem}.dump",
+      media_path: "#{stem}.media.tar.gz", sha256: "0" * 64, taken_at: taken_at, origin: origin,
       keep_until: taken_at + 30.days, version: dossier.version.to_s)
   end
 end

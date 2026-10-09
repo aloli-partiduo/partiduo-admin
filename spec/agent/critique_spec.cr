@@ -44,7 +44,7 @@ describe "partiduo-agent : sauvegardes d'un autre dossier (D-CRA-001)" do
       cases = [
         {"backup.restore", params(path: other, target: "replace")},
         {"backup.restore", params(path: other, target: "new", new_slug: "copie")},
-        {"backup.restore", params(path: File.join(config.backup_dir, "garde", "b.dump"),
+        {"backup.restore", params(path: File.join(config.backup_dir, "garde", "backup-20260901T000000Z.dump"),
           media_path: File.join(config.backup_dir, "voisin", "m.tar.gz"), target: "replace")},
         {"backup.test_restore", params(path: other)},
         {"instance.restore_archive", params(path: other)},
@@ -59,7 +59,7 @@ describe "partiduo-agent : sauvegardes d'un autre dossier (D-CRA-001)" do
           databases: ["partiduo_adm_garde"])
         report["ok"].as_bool.should be_false
         report["error"].as_s.should contain("du dossier")
-        dry.calls.none? { |call| call.starts_with?("pg_restore") || call.starts_with?("rm") || call.starts_with?("dropdb") }
+        dry.calls.none? { |call| call.starts_with?("pg_restore") || call.starts_with?("stockage") || call.starts_with?("dropdb") }
           .should be_true
       end
     end
@@ -71,7 +71,7 @@ describe "partiduo-agent : sauvegardes d'un autre dossier (D-CRA-001)" do
       own = File.join(config.backup_dir, "garde", "backup-20260901T000000Z.dump")
       report, dry = run_dry(admin, 720_i64, "backup.prune", params(paths: [own]), config)
       report["ok"].as_bool.should be_true
-      dry.calls.should contain("rm #{own}")
+      dry.calls.should contain("stockage del loulou/garde/backup-20260901T000000Z.dump")
     end
   end
 end
@@ -256,7 +256,7 @@ describe "partiduo-agent : durée légale revérifiée par le serveur (D-CRA-007
       report, dry = run_dry(admin, 752_i64, "backup.prune", params(paths: [recent]), config)
       report["ok"].as_bool.should be_false
       report["error"].as_s.should contain("durée légale")
-      dry.calls.none?(&.starts_with?("rm")).should be_true
+      dry.calls.none?(&.starts_with?("stockage del")).should be_true
       old = File.join(config.backup_dir, "garde", "archive-20150101T000000Z.dump")
       run_dry(admin, 753_i64, "backup.prune", params(paths: [old]), config)[0]["ok"].as_bool.should be_true
     end

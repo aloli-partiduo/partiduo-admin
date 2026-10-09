@@ -1,13 +1,13 @@
 # SPDX-License-Identifier: AGPL-3.0-or-later
 
 require "openssl"
-require "openssl/hmac"
+require "json"
 require "digest/sha256"
 require "random/secure"
 require "base64"
 
 # Liaisons de libcrypto (OpenSSL 3) : celles du shard `jose`, déjà présent
-# (AES-GCM, EVP_PKEY), et, en plus, les clés PEM et RSA-OAEP. Préfixe `pd_` :
+# (EVP_PKEY), et, en plus, les clés PEM et RSA-OAEP (clé du cabinet). Préfixe `pd_` :
 # aucun conflit avec la bibliothèque standard ni avec `jose`.
 require "jose/openssl_ext"
 
@@ -31,87 +31,68 @@ lib LibCrypto
 end
 
 module PartiduoAdmin
-  # Chiffrement des sauvegardes (DECISIONS D-CHF-001 à D-CHF-012), partagé par
-  # l'exécutant (chiffre, déchiffre, vérifie) et l'administration (clés
-  # publiques des cabinets, contrôle d'une clé de données).
+  # Chiffrement des sauvegardes (DECISIONS D-CHF-013 à D-CHF-024), partagé
+  # par l'exécutant (chiffre, relit, signe, vérifie) et l'administration
+  # (clés publiques des cabinets, contrôle d'une clé de sauvegarde, clés de
+  # signature des serveurs).
   #
-  # Enveloppe hybride, format 1 (README, « Format de l'enveloppe ») :
-  #
-  # * une *clé de données* aléatoire de 32 octets par sauvegarde (base et
-  #   pièces jointes), enveloppée soit par la clé du serveur (AES-256-GCM),
-  #   soit par la clé publique du cabinet (RSA-OAEP, SHA-256) ;
-  # * par fichier, une clé de fichier dérivée par HKDF-SHA256 (sel aléatoire
-  #   de l'en-tête) ;
-  # * le contenu en segments de 64 Kio chiffrés par AES-256-GCM (nonce :
-  #   compteur de 11 octets et drapeau « dernier segment »), l'en-tête entier
-  #   en données associées : tout octet modifié, tout segment déplacé, retiré
-  #   ou ajouté fait échouer la lecture.
+  # * Fichiers au format `age` (C2SP `age-encryption.org/v1`), écrits et lus
+  #   par l'outil `age` 1.3 ou suivant (port `security/age`), lancé comme
+  #   filtre : aucune primitive de chiffrement du contenu n'est écrite ici.
+  # * Une *clé de sauvegarde* par sauvegarde : identité `age` éphémère et
+  #   post-quantique (`age-keygen -pq`, `AGE-SECRET-KEY-PQ-1…`) ; ses fichiers
+  #   sont chiffrés pour son destinataire (`age1pq1…`).
+  # * Une *capsule* garde la clé de sauvegarde : fichier `age` pour les clés
+  #   d'exploitation (`….key.age`), ou RSA-OAEP pour la clé du cabinet
+  #   (`….key.rsa`). Une rotation ne réécrit que des capsules.
+  # * Un *manifeste* texte, signé par la clé Ed25519 du serveur au format
+  #   `sshsig` (`ssh-keygen -Y sign -n partiduo-backup`), nomme le serveur,
+  #   le dossier, le destinataire et l'empreinte de chaque fichier.
   module BackupCrypto
-    # Enveloppe illisible, altérée, tronquée, ou mauvaise clé.
+    # Sauvegarde, clé ou signature illisible, altérée ou refusée.
     class Error < Exception
     end
 
-    MAGIC   = "PDUOBAK".to_slice
-    VERSION = 1_u8
+    EXTENSION    = ".age"
+    CAPSULE_AGE  = ".key.age"
+    CAPSULE_RSA  = ".key.rsa"
+    MANIFEST     = ".manifest"
+    SIGNATURE    = ".manifest.sig"
+    NAMESPACE    = "partiduo-backup"
+    FORMAT       = "partiduo-backup/2"
+    MIN_RSA_BITS = 3072
+    STANZA       = "mlkem768x25519"
 
-    # Modes d'enveloppe de la clé de données.
-    SERVER  = 1_u8
-    CABINET = 2_u8
+    # Alphabet de bech32 (minuscules) : identités et destinataires `age`.
+    BECH32 = "qpzry9x8gf2tvdw0s3jn54khce6mua7l"
 
-    KEY_SIZE      =     32
-    NONCE_SIZE    =     12
-    TAG_SIZE      =     16
-    CHUNK_SIZE    = 65_536
-    MAX_CHUNK     = 16 * 1024 * 1024
-    MAX_WRAPPED   = 1024
-    MIN_RSA_BITS  = 3072
-    HEADER_FIXED  = 7 + 1 + 1 + 4 + 32 + 32 + 32 + 2
-    EXTENSION     = ".enc"
-    INFO_DATA     = "partiduo-backup/1 data"
-    INFO_COMMIT   = "partiduo-backup/1 commitment"
-    INFO_WRAP     = "partiduo-backup/1 wrap"
-    INFO_SERVERID = "partiduo-backup/1 server-key-id"
+    # Identité post-quantique (clé de sauvegarde) et son destinataire.
+    IDENTITY  = /\AAGE-SECRET-KEY-PQ-1[#{BECH32.upcase}]{20,}\z/
+    RECIPIENT = /\Aage1pq1[#{BECH32}]{20,}\z/
 
-    # --- Primitives ------------------------------------------------------------
+    # Modes de chiffrement d'une sauvegarde.
+    MODES = %w[none exploitation cabinet]
 
-    def self.random_key : Bytes
-      Random::Secure.random_bytes(KEY_SIZE)
+    def self.valid_identity?(value : String) : Bool
+      IDENTITY.matches?(value)
     end
 
-    def self.hmac(key : Bytes, data : String | Bytes) : Bytes
-      OpenSSL::HMAC.digest(:sha256, key, data)
+    def self.valid_recipient?(value : String) : Bool
+      RECIPIENT.matches?(value)
     end
 
-    # HKDF-SHA256 (RFC 5869) pour une sortie de 32 octets : un seul bloc.
-    def self.hkdf(ikm : Bytes, salt : Bytes, info : String) : Bytes
-      prk = hmac(salt, ikm)
-      block = IO::Memory.new
-      block.write(info.to_slice)
-      block.write_byte(1_u8)
-      hmac(prk, block.to_slice)
-    end
-
-    # Engagement sur la clé de données : permet de reconnaître la bonne clé
-    # (et de refuser une mauvaise) sans rien révéler d'elle.
-    def self.commitment(data_key : Bytes) : Bytes
-      hmac(data_key, INFO_COMMIT)
-    end
-
-    def self.sha256(data : Bytes) : Bytes
+    def self.sha256(data : String | Bytes) : Bytes
       Digest::SHA256.digest(data)
     end
 
-    def self.hex(bytes : Bytes) : String
-      bytes.hexstring
-    end
-
-    def self.unhex(value : String) : Bytes?
-      value.hexbytes? if value.size.even?
-    end
-
-    # Empreinte présentée à l'écran : 64 chiffres hexadécimaux par groupes de 4.
+    # Empreinte présentée à l'écran : chiffres hexadécimaux par groupes de 4.
     def self.display_fingerprint(hex : String) : String
       hex.scan(/.{1,4}/).map(&.[0]).join(' ')
+    end
+
+    # Empreinte d'une clé d'exploitation : SHA-256 de son destinataire.
+    def self.recipient_fingerprint(recipient : String) : String
+      sha256(recipient).hexstring
     end
 
     # Égalité en temps constant.
@@ -122,141 +103,100 @@ module PartiduoAdmin
       diff == 0
     end
 
-    # AES-256-GCM en un appel : rend le chiffré suivi de l'étiquette (16 octets).
-    def self.gcm_seal(key : Bytes, nonce : Bytes, aad : Bytes, plain : Bytes) : Bytes
-      Gcm.new(key).seal(nonce, aad, plain)
-    end
+    # --- Outils -------------------------------------------------------------------
 
-    # Rend le clair, ou lève `Error` si l'étiquette ne correspond pas.
-    def self.gcm_open(key : Bytes, nonce : Bytes, aad : Bytes, sealed : Bytes) : Bytes
-      Gcm.new(key).open(nonce, aad, sealed)
-    end
-
-    # Contexte AES-256-GCM réutilisable (un par fichier).
-    class Gcm
-      def initialize(@key : Bytes)
-        raise Error.new("clé AES-256 de #{@key.size} octets") unless @key.size == KEY_SIZE
-        @ctx = LibCrypto.evp_cipher_ctx_new
-      end
-
-      def finalize
-        LibCrypto.evp_cipher_ctx_free(@ctx)
-      end
-
-      def seal(nonce : Bytes, aad : Bytes, plain : Bytes) : Bytes
-        output = Bytes.new(plain.size + TAG_SIZE)
-        init(nonce, 1)
-        feed_aad(aad)
-        length = 0
-        unless plain.empty?
-          check LibCrypto.evp_cipherupdate(@ctx, output.to_unsafe, pointerof(length), plain.to_unsafe, plain.size)
-        end
-        final = 0
-        check LibCrypto.evp_cipherfinal_ex(@ctx, output.to_unsafe + length, pointerof(final))
-        check LibCrypto.evp_cipher_ctx_ctrl(@ctx, LibCrypto::EVP_CTRL_GCM_GET_TAG, TAG_SIZE, (output.to_unsafe + plain.size).as(Void*))
-        output
-      end
-
-      def open(nonce : Bytes, aad : Bytes, sealed : Bytes) : Bytes
-        raise Error.new("segment trop court") if sealed.size < TAG_SIZE
-        body = sealed[0, sealed.size - TAG_SIZE]
-        tag = sealed[sealed.size - TAG_SIZE, TAG_SIZE].dup
-        output = Bytes.new(body.size)
-        init(nonce, 0)
-        feed_aad(aad)
-        length = 0
-        unless body.empty?
-          check LibCrypto.evp_cipherupdate(@ctx, output.to_unsafe, pointerof(length), body.to_unsafe, body.size)
-        end
-        check LibCrypto.evp_cipher_ctx_ctrl(@ctx, LibCrypto::EVP_CTRL_GCM_SET_TAG, TAG_SIZE, tag.to_unsafe.as(Void*))
-        final = 0
-        if LibCrypto.evp_cipherfinal_ex(@ctx, output.to_unsafe + length, pointerof(final)) != 1
-          LibCrypto.pd_err_clear_error
-          raise Error.new("enveloppe altérée : authentification refusée")
-        end
-        output
-      end
-
-      private def init(nonce : Bytes, encrypt : Int32) : Nil
-        raise Error.new("nonce de #{nonce.size} octets") unless nonce.size == NONCE_SIZE
-        check LibCrypto.evp_cipherinit_ex(@ctx, LibCrypto.evp_aes_256_gcm, nil, nil, nil, encrypt)
-        check LibCrypto.evp_cipher_ctx_ctrl(@ctx, LibCrypto::EVP_CTRL_GCM_SET_IVLEN, NONCE_SIZE, Pointer(Void).null)
-        check LibCrypto.evp_cipherinit_ex(@ctx, Pointer(Void).null.as(LibCrypto::EVP_CIPHER), nil, @key.to_unsafe, nonce.to_unsafe, encrypt)
-      end
-
-      private def feed_aad(aad : Bytes) : Nil
-        return if aad.empty?
-        length = 0
-        check LibCrypto.evp_cipherupdate(@ctx, Pointer(UInt8).null, pointerof(length), aad.to_unsafe, aad.size)
-      end
-
-      private def check(code : Int32) : Nil
-        return if code == 1
-        LibCrypto.pd_err_clear_error
-        raise Error.new("AES-256-GCM : erreur d'OpenSSL")
+    # Chemin d'un outil : celui des paquets FreeBSD (`/usr/local/bin`), du
+    # système de base (`/usr/bin`), sinon celui du PATH. Un démon lancé par
+    # rc(8) n'a pas `/usr/local/bin` dans son PATH.
+    def self.tool(name : String) : String
+      @@tools[name] ||= begin
+        ["/usr/local/bin/#{name}", "/usr/bin/#{name}"].find { |path| File::Info.executable?(path) } ||
+        Process.find_executable(name) || name
       end
     end
 
-    # --- Clés --------------------------------------------------------------------
+    @@tools = {} of String => String
 
-    # Clé du serveur : 32 octets aléatoires, dans l'état de l'exécutant
-    # (jamais sous le répertoire des sauvegardes ni dans l'administration).
-    # Protège les copies hors site ; le serveur restaure seul.
-    class ServerKey
-      getter key : Bytes
+    # Lance un outil sans shell : rend le code de sortie, la sortie et la
+    # sortie d'erreur. `input` : entrée standard (jamais un argument : une
+    # clé n'apparaît pas dans la liste des processus).
+    def self.run(name : String, args : Array(String), input : String | Bytes? = nil) : {Int32, Bytes, String}
+      output = IO::Memory.new
+      error = IO::Memory.new
+      stdin = input ? IO::Memory.new(input.is_a?(String) ? input.to_slice : input) : Process::Redirect::Close
+      status = Process.run(tool(name), args, input: stdin, output: output, error: error)
+      {status.exit_code, output.to_slice, error.to_s}
+    rescue ex : File::NotFoundError | IO::Error
+      raise Error.new("#{name} introuvable ou en échec : #{ex.message}")
+    end
 
-      def initialize(@key : Bytes)
-        raise Error.new("clé du serveur de #{@key.size} octets (32 attendus)") unless @key.size == KEY_SIZE
+    def self.run!(name : String, args : Array(String), input : String | Bytes? = nil) : Bytes
+      code, output, errors = run(name, args, input)
+      raise Error.new("#{name} (code #{code}) : #{errors.strip.lines.first?}") unless code == 0
+      output
+    end
+
+    # --- Clés de sauvegarde (D-CHF-014) ------------------------------------------
+
+    record Ephemeral, identity : String, recipient : String
+
+    # Nouvelle clé de sauvegarde, post-quantique : jamais écrite sur le disque
+    # par l'outil (sortie standard).
+    def self.keygen : Ephemeral
+      text = String.new(run!("age-keygen", ["-pq"]))
+      identity = text.lines.find(&.starts_with?("AGE-SECRET-KEY-PQ-1")) || raise Error.new("age-keygen : identité absente")
+      recipient = recipient_of(identity) || raise Error.new("age-keygen : destinataire illisible")
+      Ephemeral.new(identity, recipient)
+    end
+
+    # Destinataire d'une identité (`age-keygen -y`) ; `nil` si ce n'est pas
+    # une identité post-quantique valide.
+    def self.recipient_of(identity : String) : String?
+      value = identity.strip
+      return unless valid_identity?(value)
+      code, output, _ = run("age-keygen", ["-y"], "#{value}\n")
+      return unless code == 0
+      recipient = String.new(output).strip
+      valid_recipient?(recipient) ? recipient : nil
+    end
+
+    # Capsule d'exploitation : la clé de sauvegarde chiffrée par `age` pour
+    # les clés d'exploitation (post-quantiques seulement : la spécification
+    # déconseille de les mêler à d'autres types).
+    def self.capsule_for(identity : String, recipients : Array(String)) : Bytes
+      raise Error.new("aucune clé d'exploitation") if recipients.empty?
+      recipients.each do |recipient|
+        raise Error.new("clé d'exploitation refusée (age1pq1… attendue) : #{recipient[0, 20]}…") unless valid_recipient?(recipient)
       end
+      run!("age", recipients.flat_map { |recipient| ["-r", recipient] }, "#{identity}\n")
+    end
 
-      # Fichier : 64 chiffres hexadécimaux (copie hors ligne aisée).
-      def self.load(path : String) : ServerKey
-        bytes = BackupCrypto.unhex(File.read(path).strip) || raise Error.new("clé du serveur illisible : #{path}")
-        new(bytes)
+    # Clés d'exploitation d'un fichier : une par ligne, commentaires `#`.
+    def self.read_recipients(path : String) : Array(String)
+      lines = File.read_lines(path).map(&.strip).reject { |line| line.empty? || line.starts_with?('#') }
+      lines.each do |line|
+        raise Error.new("#{path} : clé d'exploitation refusée (age1pq1… attendue)") unless valid_recipient?(line)
       end
+      raise Error.new("#{path} : aucune clé d'exploitation") if lines.empty?
+      lines.uniq
+    rescue ex : File::Error
+      raise Error.new("clés d'exploitation illisibles : #{ex.message}")
+    end
 
-      # Crée la clé si elle n'existe pas (fichier 0600, création exclusive).
-      # Création exclusive : fichier temporaire puis lien physique, qui
-      # échoue si la clé existe déjà (deux exécutants à la fois).
-      def self.load_or_create(path : String) : {ServerKey, Bool}
-        return {load(path), false} if File.exists?(path)
-        Dir.mkdir_p(File.dirname(path), 0o700)
-        key = BackupCrypto.random_key
-        temporary = "#{path}.#{Random::Secure.hex(6)}.tmp"
-        begin
-          File.write(temporary, "#{key.hexstring}\n", perm: 0o600)
-          File.link(temporary, path)
-          {new(key), true}
-        rescue File::AlreadyExistsError
-          {load(path), false}
-        ensure
-          File.delete(temporary) if File.exists?(temporary)
-        end
+    # Structure d'un fichier `age` sans clé (`age-inspect`) : format v1,
+    # post-quantique, un seul destinataire de type `mlkem768x25519` (la clé
+    # de sauvegarde). N'authentifie pas le contenu : seule la clé le peut.
+    def self.check_structure(path : String) : JSON::Any
+      info = JSON.parse(String.new(run!("age-inspect", ["--json", path])))
+      unless info["version"]?.try(&.as_s?) == "age-encryption.org/v1"
+        raise Error.new("#{File.basename(path)} : ce n'est pas un fichier age")
       end
-
-      # Identifiant public de la clé (HMAC, ne révèle rien d'elle).
-      def id : Bytes
-        BackupCrypto.hmac(key, INFO_SERVERID)
+      unless info["postquantum"]?.try(&.as_s?) == "yes" && info["stanza_types"]?.try(&.as_a?).try(&.map(&.as_s?)) == [STANZA]
+        raise Error.new("#{File.basename(path)} : destinataire inattendu (une clé de sauvegarde post-quantique attendue)")
       end
-
-      def fingerprint : String
-        id.hexstring
-      end
-
-      def wrap(data_key : Bytes) : Bytes
-        nonce = Random::Secure.random_bytes(NONCE_SIZE)
-        io = IO::Memory.new
-        io.write(nonce)
-        io.write(BackupCrypto.gcm_seal(key, nonce, INFO_WRAP.to_slice, data_key))
-        io.to_slice
-      end
-
-      def unwrap(wrapped : Bytes) : Bytes
-        raise Error.new("clé de données enveloppée illisible") unless wrapped.size == NONCE_SIZE + KEY_SIZE + TAG_SIZE
-        BackupCrypto.gcm_open(key, wrapped[0, NONCE_SIZE], INFO_WRAP.to_slice, wrapped[NONCE_SIZE..])
-      rescue ex : Error
-        raise Error.new("mauvaise clé du serveur : #{ex.message}")
-      end
+      info
+    rescue ex : JSON::ParseException
+      raise Error.new("age-inspect illisible : #{ex.message}")
     end
 
     # Rappel de mot de passe pour les PEM chiffrés : la phrase de passe est
@@ -307,9 +247,9 @@ module PartiduoAdmin
         "-----BEGIN PUBLIC KEY-----\n#{body}\n-----END PUBLIC KEY-----\n"
       end
 
-      def wrap(data_key : Bytes) : Bytes
+      def wrap(secret : Bytes) : Bytes
         pkey = BackupCrypto.read_pem(pem, secret: false, passphrase: "")
-        BackupCrypto.rsa_oaep(pkey, data_key, encrypt: true)
+        BackupCrypto.rsa_oaep(pkey, secret, encrypt: true)
       ensure
         LibCrypto.evp_pkey_free(pkey) if pkey
       end
@@ -406,268 +346,183 @@ module PartiduoAdmin
       end
     end
 
-    # --- En-tête -----------------------------------------------------------------
-
-    # En-tête d'un fichier chiffré (format 1), entièrement authentifié comme
-    # données associées de chaque segment.
-    record Header, mode : UInt8, chunk_size : Int32, key_id : Bytes, salt : Bytes, commitment : Bytes,
-      wrapped : Bytes do
-      def to_slice : Bytes
-        io = IO::Memory.new
-        io.write(MAGIC)
-        io.write_byte(VERSION)
-        io.write_byte(mode)
-        io.write_bytes(chunk_size.to_u32, IO::ByteFormat::BigEndian)
-        io.write(key_id)
-        io.write(salt)
-        io.write(commitment)
-        io.write_bytes(wrapped.size.to_u16, IO::ByteFormat::BigEndian)
-        io.write(wrapped)
-        io.to_slice
-      end
-
-      def size : Int32
-        HEADER_FIXED + wrapped.size
-      end
-
-      def mode_name : String
-        mode == SERVER ? "server" : "cabinet"
-      end
-
-      def self.read(io : IO) : Header
-        fixed = Bytes.new(HEADER_FIXED)
-        raise Error.new("enveloppe illisible : en-tête tronqué") unless BackupCrypto.read_full(io, fixed) == HEADER_FIXED
-        raise Error.new("enveloppe illisible : ce n'est pas une sauvegarde chiffrée de Partiduo") unless fixed[0, 7] == MAGIC
-        raise Error.new("enveloppe illisible : format #{fixed[7]} inconnu") unless fixed[7] == VERSION
-        mode = fixed[8]
-        raise Error.new("enveloppe illisible : mode #{mode} inconnu") unless mode == SERVER || mode == CABINET
-        chunk = IO::ByteFormat::BigEndian.decode(UInt32, fixed[9, 4]).to_i64
-        raise Error.new("enveloppe illisible : segments de #{chunk} octets") unless (1024..MAX_CHUNK).includes?(chunk)
-        length = IO::ByteFormat::BigEndian.decode(UInt16, fixed[109, 2]).to_i
-        raise Error.new("enveloppe illisible : clé enveloppée de #{length} octets") unless (1..MAX_WRAPPED).includes?(length)
-        wrapped = Bytes.new(length)
-        raise Error.new("enveloppe illisible : en-tête tronqué") unless BackupCrypto.read_full(io, wrapped) == length
-        new(mode, chunk.to_i32, fixed[13, 32].dup, fixed[45, 32].dup, fixed[77, 32].dup, wrapped)
-      end
+    # Capsule du cabinet : la clé de sauvegarde (texte) chiffrée par RSA-OAEP
+    # pour la clé publique du cabinet ; `openssl pkeyutl -decrypt` l'ouvre.
+    def self.capsule_for_cabinet(identity : String, key : PublicKey) : Bytes
+      key.wrap(identity.to_slice)
     end
 
-    # Lit jusqu'à remplir `buffer` ou atteindre la fin ; rend le nombre lu.
-    def self.read_full(io : IO, buffer : Bytes) : Int32
-      total = 0
-      while total < buffer.size
-        count = io.read(buffer[total..])
-        break if count == 0
-        total += count
-      end
-      total
+    def self.open_cabinet_capsule(capsule : Bytes, key : PrivateKey) : String
+      identity = String.new(key.unwrap(capsule)).strip
+      raise Error.new("capsule ouverte, mais sans clé de sauvegarde") unless valid_identity?(identity)
+      identity
     end
 
-    def self.nonce(index : UInt64, final : Bool) : Bytes
-      nonce = Bytes.new(NONCE_SIZE)
-      value = index
-      10.downto(3) do |position|
-        nonce[position] = (value & 0xff).to_u8
-        value >>= 8
-      end
-      nonce[11] = final ? 1_u8 : 0_u8
-      nonce
-    end
+    # --- Manifeste (D-CHF-018) ----------------------------------------------------
 
-    # --- Scellement d'une sauvegarde --------------------------------------------
+    # Fichier d'une sauvegarde : nom, taille, SHA-256 (tels que conservés).
+    record Entry, name : String, size : Int64, sha256 : String
 
-    # Clé de données d'une sauvegarde et son enveloppe : chaque fichier de la
-    # sauvegarde (base, pièces jointes) en reçoit une copie de l'en-tête, avec
-    # son propre sel.
-    class Sealer
-      getter mode : UInt8
-      getter key_id : Bytes
-      getter wrapped : Bytes
-      getter data_key : Bytes
+    # Manifeste d'une sauvegarde, texte ligne à ligne, signé par le serveur
+    # qui l'a prise. La capsule n'y est pas : elle peut être re-chiffrée
+    # (rotation) ; son contenu se contrôle par `recipient`.
+    class Manifest
+      getter server : String
+      getter dossier : String
+      getter backup : String
+      getter taken_at : Time
+      getter mode : String
+      getter recipient : String
+      getter capsule_keys : Array(String)
+      getter cabinet_key : String
+      getter files : Array(Entry)
 
-      def initialize(@mode : UInt8, @key_id : Bytes, @wrapped : Bytes, @data_key : Bytes)
-      end
-
-      def self.server(key : ServerKey, data_key : Bytes = BackupCrypto.random_key) : Sealer
-        new(SERVER, key.id, key.wrap(data_key), data_key)
+      def initialize(@server : String, @dossier : String, @backup : String, @taken_at : Time, @mode : String,
+                     @recipient : String = "", @capsule_keys = [] of String, @cabinet_key : String = "",
+                     @files = [] of Entry)
       end
 
-      def self.cabinet(key : PublicKey, data_key : Bytes = BackupCrypto.random_key) : Sealer
-        new(CABINET, key.id, key.wrap(data_key), data_key)
+      def to_s(io : IO) : Nil
+        io << FORMAT << '\n'
+        io << "server " << server << '\n'
+        io << "dossier " << dossier << '\n'
+        io << "backup " << backup << '\n'
+        io << "taken_at " << taken_at.to_utc.to_rfc3339 << '\n'
+        io << "mode " << mode << '\n'
+        io << "recipient " << recipient << '\n' unless recipient.empty?
+        capsule_keys.each { |key| io << "capsule-key " << key << '\n' }
+        io << "cabinet-key " << cabinet_key << '\n' unless cabinet_key.empty?
+        files.each { |entry| io << "file " << entry.name << ' ' << entry.size << ' ' << entry.sha256 << '\n' }
       end
 
-      def commitment : Bytes
-        BackupCrypto.commitment(data_key)
+      def file?(name : String) : Entry?
+        files.find { |entry| entry.name == name }
       end
 
-      def mode_name : String
-        mode == SERVER ? "server" : "cabinet"
+      def sealed? : Bool
+        mode != "none"
       end
 
-      def header(chunk_size : Int32 = CHUNK_SIZE) : Header
-        Header.new(mode, chunk_size, key_id, Random::Secure.random_bytes(32), commitment, wrapped)
-      end
+      SINGLE   = %w[server dossier backup taken_at mode recipient cabinet-key]
+      REQUIRED = %w[server dossier backup taken_at mode]
 
-      def writer(io : IO, chunk_size : Int32 = CHUNK_SIZE) : Writer
-        Writer.new(io, header(chunk_size), data_key)
-      end
-
-      # Description transmise à l'administration (jamais la clé de données).
-      def describe : Hash(String, String | Int32)
-        {"format" => VERSION.to_i32, "mode" => mode_name, "key_fingerprint" => key_id.hexstring,
-         "commitment" => commitment.hexstring, "wrapped_key" => Base64.strict_encode(wrapped)}
-      end
-    end
-
-    # Flux chiffrant : `write` accumule, chaque segment plein part chiffré ;
-    # `close` écrit le dernier segment (toujours plus court qu'un segment
-    # plein, vide au besoin) et ferme le flux sous-jacent.
-    class Writer < IO
-      getter header : Header
-      getter plain_bytes = 0_i64
-
-      def initialize(@io : IO, @header : Header, data_key : Bytes)
-        @aad = @header.to_slice
-        @gcm = Gcm.new(BackupCrypto.hkdf(data_key, @header.salt, INFO_DATA))
-        @buffer = Bytes.new(@header.chunk_size)
-        @filled = 0
-        @index = 0_u64
-        @finished = false
-        @io.write(@aad)
-      end
-
-      def read(slice : Bytes) : Int32
-        raise IO::Error.new("flux chiffrant en écriture seule")
-      end
-
-      def write(slice : Bytes) : Nil
-        raise IO::Error.new("flux chiffrant déjà fermé") if @finished
-        offset = 0
-        while offset < slice.size
-          # Segment plein et d'autres octets à venir : il n'est pas le dernier.
-          emit(false) if @filled == @buffer.size
-          count = Math.min(@buffer.size - @filled, slice.size - offset)
-          @buffer[@filled, count].copy_from(slice[offset, count])
-          @filled += count
-          offset += count
+      # Lecture stricte : toute ligne inconnue ou mal formée est refusée.
+      def self.parse(text : String) : Manifest
+        lines = text.lines
+        raise Error.new("manifeste illisible : format inconnu") unless lines.shift? == FORMAT
+        values = {} of String => String
+        keys = [] of String
+        files = [] of Entry
+        lines.each do |line|
+          name, _, value = line.partition(' ')
+          raise Error.new("manifeste illisible : ligne vide") if value.empty?
+          if SINGLE.includes?(name)
+            raise Error.new("manifeste illisible : #{name} en double") if values.has_key?(name)
+            values[name] = value
+          elsif name == "capsule-key"
+            keys << value
+          elsif name == "file"
+            files << entry(line, value)
+          else
+            raise Error.new("manifeste illisible : #{name}")
+          end
         end
-        @plain_bytes += slice.size
+        build(values, keys, files)
       end
 
-      def close : Nil
-        return if @finished
-        emit(false) if @filled == @buffer.size
-        emit(true)
-        @finished = true
-        @io.flush
-        @io.close
+      private def self.entry(line : String, value : String) : Entry
+        parts = value.split(' ')
+        size = parts[1]?.try(&.to_i64?)
+        raise Error.new("manifeste illisible : #{line}") unless parts.size == 3 && size && parts[2].matches?(/\A[0-9a-f]{64}\z/)
+        Entry.new(parts[0], size, parts[2])
       end
 
-      def closed? : Bool
-        @finished
-      end
-
-      private def emit(final : Bool) : Nil
-        @io.write(@gcm.seal(BackupCrypto.nonce(@index, final), @aad, @buffer[0, @filled]))
-        @index += 1
-        @filled = 0
-      end
-    end
-
-    # Flux déchiffrant (`BackupCrypto::Error` explicite : dans une sous-classe
-    # d'`IO`, `Error` serait `IO::Error`) : chaque segment est authentifié avant d'être rendu ;
-    # une enveloppe tronquée, prolongée ou réordonnée lève `Error`.
-    class Reader < IO
-      getter header : Header
-
-      def initialize(@io : IO, @header : Header, data_key : Bytes)
-        unless BackupCrypto.same?(BackupCrypto.commitment(data_key), @header.commitment)
-          raise BackupCrypto::Error.new("mauvaise clé de données pour cette sauvegarde")
+      private def self.build(values : Hash(String, String), keys : Array(String), files : Array(Entry)) : Manifest
+        REQUIRED.each do |required|
+          raise Error.new("manifeste illisible : #{required} absent") unless values.has_key?(required)
         end
-        @aad = @header.to_slice
-        @gcm = Gcm.new(BackupCrypto.hkdf(data_key, @header.salt, INFO_DATA))
-        @segment = Bytes.new(@header.chunk_size + TAG_SIZE)
-        @plain = Bytes.empty
-        @position = 0
-        @index = 0_u64
-        @done = false
-      end
-
-      def read(slice : Bytes) : Int32
-        return 0 if slice.empty?
-        while @position >= @plain.size
-          return 0 if @done
-          next_segment
+        mode = values["mode"]
+        raise Error.new("manifeste illisible : mode #{mode}") unless MODES.includes?(mode)
+        recipient = values["recipient"]? || ""
+        unless (mode == "none") == recipient.empty? && (recipient.empty? || BackupCrypto.valid_recipient?(recipient))
+          raise Error.new("manifeste illisible : destinataire")
         end
-        count = Math.min(slice.size, @plain.size - @position)
-        slice.copy_from(@plain[@position, count])
-        @position += count
-        count
+        taken = Time.parse_rfc3339(values["taken_at"]) rescue raise Error.new("manifeste illisible : date")
+        new(values["server"], values["dossier"], values["backup"], taken, mode, recipient, keys,
+          values["cabinet-key"]? || "", files)
+      end
+    end
+
+    # --- Signature des serveurs (D-CHF-018) : `sshsig`, Ed25519 ----------------------
+
+    module Signature
+      PUBLIC = /\Assh-ed25519 [A-Za-z0-9+\/]+={0,2}\z/
+
+      # Clé publique `ssh-ed25519 AAAA…` (sans commentaire) ; `nil` si ce
+      # n'en est pas une.
+      def self.normalize(line : String) : String?
+        parts = line.strip.split(/\s+/)
+        return unless parts.size >= 2
+        value = "#{parts[0]} #{parts[1]}"
+        return unless PUBLIC.matches?(value)
+        Base64.decode(parts[1])
+        value
+      rescue Base64::Error
+        nil
       end
 
-      def write(slice : Bytes) : Nil
-        raise IO::Error.new("flux déchiffrant en lecture seule")
+      # Empreinte `SHA256:…`, la même que `ssh-keygen -l`.
+      def self.fingerprint(public_line : String) : String
+        blob = Base64.decode(public_line.split(' ')[1])
+        "SHA256:#{Base64.strict_encode(BackupCrypto.sha256(blob)).rstrip('=')}"
       end
 
-      def close : Nil
-        @io.close
+      # Paire Ed25519 sans phrase de passe (hors production : la production
+      # reçoit la sienne de beryl).
+      def self.generate(path : String, comment : String) : Nil
+        Dir.mkdir_p(File.dirname(path), 0o700)
+        BackupCrypto.run!("ssh-keygen", ["-q", "-t", "ed25519", "-N", "", "-C", comment, "-f", path])
       end
 
-      private def next_segment : Nil
-        count = BackupCrypto.read_full(@io, @segment)
-        raise BackupCrypto::Error.new("enveloppe tronquée : segment #{@index} manquant") if count == 0
-        raise BackupCrypto::Error.new("enveloppe tronquée : segment #{@index} incomplet") if count < TAG_SIZE
-        final = count < @segment.size
-        @plain = @gcm.open(BackupCrypto.nonce(@index, final), @aad, @segment[0, count])
-        @position = 0
-        @index += 1
-        if final
-          @done = true
-          raise BackupCrypto::Error.new("enveloppe altérée : octets après le dernier segment") unless @io.read(Bytes.new(1)) == 0
+      def self.public_line(key_path : String) : String
+        pub = "#{key_path}.pub"
+        text = File.exists?(pub) ? File.read(pub) : String.new(BackupCrypto.run!("ssh-keygen", ["-y", "-f", key_path]))
+        normalize(text) || raise Error.new("clé de signature illisible : #{key_path} (Ed25519 attendue)")
+      end
+
+      def self.sign(text : String, key_path : String) : String
+        String.new(BackupCrypto.run!("ssh-keygen", ["-Y", "sign", "-q", "-f", key_path, "-n", NAMESPACE], text))
+      end
+
+      # Ligne `allowed_signers` d'un serveur ; `valid_before` : révocation.
+      def self.allowed_signer(principal : String, public_line : String, valid_before : Time? = nil) : String
+        options = %(namespaces="#{NAMESPACE}")
+        options += %(,valid-before="#{valid_before.to_utc.to_s("%Y%m%d%H%M%SZ")}") if valid_before
+        "#{principal} #{options} #{public_line}"
+      end
+
+      # Vrai si `signature` est celle de `text` par l'une des clés de
+      # `signers` pour `principal`, valable à `at` (date de prise).
+      def self.verify(text : String, signature : String, signers : Array(String), principal : String, at : Time? = nil) : Bool
+        return false if signers.empty? || signature.empty?
+        File.tempfile("partiduo-signers") do |allowed|
+          File.tempfile("partiduo-signature") do |sig|
+            allowed.print(signers.join('\n') + "\n")
+            allowed.flush
+            sig.print(signature)
+            sig.flush
+            args = ["-Y", "verify", "-f", allowed.path, "-I", principal, "-n", NAMESPACE, "-s", sig.path]
+            args << "-Overify-time=#{at.to_utc.to_s("%Y%m%d%H%M%SZ")}" if at
+            code, _, _ = BackupCrypto.run("ssh-keygen", args, text)
+            return code == 0
+          ensure
+            sig.delete
+          end
+        ensure
+          allowed.delete
         end
+        false
       end
-    end
-
-    # --- Fichiers ---------------------------------------------------------------
-
-    def self.sealed_path?(path : String) : Bool
-      path.ends_with?(EXTENSION)
-    end
-
-    def self.read_header(path : String) : Header
-      File.open(path, "rb") { |file| Header.read(file) }
-    rescue ex : File::Error
-      raise Error.new("sauvegarde illisible : #{ex.message}")
-    end
-
-    # Vérification *sans clé* : en-tête bien formé, clé attendue (empreinte),
-    # engagement attendu, découpage en segments cohérent jusqu'au dernier.
-    # N'authentifie pas le contenu : seule la clé le peut.
-    def self.check_structure(path : String, key_fingerprint : String = "", commitment : String = "") : Header
-      header = read_header(path)
-      if !key_fingerprint.empty? && header.key_id.hexstring != key_fingerprint
-        raise Error.new("enveloppe d'une autre clé (#{header.key_id.hexstring[0, 16]}…, attendue #{key_fingerprint[0, 16]}…)")
-      end
-      if !commitment.empty? && header.commitment.hexstring != commitment
-        raise Error.new("enveloppe altérée : engagement de la clé de données inattendu")
-      end
-      body = File.size(path).to_i64 - header.size
-      segment = header.chunk_size.to_i64 + TAG_SIZE
-      raise Error.new("enveloppe tronquée : aucun segment") if body < TAG_SIZE
-      raise Error.new("enveloppe tronquée : dernier segment manquant") if body % segment < TAG_SIZE
-      header
-    end
-
-    # Déchiffre tout le fichier sans rien garder : authentifie chaque segment.
-    def self.verify(path : String, data_key : Bytes) : Int64
-      total = 0_i64
-      File.open(path, "rb") do |file|
-        reader = Reader.new(file, Header.read(file), data_key)
-        buffer = Bytes.new(CHUNK_SIZE)
-        while (count = reader.read(buffer)) > 0
-          total += count
-        end
-      end
-      total
     end
   end
 end

@@ -153,147 +153,218 @@ comme avant. Le demandeur ne peut pas confirmer seul.
 == Sauvegardes et chiffrement
 
 Chaque sauvegarde d'un dossier est un `pg_dump -Fc` de sa base et une
-archive `tar.gz` de ses pièces jointes, avec leurs empreintes SHA-256
-(vérifiées avant toute restauration). Le *chiffrement* est un choix réglé
-dans l'administration (DECISIONS D-CHF-001 à D-CHF-012 de partiduo-app) :
+archive `tar.gz` de ses pièces jointes. Elle est préparée sur le serveur
+qui l'héberge, relue en entier, décrite par un *manifeste signé* par ce
+serveur, puis envoyée au *stockage*, hors du serveur de production
+(`quantas`, lui-même copié sur des NAS) : rien d'elle ne reste sur le
+serveur. Le *chiffrement* est un choix réglé dans l'administration
+(DECISIONS D-CHF-001 à D-CHF-024 de partiduo-app) :
 
 [cols="1,3",options="header"]
 |===
 |Mode |Effet
 
 |Aucun
-|Fichiers en clair (`.dump`, `.media.tar.gz`), comme avant.
+|Fichiers en clair (`.dump`, `.media.tar.gz`) dans le stockage.
 
-|Clé du serveur (défaut)
-|Chiffrés par une clé propre au serveur (`/var/db/partiduo-agent/backup-server.key`,
-0600, créée au premier usage) : les copies hors site sont protégées, le
-serveur restaure seul.
+|Clé d'exploitation (défaut)
+|Fichiers `age` post-quantiques. Le serveur n'a que les clés *publiques*
+d'exploitation : il ne relit pas les sauvegardes passées, pas même les
+siennes, et aucune copie n'est lisible sans une clé privée d'exploitation,
+gardée hors ligne. Restaurer, sur n'importe quel serveur, exige d'ouvrir la
+capsule de la sauvegarde sur le poste de l'exploitant.
 
 |Clé du cabinet
-|Chiffrés pour la clé publique RSA du cabinet : le serveur *ne peut pas*
-les lire. Restaurer (ou faire une restauration test complète) exige que
-l'admin du cabinet fournisse sa clé privée, utilisée dans son navigateur.
+|Fichiers `age` post-quantiques dont la clé est chiffrée pour la clé
+publique RSA du cabinet : ni le serveur, ni l'exploitant ne peuvent les
+lire. Restaurer exige la clé privée de l'admin du cabinet, utilisée dans
+son navigateur.
 |===
 
-* *Réglage* : par cabinet (écran « Chiffrement des sauvegardes » du cabinet,
-  menu de l'admin de cabinet, lien de la liste des cabinets pour le
-  super-admin), surchargeable par dossier (fiche du dossier). Un changement
-  vaut pour les sauvegardes suivantes ; chacune garde son mode, affiché dans
-  la liste avec l'empreinte de la clé. Déposer la clé du cabinet et quitter
-  le mode « clé du cabinet » sont réservés à l'admin du cabinet.
-* *Clé du cabinet* : paire RSA-OAEP de 3072 bits produite *dans le navigateur*
-  de l'admin du cabinet (la clé privée, chiffrée par sa phrase de passe, est
-  téléchargée et n'est jamais envoyée) ou par une commande locale :
+* *Clé de sauvegarde et capsule* (D-CHF-014) : chaque sauvegarde est chiffrée
+  pour une clé `age` tirée pour elle seule (`age-keygen -pq`,
+  `AGE-SECRET-KEY-PQ-1…`), jamais écrite en clair, effacée à la fin de la
+  tâche. Elle est gardée dans une *capsule* : `….key.age`, fichier `age`
+  pour les clés d'exploitation du serveur ; `….key.rsa`, RSA-OAEP
+  (SHA-256) pour la clé du cabinet. La capsule est déposée au stockage à
+  côté des fichiers et gardée par l'administration.
+* *Clés d'exploitation* (D-CHF-015) : paires `age` post-quantiques produites
+  hors ligne, la clé privée chiffrée par une phrase de passe, en deux
+  exemplaires au moins tenus par deux personnes. Seules les clés publiques
+  (`age1pq1…`) vont sur les serveurs, par beryl
+  (`/usr/local/etc/partiduo-agent/exploitation.recipients`, une par ligne).
+  Les clés non post-quantiques sont refusées.
++
+[source,sh]
+----
+age-keygen -pq | age -p > exploitation-2026.age
+age -d exploitation-2026.age | age-keygen -y
+----
++
+La première commande demande la phrase de passe ; la seconde affiche la
+clé publique, à confier à beryl.
+* *Restauration* (D-CHF-016) : la page « Clé de la sauvegarde requise »
+  donne la capsule et la commande à lancer sur le poste de l'exploitant
+  (`age -d -i exploitation-2026.age backup-….key.age`). L'exploitant colle la
+  clé de sauvegarde affichée. L'administration la contrôle (son
+  destinataire est celui de la sauvegarde), la remet une seule fois à
+  l'exécutant, qui la garde en mémoire. Pour la clé du cabinet, la page
+  ouvre la capsule dans le navigateur, la clé privée ne quittant pas la
+  page. Une restauration interrompue est à redemander avec la clé.
+* *Signature* (D-CHF-018) : chaque serveur signe le manifeste de ses
+  sauvegardes avec sa clé Ed25519 (`ssh-keygen -Y sign -n partiduo-backup`,
+  clé `/usr/local/etc/partiduo-agent/backup-signing.key` posée par beryl).
+  Le super-admin déclare la clé publique de chaque serveur (écran
+  « Serveurs ») ; une sauvegarde n'est relue que si la signature de son
+  manifeste est vérifiée par une clé de son serveur d'origine, valable à
+  sa date de prise, et si ses fichiers ont les tailles et empreintes du
+  manifeste et de l'administration (D-CHF-011). Une clé révoquée ne vaut
+  plus pour les sauvegardes prises après sa révocation.
+* *Restauration test* (D-CHF-017) : toute sauvegarde est relue à sa prise
+  (`pg_restore --list`, `tar -t`, après déchiffrement). Ensuite, sans la
+  clé de la sauvegarde : signature, empreintes et structure des fichiers
+  `age` (« enveloppe seule ») ; avec elle (« Tester avec la clé ») :
+  restauration complète dans une base temporaire.
+* *Rotation* (D-CHF-019) : les gros fichiers ne changent jamais ; seules les
+  capsules sont re-chiffrées, avec `age` (B-CHF-003).
++
+[source,sh]
+----
+age -d -i exploitation-2025.age backup-….key.age | age -R nouvelles.recipients > backup-….key.age.nouvelle
+----
++
+Un attaquant qui a déjà copié une sauvegarde et sa capsule, et qui obtient
+la clé privée qui ouvrait cette capsule, lit ce qu'il a copié : aucune
+rotation n'y peut rien.
+* *Réglage* : par cabinet, surchargeable par dossier. Déposer la clé du
+  cabinet et quitter le mode « clé du cabinet » sont réservés à l'admin du
+  cabinet (D-CHF-008). Clé du cabinet : paire RSA-OAEP de 3072 bits produite
+  dans le navigateur de l'admin du cabinet, ou par une commande locale :
 +
 [source,sh]
 ----
 openssl genpkey -algorithm RSA -pkeyopt rsa_keygen_bits:3072 -aes-256-cbc -out cabinet-prive.pem
-openssl pkey -in cabinet-prive.pem -pubout -out cabinet-public.pem   # à déposer
-openssl pkey -pubin -in cabinet-public.pem -outform DER | openssl dgst -sha256   # empreinte affichée
+openssl pkey -in cabinet-prive.pem -pubout -out cabinet-public.pem
+openssl pkey -pubin -in cabinet-public.pem -outform DER | openssl dgst -sha256
 ----
 +
-Seule la clé publique est déposée. Gardez la clé privée et sa phrase de
-passe hors ligne, en deux exemplaires : sans elles, les sauvegardes « clé du
-cabinet » sont illisibles. Une clé remplacée reste nécessaire aux
-sauvegardes qu'elle a chiffrées.
-* *Restauration* d'une sauvegarde « clé du cabinet » : la page « Clé du
-  cabinet requise » lit la clé privée (fichier PEM ou texte, chiffrée ou non)
-  dans le navigateur, vérifie son empreinte, déchiffre la clé de données de
-  *cette* sauvegarde et n'envoie qu'elle. L'administration la contrôle
-  (engagement), la remet une seule fois à l'exécutant, qui la garde en
-  mémoire ; elle n'est ni conservée, ni journalisée. Une restauration
-  interrompue est à redemander avec la clé.
-* *Restauration test* : complète pour « aucun » et « clé du serveur » ; pour
-  « clé du cabinet », l'exécutant vérifie l'empreinte et l'intégrité de
-  l'enveloppe (en-tête, clé attendue, engagement, découpage) et la liste
-  l'indique « enveloppe seule » : le contenu n'est vérifiable qu'avec la clé
-  du cabinet (« Tester avec la clé »).
-* *Clé du serveur* : `partiduo-agent server-key --state-dir /var/db/partiduo-agent`
-  la crée au besoin et affiche son empreinte. Copiez le fichier dans un
-  coffre hors du serveur : sans lui, les sauvegardes « clé du serveur » sont
-  perdues avec le serveur.
+Seule la clé publique (`cabinet-public.pem`) est déposée ; la dernière
+commande affiche son empreinte.
 * *Clair jamais sur le disque* : `pg_dump`, `tar` et `pg_restore` écrivent et
-  lisent par un tube que l'exécutant chiffre ou déchiffre (`-` des gestes
-  `dump`, `restore`, `media-archive`, `media-restore` de l'enveloppe de sudo).
-  Une restauration authentifie d'abord tout le fichier : rien n'est remplacé
+  lisent par un tube relié à `age` (`-` des gestes `dump`, `restore`,
+  `media-archive`, `media-restore` de l'enveloppe de sudo). Une
+  restauration authentifie d'abord tout le fichier : rien n'est remplacé
   par une sauvegarde altérée ou avec une mauvaise clé.
 * *Journal d'audit* : `backup_encryption.firm`, `backup_encryption.dossier`,
-  `backup_key.deposit` (empreinte), `backup.restore` et `backup.test_restore`
-  (mode, clé fournie ou non).
+  `backup_key.deposit`, `backup.restore` et `backup.test_restore` (mode,
+  clé fournie ou non), `backup.capsule` (capsule téléchargée),
+  `signing_key.add` et `signing_key.revoke` ; jamais une clé de sauvegarde.
 
-=== Format de l'enveloppe (format 1)
+=== Stockage hors du serveur
 
-Fichiers `….dump.enc` et `….media.tar.gz.enc`. Une *clé de données*
-aléatoire de 32 octets par sauvegarde, commune à ses deux fichiers ;
-entiers en gros-boutiste.
+Fichiers d'une sauvegarde, sous `<serveur>/<dossier>/` (serveur qui l'a
+prise) :
 
-[cols="1,1,4",options="header"]
+[cols="2,3",options="header"]
 |===
-|Octets |Taille |Contenu
+|Fichier |Contenu
 
-|0 |7 |`PDUOBAK` (ASCII)
-|7 |1 |version du format : `1`
-|8 |1 |mode : `1` clé du serveur, `2` clé du cabinet
-|9 |4 |taille _C_ des segments en clair (65 536)
-|13 |32 |identifiant de la clé : SHA-256 du DER de la clé publique du cabinet
-(`openssl pkey -pubin -outform DER \| openssl dgst -sha256`), ou
-HMAC-SHA256(clé du serveur, `partiduo-backup/1 server-key-id`)
-|45 |32 |sel du fichier (aléatoire)
-|77 |32 |engagement : HMAC-SHA256(clé de données, `partiduo-backup/1 commitment`)
-|109 |2 |longueur _W_ de la clé enveloppée
-|111 |_W_ |clé de données enveloppée : RSA-OAEP (SHA-256, MGF1-SHA-256, sans
-étiquette) pour le cabinet ; nonce (12) ‖ AES-256-GCM(clé du serveur,
-données associées `partiduo-backup/1 wrap`) ‖ étiquette (16) pour le serveur
-|111 + _W_ |… |segments
+|`backup-<horodatage>.dump.age` |base (`pg_dump -Fc`), chiffrée
+|`backup-<horodatage>.media.tar.gz.age` |pièces jointes, chiffrées
+|`backup-<horodatage>.key.age` ou `.key.rsa` |capsule
+|`backup-<horodatage>.manifest` |manifeste (texte)
+|`backup-<horodatage>.manifest.sig` |signature du manifeste (`sshsig`)
 |===
 
-* Clé du fichier : HKDF-SHA256 (RFC 5869) de la clé de données, sel de
-  l'en-tête, information `partiduo-backup/1 data`, 32 octets.
-* Segments : le clair découpé en morceaux de _C_ octets, chacun chiffré par
-  AES-256-GCM (étiquette de 16 octets ajoutée), données associées = l'en-tête
-  entier (octets 0 à 110 + _W_), nonce = numéro du segment sur 11 octets
-  (0, 1, 2…) suivi d'un octet `1` pour le dernier segment, `0` sinon. Le
-  dernier segment est toujours plus court que _C_ (vide si le clair est un
-  multiple de _C_) : une troncature, un ajout, un segment déplacé ou un
-  octet changé fait échouer la lecture.
+Préfixes : `backup-`, `archive-` (archive de fin de vie), `pre-restore-`
+(sauvegarde de sûreté d'une restauration) ; sans chiffrement, ni `.age`
+ni capsule.
 
-=== Restauration hors de Partiduo
-
-Sur un poste qui a la clé privée du cabinet (ou, pour la clé du serveur, le
-fichier `backup-server.key`) :
+L'exécutant joint le stockage par `--store-command`, une commande sans
+shell qui parle le protocole de `partiduo-agent store-serve`. En
+production, c'est `ssh` vers le serveur de sauvegarde, dont
+`authorized_keys` force la commande :
 
 [source,sh]
 ----
-# 1. Avec l'exécutant (binaire libre, sans administration ni réseau)
-partiduo-agent inspect backup-….dump.enc                       # mode, empreinte de la clé
-partiduo-agent decrypt --private-key cabinet-prive.pem backup-….dump.enc backup.dump
-partiduo-agent decrypt --private-key cabinet-prive.pem backup-….media.tar.gz.enc media.tar.gz
-#    (phrase de passe : --passphrase-file F ou PARTIDUO_KEY_PASSPHRASE ;
-#     clé du serveur : --server-key backup-server.key)
+command="/usr/local/bin/partiduo-agent store-serve --root /backups/partiduo --client loulou",restrict ssh-ed25519 AAAA… partiduo-agent@loulou
+----
 
-# 2. Sans Partiduo : openssl pour la clé de données, script Python indépendant
-#    (paquet cryptography) pour le contenu
-scripts/dechiffrer-sauvegarde.py --wrapped-key-out cle.bin backup-….dump.enc
-openssl pkeyutl -decrypt -inkey cabinet-prive.pem -pkeyopt rsa_padding_mode:oaep \
-  -pkeyopt rsa_oaep_md:sha256 -pkeyopt rsa_mgf1_md:sha256 -in cle.bin -out dek.bin
-scripts/dechiffrer-sauvegarde.py --data-key-file dek.bin backup-….dump.enc backup.dump
-#    (ou directement : scripts/dechiffrer-sauvegarde.py --private-key cabinet-prive.pem …)
+Le serveur `loulou` n'écrit que sous `loulou/`, sans jamais écraser un
+fichier, et lit tout (restauration d'une sauvegarde d'un autre serveur).
+Il n'efface que sous `loulou/` ; une archive dans sa durée légale n'est
+jamais effacée (D-CRA-007). L'élagage, par un autre serveur, des
+sauvegardes d'un dossier déplacé les garde (`kept`).
 
-# 3. Puis, comme pour une sauvegarde en clair
+=== Format des fichiers (format 2)
+
+* Base et pièces jointes : fichiers `age` (C2SP `age-encryption.org/v1`),
+  un seul destinataire `mlkem768x25519` (la clé de sauvegarde), segments de
+  64 Kio ChaCha20-Poly1305 authentifiés. `age-inspect --json` en donne la
+  structure.
+* Capsule : `age` (destinataires `mlkem768x25519` des clés d'exploitation)
+  ou RSA-OAEP (SHA-256, MGF1-SHA-256, sans étiquette) de la clé de
+  sauvegarde, en texte.
+* Manifeste :
++
+----
+partiduo-backup/2
+server loulou
+dossier <sous-domaine>
+backup backup-<horodatage>
+taken_at 2026-10-09T10:15:00Z
+mode exploitation
+recipient age1pq1…
+capsule-key <SHA-256 de la clé d'exploitation>
+file backup-<horodatage>.dump.age <taille> <sha256>
+file backup-<horodatage>.media.tar.gz.age <taille> <sha256>
+----
++
+Le cabinet est nommé par `cabinet-key <empreinte>` ; sans chiffrement, ni
+`recipient` ni capsule.
+
+=== Restauration hors de Partiduo
+
+Avec les fichiers d'une sauvegarde (copiés du stockage ou d'un NAS), sans
+administration ni réseau, avec les seuls outils `age`, `openssl` et
+`ssh-keygen` :
+
+[source,sh]
+----
+age -d -i exploitation-2026.age backup-….key.age > backup.key
+age -d -i backup.key -o backup.dump backup-….dump.age
+age -d -i backup.key -o media.tar.gz backup-….media.tar.gz.age
+----
+
+Ces trois commandes valent pour la clé d'exploitation. Pour la clé du
+cabinet, la première commande devient :
+
+[source,sh]
+----
+openssl pkeyutl -decrypt -inkey cabinet-prive.pem -pkeyopt rsa_padding_mode:oaep -pkeyopt rsa_oaep_md:sha256 -pkeyopt rsa_mgf1_md:sha256 -in backup-….key.rsa -out backup.key
+----
+
+Authenticité, avec le fichier `allowed_signers` des clés de signature
+(`<serveur> namespaces="partiduo-backup" ssh-ed25519 AAAA…`) :
+
+[source,sh]
+----
+ssh-keygen -Y verify -f allowed_signers -I loulou -n partiduo-backup -s backup-….manifest.sig < backup-….manifest
+sha256 backup-….dump.age backup-….media.tar.gz.age
+----
+
+La seconde commande donne les empreintes, à comparer à celles du
+manifeste. On restaure ensuite comme une sauvegarde en clair :
+
+[source,sh]
+----
 createdb --encoding=UTF8 dossier_restaure && pg_restore --no-owner -d dossier_restaure backup.dump
 tar -xzf media.tar.gz -C <stockage des pièces jointes>
 ----
 
-`openssl enc` refuse les chiffrements authentifiés (AES-GCM) : la ligne de
-commande `openssl` seule déchiffre la clé de données (étape 2) mais pas le
-contenu. La clé de fichier se calcule aussi en ligne de commande :
-
-[source,sh]
-----
-openssl kdf -keylen 32 -kdfopt digest:SHA256 -kdfopt hexkey:$(xxd -p -c 64 dek.bin) \
-  -kdfopt hexsalt:$(dd if=backup-….dump.enc bs=1 skip=45 count=32 2>/dev/null | xxd -p -c 64) \
-  -kdfopt "info:partiduo-backup/1 data" HKDF
-----
+`partiduo-agent decrypt` (`--key`, ou `--capsule` avec `--identity` ou
+`--private-key`) et `partiduo-agent inspect` (fichier `age`, ou manifeste
+avec `--signers`) font de même.
 
 == Modes de l'exécutant
 
@@ -364,10 +435,20 @@ MARTEN_ENV=development crystal run src/server.cr             # http://127.0.0.1:
 crystal build src/agent.cr -o bin/partiduo-agent
 bin/partiduo-agent --admin-url http://127.0.0.1:8200 --token-file jeton.txt --mode local \
   --manage ../partiduo-app/bin/partiduo-manage --provision ../partiduo-app/bin/partiduo-provision \
-  --pg-socket /tmp --backup-dir /tmp/partiduo-backups --state-dir /tmp/partiduo-agent
+  --pg-socket /tmp --backup-dir /tmp/partiduo-backups --state-dir /tmp/partiduo-agent \
+  --server-name local --store-dir /tmp/partiduo-store
 ----
 
-Specs (base propre, dont le nom contient `test`) :
+Hors production, le stockage est un répertoire (`--store-dir`, défaut
+`<state-dir>/store`), la clé de signature est créée au premier usage dans
+l'état de l'exécutant, et les clés d'exploitation sont lues dans
+`<state-dir>/exploitation.recipients`. `age` 1.3 ou suivant (`age`,
+`age-keygen`, `age-inspect`) et `ssh-keygen` sont requis, par l'exécutant
+comme par l'administration (contrôle d'une clé de sauvegarde remise).
+
+Specs (base propre, dont le nom contient `test`) ; celles du chiffrement et
+du stockage tournent seules, sans base ni réseau
+(`crystal spec spec/agent/backup_crypto_spec.cr`) :
 
 [source,sh]
 ----
@@ -425,7 +506,6 @@ visudo -c   # règles de /usr/local/etc/sudoers.d/partiduo-agent (paquet)
 install -d -o partiduo -g partiduo-agent -m 770 /var/backups/partiduo
 install -d -o partiduo -g partiduo -m 750 /var/db/partiduo-stage
 install -d -o partiduo-agent -g partiduo-agent -m 700 /var/db/partiduo-agent
-su -m partiduo-agent -c 'partiduo-agent server-key --state-dir /var/db/partiduo-agent'   # à copier hors du serveur
 # Rôle PostgreSQL des instances (socket /tmp, authentification peer)
 su -m postgres -c 'createuser --createdb --no-superuser partiduo'
 # nginx lit les vhosts des instances : dans le bloc http de
@@ -434,12 +514,30 @@ su -m postgres -c 'createuser --createdb --no-superuser partiduo'
 install -o partiduo-agent -g partiduo-agent -m 600 jeton.txt /usr/local/etc/partiduo-agent/agent.token
 sysrc partiduo_agent_enable=YES
 sysrc partiduo_agent_flags="--mode production --admin-url https://admin.partiduo.app \
-  --token-file /usr/local/etc/partiduo-agent/agent.token --domain partiduo.app \
+  --token-file /usr/local/etc/partiduo-agent/agent.token --domain partiduo.app --server-name loulou \
+  --store-command '/usr/bin/ssh -T -i /usr/local/etc/partiduo-agent/store.key -o BatchMode=yes partiduo-store@quantas' \
   --mail-command '/usr/sbin/sendmail -oi' --mail-from noreply@partiduo.app"
 service partiduo_agent start
 ----
 
-`--domain` : même valeur que `DOMAIN` de `helpers.conf`. Défauts de
+Posés par la recette beryl `partiduo-agent` (D-CHF-022) : le paquet `age`,
+les clés publiques d'exploitation
+(`/usr/local/etc/partiduo-agent/exploitation.recipients`, 0644), la clé de
+signature du serveur (`backup-signing.key`, 0600, partiduo-agent, et sa
+`.pub`), la clé ssh du stockage (`store.key`, 0600). Ces clés privées sont
+propres à chaque serveur et viennent du coffre de beryl. La clé publique
+de signature est déclarée dans l'administration (écran « Serveurs »).
+La clé privée d'exploitation n'est sur aucun serveur.
+
+Serveur de sauvegarde (`quantas`), après `pkg install partiduo-agent` :
+un compte `partiduo-store`, propriétaire de la racine du stockage, et une
+ligne `authorized_keys` par serveur de production (section « Stockage hors
+du serveur »). Ce serveur n'a aucune clé de chiffrement ; ses copies sur
+les NAS se font telles quelles.
+
+`--domain` : même valeur que `DOMAIN` de `helpers.conf`. `--server-name` :
+nom du serveur dans l'administration. `--store-command` est obligatoire
+en production. Défauts de
 l'exécutant : `--state-dir /var/db/partiduo-agent`, `--backup-dir
 /var/backups/partiduo`, `--pg-socket /tmp`, `--helpers-dir
 /usr/local/libexec/partiduo-agent`. `--mail-command` exige un MTA local
@@ -466,7 +564,8 @@ encore valide n'est pas réémis. Prérequis : acme.sh
 `/usr/local/etc/sudoers.d/acme`, posés par la recette beryl `acme` ;
 l'enveloppe refuse l'installation, avant toute écriture, s'il en manque un.
 
-Serveur de l'administration, après `pkg install partiduo-admin` :
+Serveur de l'administration, après `pkg install partiduo-admin age` (`age-keygen`
+contrôle une clé de sauvegarde remise) :
 
 [source,sh]
 ----

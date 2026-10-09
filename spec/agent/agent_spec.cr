@@ -202,11 +202,14 @@ describe PartiduoAgent::LocalSystem do
     backup = admin.finished[20_i64]
     backup["ok"].as_bool.should be_true, backup.to_json
     path = backup["result"]["path"].as_s
-    File.exists?(path).should be_true
-    File.exists?(backup["result"]["media_path"].as_s).should be_true
+    # Envoyée au stockage (D-CHF-024) : rien ne reste sur le serveur.
+    File.exists?(File.join(config.store_path, path)).should be_true
+    File.exists?(File.join(config.store_path, backup["result"]["media_path"].as_s)).should be_true
+    Dir.glob(File.join(config.backup_dir, "spec-local", "*")).should be_empty
+    signer = AdminSpec.signer(config.server, backup["result"]["signing_key"].as_s)
 
     admin.push(21_i64, "backup.test_restore", params.merge({"path" => path, "media_path" => backup["result"]["media_path"].as_s,
-                                                            "sha256" => backup["result"]["sha256"].as_s}))
+                                                            "sha256" => backup["result"]["sha256"].as_s, "signers" => [signer]}))
     run_one(admin, config)
     report = admin.finished[21_i64]
     report["ok"].as_bool.should be_true

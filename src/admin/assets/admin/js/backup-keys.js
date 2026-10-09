@@ -10,8 +10,9 @@
      collée (la même que `openssl pkey -pubin -outform DER | openssl dgst
      -sha256`) ;
    * [data-pd-unlock] : lit la clé privée (fichier ou texte, chiffrée ou
-     non), vérifie qu'elle est celle de la sauvegarde, déchiffre la clé de
-     données de cette sauvegarde et n'envoie qu'elle (champ `data_key`).
+     non), vérifie qu'elle est celle de la sauvegarde, ouvre la capsule de
+     cette sauvegarde (RSA-OAEP, D-CHF-014) et n'envoie que sa clé de
+     sauvegarde, `AGE-SECRET-KEY-PQ-1…` (champ `data_key`).
 
    La clé privée et la phrase de passe ne quittent jamais la page : leurs
    champs n'ont pas d'attribut `name` et sont vidés avant l'envoi. */
@@ -275,7 +276,7 @@
     show();
   }
 
-  // --- Clé de données d'une sauvegarde (restauration) -------------------------
+  // --- Clé d'une sauvegarde (restauration) ---------------------------------
 
   function readKeyText(form) {
     var file = form.querySelector("[data-pd-key-file]");
@@ -314,9 +315,11 @@
           return privateFingerprint(key);
         }).then(function (hex) {
           if (hex !== form.dataset.fingerprint) throw new Error("wrong");
-          return subtle.decrypt({ name: "RSA-OAEP" }, key, fromBase64(form.dataset.wrapped));
-        }).then(function (dataKey) {
-          field.value = toBase64(new Uint8Array(dataKey));
+          return subtle.decrypt({ name: "RSA-OAEP" }, key, fromBase64(form.dataset.capsule));
+        }).then(function (opened) {
+          var backupKey = new TextDecoder().decode(opened).trim();
+          if (!/^AGE-SECRET-KEY-PQ-1[0-9A-Z]+$/.test(backupKey)) throw new Error("wrong");
+          field.value = backupKey;
           // La clé privée et la phrase de passe ne partent jamais.
           Array.prototype.forEach.call(secrets, function (input) { input.value = ""; });
           form.submit();

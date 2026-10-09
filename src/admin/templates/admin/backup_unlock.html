@@ -1,24 +1,27 @@
-{# SPDX-License-Identifier: AGPL-3.0-or-later. Clé du cabinet requise (DECISIONS D-CHF-005) : la clé privée est lue et utilisée dans ce navigateur (backup-keys.js), jamais envoyée ; seule la clé de données de cette sauvegarde accompagne la demande. #}{% extend "admin/base.html" %}
+{# SPDX-License-Identifier: AGPL-3.0-or-later. Clé de la sauvegarde requise (DECISIONS D-CHF-005, D-CHF-016) : clé du cabinet utilisée dans ce navigateur (backup-keys.js), jamais envoyée ; clé d'exploitation utilisée sur le poste de l'exploitant, jamais ici. Seule la clé de cette sauvegarde accompagne la demande. #}{% extend "admin/base.html" %}
 {% block title %}{% translate "admin.encryption.unlock.title" %}{% endblock title %}
 {% block crumbs %}<li><a href="{% url 'dossiers' %}">{% translate "admin.dossiers.title" %}</a></li><li><a href="{% url 'dossier' id: dossier.id %}">{{ dossier.slug }}</a></li><li>{% translate "admin.encryption.unlock.title" %}</li>{% endblock crumbs %}
 {% block heading %}{% translate "admin.encryption.unlock.title" %}{% endblock heading %}
 {% block content %}
-<script src="{% asset 'admin/js/backup-keys.js' %}" defer></script>
+{% if cabinet %}<script src="{% asset 'admin/js/backup-keys.js' %}" defer></script>{% endif %}
 <section class="pd-panel" aria-labelledby="pd-unlock-backup-title">
   <h2 id="pd-unlock-backup-title">{% translate "admin.encryption.unlock.backup" %}</h2>
-  <p class="mb-3">{% translate "admin.encryption.unlock.intro" %}</p>
+  <p class="mb-3">{% if cabinet %}{% translate "admin.encryption.unlock.intro" %}{% else %}{% translate "admin.encryption.unlock.intro_exploitation" %}{% endif %}</p>
   <dl class="pd-dl">
     <dt>{% translate "admin.encryption.unlock.purpose" %}</dt><dd>{% translate purpose_key %}{% if is_restore %} · {% translate target_key %}{% if new_slug %} <span class="pd-mono">{{ new_slug }}</span>{% endif %}{% endif %}</dd>
     <dt>{% translate "admin.backups.taken_at" %}</dt><dd class="pd-mono">{% if backup.taken_at %}{{ backup.taken_at|time:"%Y-%m-%d %H:%M" }}{% else %}—{% endif %}</dd>
     <dt>{% translate "admin.backups.kind" %}</dt><dd>{% translate backup.kind_key %}</dd>
-    <dt>{% translate "admin.encryption.unlock.required_key" %}</dt><dd class="pd-mono pd-fingerprint">{{ fingerprint }}</dd>
+    <dt>{% translate "admin.backups.origin" %}</dt><dd class="pd-mono">{{ backup.origin }}</dd>
+    {% if cabinet %}<dt>{% translate "admin.encryption.unlock.required_key" %}</dt><dd class="pd-mono pd-fingerprint">{{ fingerprint }}</dd>
+    {% else %}<dt>{% translate "admin.encryption.unlock.capsule_keys" %}</dt><dd class="pd-mono">{{ capsule_keys }}</dd>{% endif %}
   </dl>
-  {% if not firm_key %}<p class="notification is-warning is-light mt-3">{% translate "admin.encryption.unlock.older_key" %}</p>{% endif %}
+  {% if cabinet %}{% if not firm_key %}<p class="notification is-warning is-light mt-3">{% translate "admin.encryption.unlock.older_key" %}</p>{% endif %}{% endif %}
 </section>
 
+{% if cabinet %}
 <form class="pd-panel" method="post" aria-labelledby="pd-unlock-form-title"
   action="{% if is_restore %}{% url 'dossier_restore' id: dossier.id %}{% else %}{% url 'backup_test' id: backup.id %}{% endif %}"
-  data-pd-unlock data-wrapped="{{ backup.wrapped_key }}" data-fingerprint="{{ backup.key_fingerprint }}"
+  data-pd-unlock data-capsule="{{ backup.capsule }}" data-fingerprint="{{ backup.key_fingerprint }}"
   data-msg-working="{% translate 'admin.encryption.js.working' %}" data-msg-bad-key="{% translate 'admin.encryption.js.bad_key' %}"
   data-msg-wrong-key="{% translate 'admin.encryption.js.wrong_key' %}" data-msg-missing="{% translate 'admin.encryption.js.missing_key' %}"
   data-msg-unsupported="{% translate 'admin.encryption.js.unsupported' %}">
@@ -51,4 +54,30 @@
     <a class="button" href="{% url 'dossier' id: dossier.id %}">{% translate "admin.cancel" %}</a>
   </div>
 </form>
+{% else %}
+<form class="pd-panel" method="post" aria-labelledby="pd-unlock-form-title"
+  action="{% if is_restore %}{% url 'dossier_restore' id: dossier.id %}{% else %}{% url 'backup_test' id: backup.id %}{% endif %}">
+  <h2 id="pd-unlock-form-title">{% translate "admin.encryption.unlock.exploitation_title" %}</h2>
+  <ol class="mb-3 pd-steps">
+    <li>{% translate "admin.encryption.unlock.step_download" %} <a class="button is-small" href="{% url 'backup_capsule' id: backup.id %}" download>{{ capsule_name }}</a></li>
+    <li>{% translate "admin.encryption.unlock.step_open" %}<pre class="pd-mono mt-1" tabindex="0">age -d -i exploitation.age {{ capsule_name }}</pre></li>
+    <li>{% translate "admin.encryption.unlock.step_paste" %}</li>
+  </ol>
+  <p class="mb-3">{% translate "admin.encryption.unlock.privacy_exploitation" %}</p>
+  {% csrf_input %}
+  <input type="hidden" name="backup_id" value="{{ backup.id }}">
+  <input type="hidden" name="date" value="{{ date }}">
+  <input type="hidden" name="target" value="{{ target }}">
+  <input type="hidden" name="new_slug" value="{{ new_slug }}">
+  <div class="field">
+    <label class="label" for="pd-unlock-backup-key">{% translate "admin.encryption.unlock.backup_key" %}</label>
+    <div class="control"><input class="input pd-mono" id="pd-unlock-backup-key" name="data_key" type="password" required autocomplete="off" spellcheck="false" placeholder="AGE-SECRET-KEY-PQ-1…" aria-describedby="pd-unlock-backup-key-help"></div>
+    <p class="help" id="pd-unlock-backup-key-help">{% translate "admin.encryption.unlock.backup_key_help" %}</p>
+  </div>
+  <div class="buttons">
+    <button class="button is-primary" type="submit">{% translate "admin.encryption.unlock.submit_exploitation" %}</button>
+    <a class="button" href="{% url 'dossier' id: dossier.id %}">{% translate "admin.cancel" %}</a>
+  </div>
+</form>
+{% endif %}
 {% endblock content %}

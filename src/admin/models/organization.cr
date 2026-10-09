@@ -20,7 +20,7 @@ module PartiduoAdmin
     field :active, :bool, default: true
     # Chiffrement des sauvegardes de ses dossiers (D-CHF-001) : `none`,
     # `server` ou `cabinet` ; valeur par défaut, surchargeable par dossier.
-    field :backup_encryption, :string, max_size: 16, default: "server"
+    field :backup_encryption, :string, max_size: 16, default: "exploitation"
     # Clé publique RSA du cabinet (PEM) et son empreinte SHA-256 ; la clé
     # privée n'est jamais ici (D-CHF-002).
     field :backup_public_key, :text, blank: true, default: ""

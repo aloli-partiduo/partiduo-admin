@@ -9,6 +9,16 @@
   <tbody>{% for server in servers %}<tr><th scope="row">{{ server.name }}</th><td class="pd-mono">{{ server.hostname }}</td><td class="pd-mono">{{ server.domain }}</td><td>{{ server.agent_version|default:"—" }} {{ server.agent_mode }}</td><td>{% if server.last_seen_at %}{{ server.last_seen_at|time:"%Y-%m-%d %H:%M" }}{% else %}—{% endif %}</td><td>{{ server.disk_free_percent }}</td>
     <td><form method="post" action="{% url 'server_rotate' id: server.id %}" hx-boost="true" hx-confirm="{% translate "admin.servers.rotate_confirm" %}">{% csrf_input %}<button class="button is-small" type="submit">{% translate "admin.servers.rotate" %}<span class="is-sr-only"> {{ server.name }}</span></button></form></td></tr>{% endfor %}</tbody>
 </table></div>{% endif %}
+{% if servers %}<section class="pd-panel mt-4" aria-labelledby="pd-signing-title">
+  <h2 id="pd-signing-title" class="title is-6">{% translate "admin.servers.signing_title" %}</h2>
+  <p class="mb-3">{% translate "admin.servers.signing_help" %}</p>
+  {% for server in servers %}<h3 class="title is-6 mt-3">{{ server.name }}</h3>
+  {% if server.signing_keys %}<ul class="mb-2">{% for key in server.signing_keys %}<li><span class="pd-mono">{{ key.fingerprint }}</span> — {% if key.revoked %}{% translate "admin.servers.signing_revoked" %} {{ key.revoked_at|time:"%Y-%m-%d %H:%M" }}{% else %}<form method="post" action="{% url 'server_signing_key_revoke' id: server.id, key_id: key.id %}" class="is-inline" hx-boost="true" hx-confirm="{% translate "admin.servers.signing_revoke_confirm" %}">{% csrf_input %}<button class="button is-small" type="submit">{% translate "admin.servers.signing_revoke" %}<span class="is-sr-only"> {{ key.fingerprint }}</span></button></form>{% endif %}</li>{% endfor %}</ul>{% else %}<p class="pd-muted mb-2">{% translate "admin.servers.signing_none" %}</p>{% endif %}
+  <form method="post" action="{% url 'server_signing_key' id: server.id %}" class="pd-inline">{% csrf_input %}
+    <div class="field"><label class="label" for="pd-signing-{{ server.id }}">{% translate "admin.servers.signing_key" %}</label><div class="control"><input class="input pd-mono" id="pd-signing-{{ server.id }}" name="public_key" placeholder="ssh-ed25519 AAAA…" autocomplete="off" spellcheck="false"></div></div>
+    <button class="button" type="submit">{% translate "admin.servers.signing_add" %}<span class="is-sr-only"> {{ server.name }}</span></button>
+  </form>{% endfor %}
+</section>{% endif %}
 <form method="post" action="{% url 'servers' %}" class="pd-panel mt-4" novalidate>
   <h2 class="title is-6">{% translate "admin.servers.new" %}</h2>
   {% csrf_input %}

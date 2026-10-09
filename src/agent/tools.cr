@@ -4,68 +4,65 @@ require "option_parser"
 require "base64"
 
 module PartiduoAgent
-  # Commandes locales de l'exécutant, sans administration (D-CHF-009) :
+  # Commandes locales de l'exécutant, sans administration (D-CHF-020,
+  # D-CHF-024) :
   #
   # * `partiduo-agent decrypt` : déchiffre une sauvegarde hors de Partiduo,
-  #   sur le poste du cabinet (clé privée) ou sur le serveur (clé du
-  #   serveur) ;
-  # * `partiduo-agent inspect` : en-tête d'une sauvegarde chiffrée ;
-  # * `partiduo-agent server-key` : crée au besoin la clé du serveur et
-  #   affiche son empreinte.
+  #   avec sa clé de sauvegarde, ou en ouvrant sa capsule (clé
+  #   d'exploitation ou clé privée du cabinet) ;
+  # * `partiduo-agent inspect` : structure d'un fichier `age`, ou manifeste
+  #   d'une sauvegarde et, avec les clés de signature, sa vérification ;
+  # * `partiduo-agent store-serve` : le stockage, côté serveur de sauvegarde
+  #   (commande forcée de `authorized_keys`).
+  #
+  # `age` et `openssl` suffisent aussi, sans Partiduo (README).
   module Tools
-    COMMANDS = %w[decrypt inspect server-key]
+    COMMANDS = %w[decrypt inspect store-serve]
 
     def self.command?(args : Array(String)) : Bool
       COMMANDS.includes?(args.first?)
     end
 
     # Rend le code de sortie.
-    def self.run(args : Array(String), output : IO = STDOUT, error : IO = STDERR) : Int32
+    def self.run(args : Array(String), output : IO = STDOUT, error : IO = STDERR, input : IO = STDIN) : Int32
       case args.first
-      when "decrypt"    then decrypt(args[1..], output)
-      when "inspect"    then inspect(args[1..], output)
-      when "server-key" then server_key(args[1..], output)
-      else                   2
+      when "decrypt"     then decrypt(args[1..], output)
+      when "inspect"     then inspect(args[1..], output)
+      when "store-serve" then store_serve(args[1..], input, output)
+      else                    2
       end
-    rescue ex : BackupCrypto::Error | StepError | File::Error | OptionParser::Exception | ArgumentError
+    rescue ex : BackupCrypto::Error | StepError | File::Error | OptionParser::Exception | ArgumentError | StoreRoot::Error
       error.puts "partiduo-agent : #{ex.message}"
       1
     end
 
+    record DecryptOptions, key_file : String = "", capsule : String = "", identity_file : String = "",
+      private_key : String = "", passphrase_file : String = ""
+
     def self.decrypt(args : Array(String), output : IO) : Int32
-      private_key = server_key = passphrase_file = data_key_file = ""
+      options = DecryptOptions.new
       files = [] of String
       OptionParser.parse(args) do |parser|
-        parser.banner = "Usage : partiduo-agent decrypt (--private-key PEM [--passphrase-file F] | --server-key F | " \
-                        "--data-key-file F) SOURCE.enc DESTINATION"
-        parser.on("--private-key PEM", "clé privée du cabinet (PKCS#8, chiffrée ou non)") { |value| private_key = value }
-        parser.on("--passphrase-file F", "phrase de passe de la clé privée (sinon : PARTIDUO_KEY_PASSPHRASE)") { |value| passphrase_file = value }
-        parser.on("--server-key F", "clé du serveur (64 chiffres hexadécimaux)") { |value| server_key = value }
-        parser.on("--data-key-file F", "clé de données en clair (32 octets, sortie d'openssl pkeyutl)") { |value| data_key_file = value }
+        parser.banner = "Usage : partiduo-agent decrypt (--key F | --capsule C (--identity F | --private-key PEM " \
+                        "[--passphrase-file F])) SOURCE.age DESTINATION"
+        parser.on("--key F", "clé de sauvegarde (AGE-SECRET-KEY-PQ-1…)") { |value| options = options.copy_with(key_file: value) }
+        parser.on("--capsule C", "capsule de la sauvegarde (….key.age ou ….key.rsa)") { |value| options = options.copy_with(capsule: value) }
+        parser.on("--identity F", "clé d'exploitation (fichier d'identité age, chiffré ou non)") do |value|
+          options = options.copy_with(identity_file: value)
+        end
+        parser.on("--private-key PEM", "clé privée du cabinet (PKCS#8, chiffrée ou non)") { |value| options = options.copy_with(private_key: value) }
+        parser.on("--passphrase-file F", "phrase de passe de la clé privée (sinon : PARTIDUO_KEY_PASSPHRASE)") do |value|
+          options = options.copy_with(passphrase_file: value)
+        end
         parser.unknown_args { |rest| files = rest }
       end
       raise ArgumentError.new("SOURCE et DESTINATION attendus") unless files.size == 2
       source, destination = files
-      header = BackupCrypto.read_header(source)
-      data_key = if !private_key.empty?
-                   passphrase = passphrase_file.empty? ? (ENV["PARTIDUO_KEY_PASSPHRASE"]? || "") : File.read(passphrase_file).chomp
-                   key = BackupCrypto::PrivateKey.new(File.read(private_key), passphrase)
-                   unless BackupCrypto.same?(key.id, header.key_id)
-                     raise BackupCrypto::Error.new("cette clé n'est pas celle de la sauvegarde (empreinte attendue #{header.key_id.hexstring})")
-                   end
-                   key.unwrap(header.wrapped)
-                 elsif !server_key.empty?
-                   BackupCrypto::ServerKey.load(server_key).unwrap(header.wrapped)
-                 elsif !data_key_file.empty?
-                   File.read(data_key_file).to_slice
-                 else
-                   raise ArgumentError.new("indiquez --private-key, --server-key ou --data-key-file")
-                 end
+      identity = backup_identity(options)
+      raise BackupCrypto::Error.new("clé de sauvegarde illisible") unless BackupCrypto.valid_identity?(identity)
       partial = "#{destination}.part"
-      File.open(source, "rb") do |file|
-        reader = BackupCrypto::Reader.new(file, BackupCrypto::Header.read(file), data_key)
-        File.open(partial, "wb", perm: 0o600) { |target| IO.copy(reader, target) }
-      end
+      code, _, errors = BackupCrypto.run("age", ["-d", "-i", "-", "-o", partial, source], "#{identity}\n")
+      raise BackupCrypto::Error.new("#{source} : déchiffrement refusé (#{errors.strip.lines.first?})") unless code == 0
       File.rename(partial, destination)
       output.puts "#{destination} : déchiffré et authentifié"
       0
@@ -73,30 +70,68 @@ module PartiduoAgent
       File.delete(partial) if partial && File.exists?(partial)
     end
 
-    def self.inspect(args : Array(String), output : IO) : Int32
-      raise ArgumentError.new("Usage : partiduo-agent inspect SOURCE.enc") unless args.size == 1
-      header = BackupCrypto.check_structure(args.first)
-      output.puts "format 1, #{header.mode == BackupCrypto::SERVER ? "clé du serveur" : "clé du cabinet (RSA-OAEP)"}"
-      output.puts "empreinte de la clé : #{header.key_id.hexstring}"
-      output.puts "engagement : #{header.commitment.hexstring}"
-      output.puts "segments : #{header.chunk_size} octets"
-      0
+    # Clé de sauvegarde : donnée, ou sortie de sa capsule par la clé privée
+    # du cabinet ou par une clé d'exploitation.
+    private def self.backup_identity(options : DecryptOptions) : String
+      return File.read(options.key_file).strip unless options.key_file.empty?
+      raise ArgumentError.new("indiquez --key, ou --capsule avec --identity ou --private-key") if options.capsule.empty?
+      unless options.private_key.empty?
+        passphrase = options.passphrase_file.empty? ? (ENV["PARTIDUO_KEY_PASSPHRASE"]? || "") : File.read(options.passphrase_file).chomp
+        key = BackupCrypto::PrivateKey.new(File.read(options.private_key), passphrase)
+        return BackupCrypto.open_cabinet_capsule(File.read(options.capsule).to_slice, key)
+      end
+      raise ArgumentError.new("indiquez --identity ou --private-key avec --capsule") if options.identity_file.empty?
+      # `age` demande lui-même la phrase de passe d'une identité chiffrée.
+      opened = IO::Memory.new
+      status = Process.run(BackupCrypto.tool("age"), ["-d", "-i", options.identity_file, options.capsule],
+        input: Process::Redirect::Inherit, output: opened, error: Process::Redirect::Inherit)
+      raise BackupCrypto::Error.new("capsule non ouverte par cette clé d'exploitation") unless status.success?
+      opened.to_s.strip
     end
 
-    def self.server_key(args : Array(String), output : IO) : Int32
-      path = ""
-      state_dir = ENV["PARTIDUO_AGENT_STATE"]? || "/var/db/partiduo-agent"
+    def self.inspect(args : Array(String), output : IO) : Int32
+      signers = signature = ""
+      files = [] of String
       OptionParser.parse(args) do |parser|
-        parser.banner = "Usage : partiduo-agent server-key [--state-dir RÉP | --server-key FICHIER]"
-        parser.on("--state-dir RÉP", "état de l'exécutant") { |value| state_dir = value }
-        parser.on("--server-key FICHIER", "clé du serveur") { |value| path = value }
+        parser.banner = "Usage : partiduo-agent inspect FICHIER.age | FICHIER.manifest [--signers F] [--signature F]"
+        parser.on("--signers F", "fichier allowed_signers des serveurs (ssh-keygen)") { |value| signers = value }
+        parser.on("--signature F", "signature du manifeste (défaut : FICHIER.manifest.sig)") { |value| signature = value }
+        parser.unknown_args { |rest| files = rest }
       end
-      path = File.join(state_dir, "backup-server.key") if path.empty?
-      key, created = BackupCrypto::ServerKey.load_or_create(path)
-      output.puts "#{created ? "clé créée" : "clé existante"} : #{path}"
-      output.puts "empreinte : #{key.fingerprint}"
-      output.puts "Copiez ce fichier hors du serveur (coffre) : sans lui, les sauvegardes « clé du serveur » sont illisibles." if created
-      0
+      raise ArgumentError.new("un fichier attendu") unless files.size == 1
+      path = files.first
+      unless path.ends_with?(BackupCrypto::MANIFEST)
+        info = BackupCrypto.check_structure(path)
+        output.puts "age v1, post-quantique, destinataire #{BackupCrypto::STANZA}"
+        output.puts "taille du contenu : #{info["sizes"]?.try(&.["max_payload"]?)} octets"
+        return 0
+      end
+      text = File.read(path)
+      manifest = BackupCrypto::Manifest.parse(text)
+      output.puts text
+      return 0 if signers.empty?
+      signed = File.read(signature.presence || "#{path}.sig")
+      allowed = File.read_lines(signers).reject { |line| line.strip.empty? || line.starts_with?('#') }
+      if BackupCrypto::Signature.verify(text, signed, allowed, manifest.server, manifest.taken_at)
+        output.puts "signature valable : serveur #{manifest.server}"
+        0
+      else
+        output.puts "signature REFUSÉE pour le serveur #{manifest.server}"
+        1
+      end
+    end
+
+    # Côté serveur de sauvegarde : une commande du protocole du stockage.
+    def self.store_serve(args : Array(String), input : IO, output : IO) : Int32
+      root = client = ""
+      OptionParser.parse(args) do |parser|
+        parser.banner = "Usage : partiduo-agent store-serve --root RÉP --client SERVEUR"
+        parser.on("--root RÉP", "racine du stockage") { |value| root = value }
+        parser.on("--client SERVEUR", "serveur qui se connecte (écrit et efface sous SERVEUR/ seulement)") { |value| client = value }
+      end
+      raise ArgumentError.new("--root et --client attendus") if root.empty? || client.empty?
+      raise ArgumentError.new("racine du stockage absente : #{root}") unless Dir.exists?(root)
+      StoreServer.new(StoreRoot.new(root, client), input, output).serve
     end
   end
 end

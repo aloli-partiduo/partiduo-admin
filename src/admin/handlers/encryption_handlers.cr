@@ -78,38 +78,67 @@ module PartiduoAdmin
     end
   end
 
-  # Clé du cabinet requise (D-CHF-005) : la clé privée est lue et utilisée
-  # *dans le navigateur* (`backup-keys.js`), qui déchiffre la clé de données
-  # de cette sauvegarde et ne transmet qu'elle, avec la demande de
-  # restauration ou de restauration test.
+  # Clé de la sauvegarde requise (D-CHF-005, D-CHF-016) :
+  #
+  # * clé du cabinet : la clé privée est lue et utilisée *dans le
+  #   navigateur* (`backup-keys.js`), qui ouvre la capsule de cette
+  #   sauvegarde et ne transmet que sa clé de sauvegarde ;
+  # * clé d'exploitation : l'exploitant télécharge la capsule, l'ouvre sur
+  #   son poste (`age -d -i …`) et colle la clé de sauvegarde obtenue ; la
+  #   clé privée d'exploitation ne passe jamais par l'administration.
   class BackupUnlockHandler < ScreenHandler
     PURPOSES = %w[restore test]
 
     def get
-      backup = Backup.filter(id: id_param).first
-      raise Access::Denied.new("backup") if backup.nil? || !Access.in_scope?(user, backup.dossier!)
+      backup = unlockable!
       dossier = backup.dossier!
       purpose = PURPOSES.includes?(query("purpose")) ? query("purpose") : "test"
       action = purpose == "restore" ? :restore : :test_restore
       raise Access::Denied.new("backup") unless Access.can?(user, action, dossier)
-      unless backup.cabinet_sealed && %w[done verified].includes?(backup.state)
+      unless backup.sealed && %w[done verified].includes?(backup.state)
         flash["danger"] = I18n.t("admin.errors.backup.unusable")
         return redirect("/dossiers/#{dossier.pk}")
       end
       target = query("target") == "new" ? "new" : "replace"
       page("admin/backup_unlock.html", {
-        "backup"      => backup,
-        "dossier"     => dossier,
-        "purpose"     => purpose,
-        "purpose_key" => "admin.encryption.unlock.purposes.#{purpose}",
-        "target"      => target,
-        "target_key"  => "admin.restore.#{target}",
-        "new_slug"    => query("new_slug"),
-        "date"        => query("date").presence || backup.taken_at.try(&.to_s("%F")) || "",
-        "fingerprint" => BackupCrypto.display_fingerprint(backup.key_fingerprint.to_s),
-        "firm_key"    => backup.key_fingerprint == dossier.firm.try(&.backup_key_fingerprint),
-        "is_restore"  => purpose == "restore",
+        "backup"       => backup,
+        "dossier"      => dossier,
+        "purpose"      => purpose,
+        "purpose_key"  => "admin.encryption.unlock.purposes.#{purpose}",
+        "target"       => target,
+        "target_key"   => "admin.restore.#{target}",
+        "new_slug"     => query("new_slug"),
+        "date"         => query("date").presence || backup.taken_at.try(&.to_s("%F")) || "",
+        "fingerprint"  => BackupCrypto.display_fingerprint(backup.key_fingerprint.to_s),
+        "firm_key"     => backup.key_fingerprint == dossier.firm.try(&.backup_key_fingerprint),
+        "is_restore"   => purpose == "restore",
+        "cabinet"      => backup.cabinet_sealed,
+        "capsule_name" => backup.capsule_name,
+        "capsule_keys" => backup.capsule_fingerprints.map { |key| "#{BackupCrypto.display_fingerprint(key[0, 16])}…" }.join(", "),
       })
+    end
+
+    private def unlockable! : Backup
+      backup = Backup.filter(id: id_param).first
+      raise Access::Denied.new("backup") if backup.nil? || !Access.in_scope?(user, backup.dossier!)
+      backup
+    end
+  end
+
+  # Capsule d'une sauvegarde « clé d'exploitation », à ouvrir sur le poste
+  # de l'exploitant. Elle ne contient rien de lisible sans une clé privée
+  # d'exploitation.
+  class BackupCapsuleHandler < ScreenHandler
+    def get
+      backup = Backup.filter(id: id_param).first
+      raise Access::Denied.new("backup") if backup.nil? || !Access.in_scope?(user, backup.dossier!)
+      raise Access::Denied.new("backup") unless backup.sealed && Access.can?(user, :test_restore, backup.dossier!)
+      bytes = Base64.decode(backup.capsule.to_s) rescue Bytes.empty
+      raise Access::Denied.new("backup") if bytes.empty?
+      Audit.log(user, "backup.capsule", target: backup.dossier!, detail: {"backup" => backup.pk.to_s}, ip: ip)
+      response = respond(String.new(bytes), content_type: "application/octet-stream")
+      response.headers["Content-Disposition"] = %(attachment; filename="#{backup.capsule_name}")
+      response
     end
   end
 end

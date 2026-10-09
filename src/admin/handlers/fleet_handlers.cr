@@ -109,3 +109,33 @@ module PartiduoAdmin
     end
   end
 end
+
+module PartiduoAdmin
+  # Clé de signature des sauvegardes d'un serveur (D-CHF-018) : déclarée
+  # par le super-admin (`ssh-ed25519 …`, celle que beryl a posée), ou
+  # révoquée.
+  class ServerSigningKeyHandler < ScreenHandler
+    def post
+      require_fleet!
+      server = Server.get!(id: id_param)
+      outcome = BackupEncryption.add_signing_key(user, server, field("public_key"))
+      if outcome.ok?
+        flash["success"] = I18n.t("admin.servers.signing_key_added", fingerprint: outcome.value!.fingerprint.to_s)
+      else
+        flash["danger"] = outcome.errors.values.flatten.map { |key| I18n.t(key) }.join(" ")
+      end
+      go("/servers")
+    end
+  end
+
+  class ServerSigningKeyRevokeHandler < ScreenHandler
+    def post
+      require_fleet!
+      key = SigningKey.filter(id: id_param("key_id"), server_id: id_param).first
+      raise Access::Denied.new("signing_key") if key.nil?
+      done = BackupEncryption.revoke_signing_key(user, key)
+      flash[done ? "success" : "danger"] = I18n.t(done ? "admin.saved" : "admin.errors.invalid")
+      go("/servers")
+    end
+  end
+end
