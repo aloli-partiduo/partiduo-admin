@@ -3,8 +3,8 @@
 # (DECISIONS D-003).
 dependencies:
   marten:
-    path: ../../marten
+    path: ../../prod-crystal/marten
   password-policy:
-    path: ../../password-policy
+    path: ../../prod-crystal/password-policy
   jose:
-    path: ../../jose
+    path: ../../prod-crystal/jose

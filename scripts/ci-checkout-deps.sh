@@ -1,13 +1,14 @@
 #!/bin/sh
 # SPDX-License-Identifier: AGPL-3.0-or-later
 #
-# shard.yml référence les shards maison en `path: ../../<nom>` tant qu'ils ne
+# shard.yml référence les shards maison en `path: ../../prod-crystal/<nom>` tant qu'ils ne
 # sont pas publiés. En CI, on les clone à cet emplacement, à côté du dépôt
 # (dépôts publics de https://github.com/aloli-crystal).
 set -eu
 
 cd "$(dirname "$0")/.."
-target="$(cd ../.. && pwd)"
+target="$(cd ../.. && pwd)/prod-crystal"
+mkdir -p "$target"
 base="${PARTIDUO_DEPS_BASE_URL:-https://github.com/aloli-crystal}"
 
 for shard in marten authn password-policy totp webauthn jose; do
