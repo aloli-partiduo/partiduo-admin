@@ -8,7 +8,7 @@
     <a class="pd-skip" href="#pd-main">{% translate "admin.shell.skip" %}</a>
     <div class="pd-app">
       <header class="pd-top">
-        <a class="pd-brand" href="{% url 'dashboard' %}"><b>Partiduo</b><small>{% translate "admin.shell.tagline" %}</small></a>
+        <a class="pd-brand" href="{% url 'dashboard' %}"><img class="pd-logo" src="{% asset 'admin/brand/favicon.svg' %}" alt="" width="32" height="32"><b class="pd-name">Parti<span>duo</span></b><small>{% translate "admin.shell.tagline" %}</small></a>
         <span class="pd-grow"></span>
         <form method="post" action="{% url 'language' %}">
           {% csrf_input %}

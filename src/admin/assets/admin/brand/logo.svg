@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="t">
+  <title id="t">Partiduo</title>
+  <rect width="512" height="512" rx="112" fill="#0f5d70"/>
+  <!-- Compte en T : barre et axe -->
+  <rect x="96" y="132" width="320" height="36" rx="18" fill="#ffffff"/>
+  <rect x="238" y="132" width="36" height="252" rx="18" fill="#ffffff"/>
+  <!-- Débit : deux montants -->
+  <rect x="112" y="214" width="98" height="28" rx="14" fill="#5cc3dc"/>
+  <rect x="112" y="270" width="98" height="28" rx="14" fill="#5cc3dc"/>
+  <!-- Crédit : deux montants, en équilibre -->
+  <rect x="302" y="214" width="98" height="28" rx="14" fill="#5cc3dc"/>
+  <rect x="302" y="270" width="98" height="28" rx="14" fill="#5cc3dc"/>
+  <!-- Totaux égaux -->
+  <rect x="112" y="340" width="98" height="12" rx="6" fill="#ffffff" opacity=".9"/>
+  <rect x="302" y="340" width="98" height="12" rx="6" fill="#ffffff" opacity=".9"/>
+</svg>

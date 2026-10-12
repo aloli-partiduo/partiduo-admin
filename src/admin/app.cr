@@ -40,6 +40,12 @@ module PartiduoAdmin
                 .chomp
             }}
 
+  # Types des favicons et du manifeste web (`assets/admin/brand/`) : absents
+  # des types par défaut de Crystal, et de la base du système sur certains
+  # hôtes. Marten sert les fichiers statiques d'après `MIME.from_filename`.
+  MIME.register(".ico", "image/x-icon")
+  MIME.register(".webmanifest", "application/manifest+json")
+
   # Application Marten de l'administration du parc (ADR-008) : modèles,
   # gabarits (`templates/admin/`), fichiers statiques (`assets/admin/`),
   # libellés (`locales/`).

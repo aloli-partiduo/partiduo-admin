@@ -16,10 +16,15 @@ body { color: var(--pd-ink); font-family: var(--bulma-family-primary); }
 .pd-app { display: grid; grid-template-columns: 15rem minmax(0, 1fr); grid-template-rows: auto 1fr; min-height: 100vh; }
 .pd-top { grid-column: 1 / -1; display: flex; align-items: center; gap: .75rem 1rem; flex-wrap: wrap;
   background: var(--pd-surface); border-block-end: 1px solid var(--pd-rule); padding: .6rem 1rem; }
-.pd-brand { display: flex; align-items: baseline; gap: .5rem; font-weight: 700; color: var(--pd-ink); }
+/* Marque : symbole (dessiné sur la grille de 32 px, net à cette taille) et
+   nom en texte, « Parti » et « duo » aux couleurs de l'identité. Le symbole
+   est décoratif (alt="") : le nom suffit aux lecteurs d'écran. */
+.pd-brand { display: flex; align-items: center; gap: .5rem; color: var(--pd-ink); letter-spacing: -.01em; }
 .pd-brand:hover { color: var(--pd-ink); }
-.pd-brand b { font-size: 1.15rem; }
-.pd-brand small { font-weight: 400; color: var(--pd-muted); font-size: .8rem; }
+.pd-logo { display: block; flex: none; width: 2rem; height: 2rem; }
+.pd-name { font-weight: 600; font-size: 1.2rem; line-height: 1; color: var(--pd-brand-parti); letter-spacing: -.02em; }
+.pd-name span { color: var(--pd-brand-duo); }
+.pd-brand small { font-weight: 400; color: var(--pd-muted); font-size: .8rem; align-self: flex-end; padding-block-end: .15rem; }
 .pd-grow { flex: 1; }
 .pd-top form { display: flex; gap: .4rem; align-items: center; }
 .pd-user { display: flex; gap: .5rem; align-items: center; font-size: .9rem; }
@@ -97,7 +102,15 @@ fieldset.pd-fieldset legend { font-weight: 600; margin-block-end: .35rem; }
 .pd-ok-text { color: var(--pd-ok); font-weight: 600; }
 
 .pd-auth-body { display: flex; flex-direction: column; min-height: 100vh; }
-.pd-auth { flex: 1; display: flex; justify-content: center; align-items: flex-start; padding: 2.5rem 1rem 3rem; }
+/* En-tête des pages d'accès : langue en haut à droite, puis le logo, le nom
+   et la mention de l'administration centrés. */
+.pd-auth-top { display: flex; flex-direction: column; align-items: center; gap: .5rem; padding: .6rem 1rem 0; }
+.pd-auth-top form { display: flex; gap: .4rem; align-items: center; align-self: flex-end; }
+.pd-auth-brand { display: flex; flex-direction: column; align-items: center; gap: .5rem; margin-block-start: .5rem; text-align: center; }
+.pd-auth-brand .pd-logo { width: 3.5rem; height: 3.5rem; }
+.pd-auth-brand .pd-name { font-size: 2rem; }
+.pd-auth-brand small { color: var(--pd-muted); font-size: .9rem; }
+.pd-auth { flex: 1; display: flex; justify-content: center; align-items: flex-start; padding: 1.5rem 1rem 3rem; }
 .pd-auth:focus { outline: none; }
 .pd-auth-card { width: 100%; max-width: 30rem; background: var(--pd-surface); border: 1px solid var(--pd-rule); border-radius: var(--bulma-radius); padding: 1.5rem; }
 .pd-auth-title { font-size: 1.4rem; font-weight: 600; margin-block-end: .5rem; }

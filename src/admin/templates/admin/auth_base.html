@@ -1,4 +1,4 @@
-{# SPDX-License-Identifier: AGPL-3.0-or-later. Pages d'authentification : carte centrée, sans menu. #}<!DOCTYPE html>
+{# SPDX-License-Identifier: AGPL-3.0-or-later. Pages d'authentification et d'erreur : logo, nom et mention de l'administration centrés en haut, carte centrée, sans menu. #}<!DOCTYPE html>
 <html lang="{{ locale }}">
   <head>
 {% include "admin/_head.html" %}
@@ -6,9 +6,7 @@
   </head>
   <body class="pd-auth-body">
     <a class="pd-skip" href="#pd-main">{% translate "admin.shell.skip" %}</a>
-    <header class="pd-top">
-      <span class="pd-brand"><b>Partiduo</b><small>{% translate "admin.shell.tagline" %}</small></span>
-      <span class="pd-grow"></span>
+    <header class="pd-auth-top">
       <form method="post" action="{% url 'language' %}">
         {% csrf_input %}
         <input type="hidden" name="next" value="{{ current_path }}">
@@ -16,6 +14,7 @@
         <div class="select is-small"><select id="pd-lang" name="locale">{% for code in locales %}<option value="{{ code }}" lang="{{ code }}"{% if code == locale %} selected{% endif %}>{{ code|upcase }}</option>{% endfor %}</select></div>
         <button class="button is-small" type="submit">{% translate "admin.shell.apply" %}</button>
       </form>
+      <div class="pd-auth-brand"><img class="pd-logo" src="{% asset 'admin/brand/logo.svg' %}" alt="" width="56" height="56"><b class="pd-name">Parti<span>duo</span></b><small>{% translate "admin.shell.tagline" %}</small></div>
     </header>
     <main class="pd-auth" id="pd-main" tabindex="-1">
       <div class="pd-auth-card">

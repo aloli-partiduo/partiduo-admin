@@ -53,6 +53,10 @@
   --pd-on-primary: #ffffff;
   /* Indicateur de focus sur le menu latéral foncé (WCAG 1.4.11). */
   --pd-focus-on-dark: #7fd0e2;
+  /* Nom de la marque (partiduo-docs/identite) : « Parti » en bleu-vert foncé,
+     « duo » en bleu-vert ; éclaircis au thème sombre. */
+  --pd-brand-parti: #0f5d70;
+  --pd-brand-duo: #1c8aa5;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -81,6 +85,8 @@
     --pd-warn-bg: #3a2d14;
     --pd-focus: #5cc3dc;
     --pd-on-primary: #0f1719;
+    --pd-brand-parti: #e3eced;
+    --pd-brand-duo: #5cc3dc;
   }
 }
 
@@ -109,4 +115,6 @@
   --pd-warn-bg: #3a2d14;
   --pd-focus: #5cc3dc;
   --pd-on-primary: #0f1719;
+  --pd-brand-parti: #e3eced;
+  --pd-brand-duo: #5cc3dc;
 }
