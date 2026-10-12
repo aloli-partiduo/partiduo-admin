@@ -20,8 +20,8 @@ jobs:
     container: crystallang/crystal:1.19.1
     steps:
       - uses: actions/checkout@v4
-      - name: Dépendances path (shards maison non publiés)
-        run: scripts/ci-checkout-deps.sh
+      - name: Verrou sans dépendance « path » (exigé par les ports FreeBSD)
+        run: "! grep -q 'path:' shard.lock"
       - name: Format
         run: crystal tool format --check src spec config scripts manage.cr
       - name: Aucune mention du logiciel d'origine hors documentation
@@ -84,8 +84,6 @@ jobs:
           echo "cbe24006683f8eb669266162894b9a522a1af52f2665fbc63a4bb032ed26ac10  /tmp/age.tar.gz" | sha256sum -c -
           sudo tar -xzf /tmp/age.tar.gz -C /usr/local/bin --strip-components=1 age/age age/age-keygen age/age-inspect
           age --version
-      - name: Dépendances path (shards maison non publiés)
-        run: scripts/ci-checkout-deps.sh
       - name: Shards
         run: shards install
       - name: Compilation (partiduo-admin, partiduo-admin-manage, partiduo-agent)

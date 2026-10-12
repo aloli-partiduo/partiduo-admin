@@ -458,6 +458,34 @@ crystal tool format --check src spec config scripts manage.cr
 crystal build lib/ameba/bin/ameba.cr -o bin/ameba && bin/ameba
 ----
 
+== Développement local
+
+`shard.yml` et `shard.lock` référencent les shards maison sur GitHub
+(`aloli-crystal/*` et `aloli-partiduo/*`), suivis par branche. Le verrou
+versionné ne contient aucune dépendance `path:` : les ports FreeBSD et la CI
+l'exigent.
+
+Pour travailler sur les copies de travail voisines (`../../prod-crystal/<nom>`
+et `../partiduo-<dépôt>`), lancer :
+
+[source,sh]
+----
+scripts/override-local.sh
+----
+
+Le script génère un `shard.override.yml` *local et non versionné* (ignoré par
+git), installe les shards, puis remet `shard.lock` à son état versionné.
+Une copie de travail absente reste prise sur GitHub.
+
+Pour régénérer le verrou versionné, supprimer d'abord l'override local :
+
+[source,sh]
+----
+rm -f shard.override.yml
+SKIP_MARTEN_CLI_PRECOMPILATION=1 shards update
+scripts/override-local.sh   # retour au mode local
+----
+
 == Exploitation (FreeBSD)
 
 Les serveurs tournent sous FreeBSD 15. Tout s'installe par paquets, depuis

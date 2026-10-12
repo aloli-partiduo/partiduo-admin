@@ -1,4 +1,3 @@
-# NOTICE: This lockfile contains some overrides from shard.override.yml
 version: 2.0
 shards:
   ameba:
@@ -6,8 +5,8 @@ shards:
     version: 1.7.0
 
   authn:
-    path: ../../prod-crystal/authn
-    version: 0.3.0
+    git: https://github.com/aloli-crystal/authn.git
+    version: 0.3.0+git.commit.be98021bf0da7c8fd8306b3d715e425aec5e7aa3
 
   bcrypt:
     git: https://github.com/jgaskins/bcrypt.git
@@ -19,7 +18,7 @@ shards:
 
   db:
     git: https://github.com/crystal-lang/crystal-db.git
-    version: 0.14.0
+    version: 0.15.0
 
   ed25519:
     git: https://github.com/spider-gazelle/ed25519.git
@@ -33,17 +32,17 @@ shards:
     git: https://github.com/crystal-i18n/i18n.git
     version: 0.2.2
 
-  jose: # Overridden
-    path: ../../prod-crystal/jose
+  jose:
+    git: https://github.com/aloli-crystal/jose.git
     version: 0.2.0
 
   jwt:
     git: https://github.com/crystal-community/jwt.git
     version: 1.7.2
 
-  marten: # Overridden
-    path: ../../prod-crystal/marten
-    version: 0.7.0
+  marten:
+    git: https://github.com/aloli-crystal/marten.git
+    version: 0.7.0+git.commit.daabb7c242a307a1c90899acbbf5c40f170fe2b8
 
   msgpack:
     git: https://github.com/crystal-community/msgpack-crystal.git
@@ -53,19 +52,19 @@ shards:
     git: https://github.com/spider-gazelle/openssl_ext.git
     version: 2.8.5
 
-  password-policy: # Overridden
-    path: ../../prod-crystal/password-policy
+  password-policy:
+    git: https://github.com/aloli-crystal/password-policy.git
     version: 0.1.0
 
   pg:
     git: https://github.com/will/crystal-pg.git
-    version: 0.30.0
+    version: 0.31.0
 
   totp:
-    path: ../../prod-crystal/totp
-    version: 0.1.0
+    git: https://github.com/aloli-crystal/totp.git
+    version: 0.1.0+git.commit.f4d2cba2ce6630d6441bc85b2b06f662ab380fc2
 
   webauthn:
-    path: ../../prod-crystal/webauthn
-    version: 0.1.0
+    git: https://github.com/aloli-crystal/webauthn.git
+    version: 0.1.0+git.commit.9df38fbe65ad709096ef5455c27e5e13f49dc66e
 

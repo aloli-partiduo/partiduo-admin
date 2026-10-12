@@ -1,5 +1,5 @@
 name: partiduo-admin
-version: 0.1.3
+version: 0.1.4
 
 description: |
   Administration du parc de dossiers Partiduo (ADR-008) : cabinets,
@@ -25,20 +25,26 @@ targets:
 
 dependencies:
   marten:
-    path: ../../prod-crystal/marten
+    github: aloli-crystal/marten
+    branch: production
   pg:
     github: will/crystal-pg
-  # Shards maison, en path: tant qu'ils ne sont pas publiés (ADR-002).
+  # Shards maison sur GitHub (ADR-002) ; en local, scripts/override-local.sh.
   authn:
-    path: ../../prod-crystal/authn
+    github: aloli-crystal/authn
+    branch: production
   password-policy:
-    path: ../../prod-crystal/password-policy
+    github: aloli-crystal/password-policy
+    version: "~> 0.1"
   totp:
-    path: ../../prod-crystal/totp
+    github: aloli-crystal/totp
+    branch: production
   webauthn:
-    path: ../../prod-crystal/webauthn
+    github: aloli-crystal/webauthn
+    branch: production
   jose:
-    path: ../../prod-crystal/jose
+    github: aloli-crystal/jose
+    version: "~> 0.2"
 
 development_dependencies:
   ameba:
