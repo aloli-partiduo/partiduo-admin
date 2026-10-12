@@ -149,15 +149,19 @@ describe "partiduo-agent : mode production (D-AFN-002, D-AFN-005)" do
     expect_raises(PartiduoAgent::StepError) { system.service("garde x", "stop") }
   end
 
-  it "exige un domaine en production" do
+  it "exige un domaine et un stockage hors du serveur en production" do
     config = PartiduoAgent::Config.new
     config.token = "x"
     config.admin_url = "https://admin.partiduo.app"
     config.mode = PartiduoAgent::Mode::Production
+    config.server_name = "loulou"
     expect_raises(ArgumentError, /--domain/) { config.validate! }
     config.domain = "partiduo app"
     expect_raises(ArgumentError, /domaine invalide/) { config.validate! }
     config.domain = "partiduo.app"
+    # Les sauvegardes quittent le serveur (D-CHF-024).
+    expect_raises(ArgumentError, /--store-command/) { config.validate! }
+    config.store_command = "/usr/bin/ssh -T partiduo-store@quantas.aloli.net"
     config.validate!
   end
 end
