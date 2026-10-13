@@ -84,10 +84,12 @@ module PartiduoAgent
     # sauvegardes qu'il prend dans le stockage, signataire de leurs
     # manifestes (D-CHF-018, D-CHF-024). Vide : nom court de la machine.
     property server_name : String = ""
-    # Stockage des sauvegardes hors du serveur (D-CHF-024) : commande, sans
-    # shell, qui parle le protocole de `partiduo-agent store-serve` (en
-    # production, `ssh` vers le serveur de sauvegarde ; obligatoire) ; vide,
-    # le répertoire `store_dir` de la machine (développement).
+    # Stockage des sauvegardes (D-CHF-024, D-CHF-025), l'un ou l'autre :
+    # * commande, sans shell, qui parle le protocole de `partiduo-agent
+    #   store-serve` (en général `ssh` vers un serveur de sauvegarde) ;
+    # * répertoire de cette machine (`store_dir`), quand il n'y a pas de
+    #   serveur de sauvegarde ; défaut hors production : `<state_dir>/store`.
+    # En production, l'un des deux est obligatoire.
     property store_command : String = ""
     property store_dir : String = ""
     # Clés publiques d'exploitation (`age1pq1…`, une par ligne, D-CHF-015)
@@ -132,11 +134,14 @@ module PartiduoAgent
         parser.on("--server-name NOM", "nom de ce serveur dans l'administration (défaut : nom court de la machine)") do |value|
           config.server_name = value
         end
-        parser.on("--store-command COMMANDE", "stockage des sauvegardes hors du serveur " \
+        parser.on("--store-command COMMANDE", "stockage des sauvegardes sur un serveur de sauvegarde " \
                                               "(ex. « /usr/bin/ssh -T partiduo-store@quantas »)") do |value|
           config.store_command = value
         end
-        parser.on("--store-dir RÉP", "hors production : stockage dans un répertoire de la machine") { |value| config.store_dir = value }
+        parser.on("--store-dir RÉP", "stockage des sauvegardes dans un répertoire de ce serveur " \
+                                     "(sans serveur de sauvegarde ; ex. /var/backups/partiduo-store)") do |value|
+          config.store_dir = value
+        end
         parser.on("--recipients FICHIER", "clés publiques d'exploitation (défaut en production : #{ETC}/exploitation.recipients)") do |value|
           config.recipients_file = value
         end
@@ -176,12 +181,33 @@ module PartiduoAgent
       validate_store!
     end
 
-    # Production : les sauvegardes quittent le serveur (D-CHF-024).
+    # Stockage : un serveur de sauvegarde (D-CHF-024) ou un répertoire de ce
+    # serveur (D-CHF-025), jamais les deux ; en production, l'un des deux.
+    # Un répertoire ne se confond pas avec celui des sauvegardes en
+    # préparation, que l'exécutant vide à chaque tâche.
     private def validate_store! : Nil
       raise ArgumentError.new("nom de serveur invalide : #{server}") unless Locator.valid_server?(server)
+      unless store_argv.empty? || store_dir.empty?
+        raise ArgumentError.new("--store-command et --store-dir s'excluent : un seul stockage")
+      end
+      if store_argv.empty?
+        store = File.expand_path(store_path)
+        backups = File.expand_path(backup_dir)
+        if store == backups || store.starts_with?("#{backups}/") || backups.starts_with?("#{store}/")
+          raise ArgumentError.new("stockage #{store} refusé : distinct du répertoire des sauvegardes en préparation (#{backups})")
+        end
+      end
       return unless mode.production?
-      raise ArgumentError.new("le mode production exige --store-command (sauvegardes hors du serveur)") if store_argv.empty?
-      raise ArgumentError.new("--store-dir est réservé au développement") unless store_dir.empty?
+      if store_argv.empty? && store_dir.empty?
+        raise ArgumentError.new("le mode production exige --store-command (serveur de sauvegarde) ou --store-dir " \
+                                "(stockage sur ce serveur)")
+      end
+    end
+
+    # Sauvegardes gardées sur ce serveur (D-CHF-025) : rien ne les copie
+    # ailleurs.
+    def local_store? : Bool
+      store_argv.empty?
     end
 
     # Remise des invitations par le serveur : expéditeur obligatoire.

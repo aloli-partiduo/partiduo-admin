@@ -260,7 +260,7 @@ commande affiche son empreinte.
   clé fournie ou non), `backup.capsule` (capsule téléchargée),
   `signing_key.add` et `signing_key.revoke` ; jamais une clé de sauvegarde.
 
-=== Stockage hors du serveur
+=== Stockage des sauvegardes
 
 Fichiers d'une sauvegarde, sous `<serveur>/<dossier>/` (serveur qui l'a
 prise) :
@@ -280,10 +280,22 @@ Préfixes : `backup-`, `archive-` (archive de fin de vie), `pre-restore-`
 (sauvegarde de sûreté d'une restauration) ; sans chiffrement, ni `.age`
 ni capsule.
 
-L'exécutant joint le stockage par `--store-command`, une commande sans
-shell qui parle le protocole de `partiduo-agent store-serve`. En
-production, c'est `ssh` vers le serveur de sauvegarde, dont
-`authorized_keys` force la commande :
+Deux façons de stocker, au choix (en production, l'une des deux est
+obligatoire) :
+
+* *serveur de sauvegarde* (D-CHF-024, conseillé) : `--store-command`, une
+  commande sans shell qui parle le protocole de `partiduo-agent
+  store-serve`, en général `ssh` vers le serveur de sauvegarde ;
+* *sur le serveur même* (D-CHF-025), quand il n'y a qu'un serveur :
+  `--store-dir /var/backups/partiduo-store`, répertoire de l'exécutant
+  (partiduo-agent, 0700), distinct de `--backup-dir`. Les mêmes règles
+  s'appliquent (écriture une seule fois, archives gardées). Les
+  sauvegardes restent chiffrées et signées, mais disparaissent avec le
+  serveur : copiez ce répertoire ailleurs (NAS, `zfs send`), tel quel, il
+  ne contient aucune clé. Restaurer sur un autre serveur demande d'y
+  recopier d'abord le répertoire `<serveur>/<dossier>/`.
+
+Côté serveur de sauvegarde, `authorized_keys` force la commande :
 
 [source,sh]
 ----
@@ -564,7 +576,8 @@ du serveur »). Ce serveur n'a aucune clé de chiffrement ; ses copies sur
 les NAS se font telles quelles.
 
 `--domain` : même valeur que `DOMAIN` de `helpers.conf`. `--server-name` :
-nom du serveur dans l'administration. `--store-command` est obligatoire
+nom du serveur dans l'administration. `--store-command` (ou `--store-dir`
+sans serveur de sauvegarde, D-CHF-025) est obligatoire
 en production. Défauts de
 l'exécutant : `--state-dir /var/db/partiduo-agent`, `--backup-dir
 /var/backups/partiduo`, `--pg-socket /tmp`, `--helpers-dir

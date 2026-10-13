@@ -15,6 +15,10 @@ begin
   if config.production? && config.mail_command.strip.empty?
     STDERR.puts "partiduo-agent : sans --mail-command, les liens d'invitation passent par l'administration (D-CRA-003)"
   end
+  if config.production? && config.local_store?
+    STDERR.puts "partiduo-agent : sauvegardes gardées sur ce serveur (#{config.store_path}) : copiez ce répertoire " \
+                "ailleurs, sans quoi elles disparaîtraient avec le serveur (D-CHF-025)"
+  end
   PartiduoAgent::Runner.new(config).run
 rescue ex : ArgumentError | OptionParser::Exception
   STDERR.puts "partiduo-agent : #{ex.message}"

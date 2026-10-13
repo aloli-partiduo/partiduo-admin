@@ -319,7 +319,7 @@ describe "Sauvegardes : stockage hors du serveur (D-CHF-024)" do
     error.code.should eq("refused")
   end
 
-  it "exige un stockage hors du serveur en production" do
+  it "exige en production un stockage : serveur de sauvegarde ou répertoire du serveur, pas les deux" do
     config = PartiduoAgent::Config.new
     config.token = "x"
     config.admin_url = "https://admin.partiduo.app"
@@ -332,6 +332,20 @@ describe "Sauvegardes : stockage hors du serveur (D-CHF-024)" do
     config.store_argv.should eq(["/usr/bin/ssh", "-T", "partiduo-store@quantas"])
     config.recipients_path.should eq("/usr/local/etc/partiduo-agent/exploitation.recipients")
     config.signing_key_path.should eq("/usr/local/etc/partiduo-agent/backup-signing.key")
+    config.local_store?.should be_false
+    # Sans serveur de sauvegarde : un répertoire du serveur (D-CHF-025).
+    config.store_dir = "/var/backups/partiduo-store"
+    expect_raises(ArgumentError, /s'excluent/) { config.validate! }
+    config.store_command = ""
+    config.validate!
+    config.local_store?.should be_true
+    config.store_path.should eq("/var/backups/partiduo-store")
+    # Jamais dans les sauvegardes en préparation, que l'exécutant vide.
+    config.store_dir = "/var/backups/partiduo/store"
+    expect_raises(ArgumentError, /distinct du répertoire des sauvegardes/) { config.validate! }
+    config.store_dir = "/var/backups"
+    expect_raises(ArgumentError, /distinct du répertoire des sauvegardes/) { config.validate! }
+    config.store_dir = "/var/backups/partiduo-store"
     config.server_name = "Lou Lou"
     expect_raises(ArgumentError, /nom de serveur/) { config.validate! }
   end
