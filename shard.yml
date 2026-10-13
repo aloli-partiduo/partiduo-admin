@@ -1,5 +1,5 @@
 name: partiduo-admin
-version: 0.1.6
+version: 0.1.7
 
 description: |
   Administration du parc de dossiers Partiduo (ADR-008) : cabinets,
@@ -45,6 +45,11 @@ dependencies:
   jose:
     github: aloli-crystal/jose
     version: "~> 0.2"
+  # Format des sauvegardes (chiffrement, capsules, manifeste signé,
+  # stockage), partagé avec la commande partiduo de partiduo-dist.
+  partiduo-backup:
+    github: aloli-partiduo/partiduo-backup
+    branch: development
 
 development_dependencies:
   ameba:

@@ -903,78 +903,33 @@ module PartiduoAgent
     end
 
     # Sortie d'un programme chiffrée par `age` pour `recipient` dans `path`
-    # (fichier `.part` renommé à la fin : jamais de sauvegarde incomplète
-    # sous son nom définitif). Le clair ne passe que par le tube entre le
-    # programme et `age`.
+    # (`PartiduoBackup::Pipe` : fichier partiel renommé à la fin, jamais de
+    # sauvegarde incomplète sous son nom définitif). Le clair ne passe que
+    # par le tube entre le programme et `age`.
     def seal_output(argv : Array(String), path : String, recipient : String, env = {} of String => String) : Nil
       full = guard_backup_path!(path)
-      partial = "#{full}.part"
-      begin
-        Dir.mkdir_p(File.dirname(full))
-        File.write(partial, "", perm: 0o640)
-        age_errors = IO::Memory.new
-        age = Process.new(BackupCrypto.tool("age"), ["-r", recipient, "-o", partial], input: Process::Redirect::Pipe,
-          output: Process::Redirect::Close, error: age_errors)
-        code, errors = begin
-          run_stream(argv, env, output: age.input)
-        ensure
-          age.input.close
-        end
-        age_status = age.wait
-        unless code == 0
-          raise StepError.new("#{File.basename(argv.find(&.starts_with?("pg_dump")) || argv[0])} (code #{code}) : " \
-                              "#{System.redact_errors(errors).strip[0, 500]? || ""}")
-        end
-        raise StepError.new("age (code #{age_status.exit_code? || -1}) : #{age_errors.to_s.strip[0, 300]?}") unless age_status.success?
-        File.rename(partial, full)
-      rescue ex : File::Error | IO::Error
-        raise StepError.new("sauvegarde chiffrée non écrite : #{ex.message}")
-      ensure
-        # Échec : aucun fichier partiel ne reste.
-        File.delete(partial) if File.exists?(partial)
+      code, errors = PartiduoBackup::Pipe.seal(full, recipient) { |io| run_stream(argv, env, output: io) }
+      unless code == 0
+        raise StepError.new("#{File.basename(argv.find(&.starts_with?("pg_dump")) || argv[0])} (code #{code}) : " \
+                            "#{System.redact_errors(errors).strip[0, 500]? || ""}")
       end
+    rescue ex : BackupCrypto::Error
+      raise StepError.new(ex.message.to_s)
     end
 
     # Fichier déchiffré par `age` (clé de sauvegarde sur son entrée
     # standard : jamais en argument ni sur le disque) vers l'entrée d'un
-    # programme, par l'exécutant. Un programme qui s'arrête avant la fin du
-    # flux (`pg_restore --list`, ou une erreur) ne coupe pas `age` : le reste
-    # est lu et jeté, et `age` authentifie tout le fichier. Rend le code du
+    # programme. Un programme qui s'arrête avant la fin du flux
+    # (`pg_restore --list`, ou une erreur) ne coupe pas `age` : le reste est
+    # lu et jeté, et `age` authentifie tout le fichier. Rend le code du
     # programme, sa sortie d'erreur et celle de `age`, et le code de `age`.
     def unseal_input(argv : Array(String), path : String, identity : String, env = {} of String => String) : {Int32, String, Int32}
       full = guard_backup_path!(path)
       log("+ #{argv.map { |arg| arg.includes?(' ') ? "'#{arg}'" : arg }.join(' ')} < age -d #{File.basename(full)}")
-      age_errors = IO::Memory.new
-      errors = IO::Memory.new
-      age = Process.new(BackupCrypto.tool("age"), ["-d", "-i", "-", full], input: IO::Memory.new("#{identity}\n"),
-        output: Process::Redirect::Pipe, error: age_errors)
-      consumer = begin
-        Process.new(argv[0], argv[1..], env: env, input: Process::Redirect::Pipe, output: Process::Redirect::Close, error: errors)
-      rescue ex : File::NotFoundError
-        age.terminate
-        raise StepError.new("#{argv[0]} : #{ex.message}")
-      end
-      begin
-        begin
-          IO.copy(age.output, consumer.input)
-        rescue IO::Error
-          # Le programme a fermé son entrée avant la fin du flux.
-        end
-        begin
-          consumer.input.close
-        rescue IO::Error
-        end
-        File.open(File::NULL, "w") { |sink| IO.copy(age.output, sink) }
-        code = consumer.wait.exit_code? || -1
-        {code, errors.to_s + age_errors.to_s, age.wait.exit_code? || -1}
-      ensure
-        [age, consumer].each do |process|
-          process.terminate unless process.terminated?
-        rescue RuntimeError | IO::Error
-        end
-      end
-    rescue ex : File::Error | IO::Error
-      raise StepError.new("sauvegarde chiffrée illisible : #{ex.message}")
+      result, age_errors, age_code = PartiduoBackup::Pipe.unseal(full, identity) { |io| PartiduoBackup::Pipe.feed(io, argv, env) }
+      {result[0], result[1] + age_errors, age_code}
+    rescue ex : BackupCrypto::Error
+      raise StepError.new(ex.message.to_s)
     end
 
     def pg_dump_sealed(database : String, path : String, recipient : String) : Nil
@@ -1013,13 +968,9 @@ module PartiduoAgent
     # troncature ou une mauvaise clé : refusé.
     def verify_sealed(path : String, identity : String) : Nil
       log("authentification de #{File.basename(path)}")
-      code, _, errors = BackupCrypto.run("age", ["-d", "-i", "-", "-o", File::NULL, guard_backup_path!(path)], "#{identity}\n")
-      unless code == 0
-        raise StepError.new("sauvegarde chiffrée #{File.basename(path)} altérée ou d'une autre clé : " \
-                            "authentification refusée (#{errors.strip.lines.first?})", "refused")
-      end
+      PartiduoBackup::Pipe.verify(guard_backup_path!(path), identity)
     rescue ex : BackupCrypto::Error
-      raise StepError.new("authentification : #{ex.message}")
+      raise StepError.new("sauvegarde chiffrée #{ex.message}", "refused")
     end
 
     def check_envelope(path : String) : Nil
