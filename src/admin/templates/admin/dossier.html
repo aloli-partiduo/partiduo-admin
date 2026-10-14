@@ -10,7 +10,7 @@
 {% if can.restore_archive %}<form method="post" action="{% url 'dossier_action' id: dossier.id, action: 'restore_archive' %}">{% csrf_input %}<button class="button is-success" type="submit">{% translate "admin.actions.restore_archive" %}</button></form>{% endif %}
 {% endblock actions %}
 {% block content %}
-{% if failed_task %}<div class="notification is-danger is-light" role="alert"><p><a href="{% url 'task' id: failed_task.id %}">{% translate "admin.tasks.task" %} {{ failed_task.id }}</a> ({% translate failed_task.kind_key %}) : {% if failed_task.error_text %}<span class="pd-mono">{{ failed_task.error_text }}</span>{% else %}{% translate "admin.tasks.no_error_text" %}{% endif %}</p></div>{% endif %}
+{% if failed_task %}<div class="notification is-danger is-light" role="alert"><p><a href="{% url 'task' id: failed_task.id %}">{% translate "admin.tasks.task" %} {{ failed_task.id }}</a> ({% translate failed_task.kind_key %}) : {% if failed_task.error_text %}<span class="pd-mono">{{ failed_task.error_text }}</span>{% else %}{% translate "admin.tasks.no_error_text" %}{% endif %}</p>{% if can_retry_failed %}<form method="post" action="{% url 'task_command' id: failed_task.id, command: 'retry' %}">{% csrf_input %}<button class="button is-danger is-light" type="submit">{% translate "admin.tasks.retry" %}</button></form>{% endif %}</div>{% endif %}
 {% if alerts %}<div class="notification is-danger is-light" role="alert"><ul>{% for alert in alerts %}<li>{% translate alert.kind_key %} {{ alert.detail_text }}</li>{% endfor %}</ul></div>{% endif %}
 <div class="pd-grid">
   <section class="pd-panel" aria-labelledby="pd-inventory-title">

@@ -120,6 +120,7 @@ describe "Interface de l'administration" do
     page = browser.get("/dossiers/#{dossier.pk}").html
     page.should contain(%(href="/tasks/#{task.pk}"))
     page.should contain("base partiduo_adm_x déjà présente")
+    page.should contain(%(action="/tasks/#{task.pk}/retry"))
     task.error = ""
     task.save!
     browser.get("/dossiers/#{dossier.pk}").html.should contain("Aucun message renvoyé par l'exécutant")
