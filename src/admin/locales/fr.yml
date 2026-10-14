@@ -405,6 +405,7 @@ fr:
       finished_at: "Terminée le"
       attempts: "Essais"
       error: "Erreur"
+      no_error_text: "Aucun message renvoyé par l'exécutant : voir le journal de la tâche, ou /var/log/partiduo-agent.log sur le serveur."
       log: "Journal de l'exécutant"
       result: "Résultat"
       retry: "Relancer"

@@ -52,7 +52,14 @@ module PartiduoAgent
 
     def execute(task : TaskInfo) : Nil
       pending = [] of String
-      sink = ->(line : String) { pending << "#{Time.utc.to_s("%H:%M:%S")} #{line}"; nil }
+      # Chaque ligne part à l'administration (page de la tâche) ET au journal
+      # local (/var/log/partiduo-agent.log) : sur le serveur, `tail` suffit à
+      # suivre toutes les tâches, même quand l'administration est injoignable.
+      sink = ->(line : String) do
+        pending << "#{Time.utc.to_s("%H:%M:%S")} #{line}"
+        Log.info { "tâche #{task.id} : #{line}" }
+        nil
+      end
       system = build_system(sink)
       @last_system = system
       journal = Journal.new(File.join(config.state_dir, "tasks"), task.id)
@@ -74,6 +81,7 @@ module PartiduoAgent
       end
       begin
         Plans.run(ctx)
+        Log.info { "tâche #{task.id} : réussie" }
         client.finish(task.id, true, JSON.parse(ctx.result.to_json), "", pending)
         journal.clear
       rescue error : ApiError

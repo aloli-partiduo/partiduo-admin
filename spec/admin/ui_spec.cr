@@ -110,6 +110,21 @@ describe "Interface de l'administration" do
     filled.should contain("Celui qui commande et paie le dossier")
   end
 
+  it "montre sur la fiche d'un dossier en erreur le message de la tâche en échec" do
+    firm = AdminSpec.firm
+    server, _ = AdminSpec.server
+    dossier = AdminSpec.dossier(firm, server, state: "error")
+    task = PartiduoAdmin::Task.create!(kind: "instance.create", dossier: dossier, server: server, state: "failed",
+      error: "partiduo-provision (code 1) : base partiduo_adm_x déjà présente")
+    browser = AdminSpec::Browser.new(token: AdminSpec.session(AdminSpec.user(PartiduoAdmin::Config::FIRM_ADMIN, firm)))
+    page = browser.get("/dossiers/#{dossier.pk}").html
+    page.should contain(%(href="/tasks/#{task.pk}"))
+    page.should contain("base partiduo_adm_x déjà présente")
+    task.error = ""
+    task.save!
+    browser.get("/dossiers/#{dossier.pk}").html.should contain("Aucun message renvoyé par l'exécutant")
+  end
+
   it "choisit le paquet à la création et l'affiche sur la fiche et dans la liste" do
     firm = AdminSpec.firm
     server, _ = AdminSpec.server

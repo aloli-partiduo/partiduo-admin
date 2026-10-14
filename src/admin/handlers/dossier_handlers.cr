@@ -113,6 +113,7 @@ module PartiduoAdmin
         "dossier"          => dossier,
         "backups"          => Backup.filter(dossier_id: dossier.pk).order("-id").to_a.first(30),
         "tasks"            => Task.filter(dossier_id: dossier.pk).order("-id").to_a.first(20),
+        "failed_task"      => dossier.state == "error" ? Task.filter(dossier_id: dossier.pk, state: "failed").order("-id").first : nil,
         "approvals"        => Approval.filter(dossier_id: dossier.pk).order("-id").to_a.first(10),
         "alerts"           => Alert.filter(dossier_id: dossier.pk, resolved_at__isnull: true).to_a,
         "managers"         => managers.map { |manager| {"id" => manager.pk.to_s, "email" => manager.email.to_s, "assigned" => assigned.includes?(manager.pk)} },

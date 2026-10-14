@@ -1,6 +1,7 @@
 # SPDX-License-Identifier: AGPL-3.0-or-later
 
 require "../spec_helper"
+require "log/spec"
 
 private def run_one(admin : AdminSpec::FakeAdmin, config : PartiduoAgent::Config) : PartiduoAgent::Runner
   runner = PartiduoAgent::Runner.new(config)
@@ -46,6 +47,21 @@ describe PartiduoAgent do
     report["result"]["invitation_url"].as_s.should contain("/invitation/")
     report["result"]["certificate"]["issued"].as_bool.should be_false
     admin.logs[1_i64].join("\n").should contain("[à blanc] partiduo-provision demo-fr")
+  ensure
+    admin.try(&.close)
+  end
+
+  it "écrit aussi le journal de chaque tâche dans le journal local de l'exécutant" do
+    admin = AdminSpec::FakeAdmin.new
+    params = dossier_params("journal").merge({"name" => "Journal", "regime" => "fr", "locale" => "fr",
+                                              "admin_email" => "patron@journal.fr", "siren" => "", "vat" => ""})
+    admin.push(7_i64, "instance.create", params)
+    Log.capture do |logs|
+      run_one(admin, admin.config)
+      logs.check(:info, /tâche 7 : tâche 7 instance.create \(journal\)/)
+      logs.check(:info, /tâche 7 : \[à blanc\] partiduo-provision journal/)
+      logs.check(:info, "tâche 7 : réussie")
+    end
   ensure
     admin.try(&.close)
   end

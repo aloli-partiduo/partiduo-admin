@@ -405,6 +405,7 @@ nl:
       finished_at: "Beëindigd op"
       attempts: "Pogingen"
       error: "Fout"
+      no_error_text: "Geen bericht van de uitvoerder: zie het takenlogboek, of /var/log/partiduo-agent.log op de server."
       log: "Logboek van de uitvoerder"
       result: "Resultaat"
       retry: "Opnieuw starten"

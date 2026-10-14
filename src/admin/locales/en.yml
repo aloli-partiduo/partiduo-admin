@@ -405,6 +405,7 @@ en:
       finished_at: "Finished on"
       attempts: "Attempts"
       error: "Error"
+      no_error_text: "No message sent back by the agent: see the task log, or /var/log/partiduo-agent.log on the server."
       log: "Agent log"
       result: "Result"
       retry: "Retry"
