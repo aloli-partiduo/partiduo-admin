@@ -87,11 +87,11 @@ module PartiduoAdmin
       ]
       unless user.firm_admin?
         fields << FormField.new("firm_id", I18n.t("admin.dossiers.fields.firm"), input.firm_id.to_s, "select", firms,
-          errs(t, "firm_id"), required: true)
+          errs(t, "firm_id"), required: true, help: firms.empty? ? I18n.t("admin.dossiers.help.no_firm") : "")
       end
       fields << FormField.new("payer_id", I18n.t("admin.dossiers.fields.payer"), input.payer_id.to_s, "select",
         [opt.call("", I18n.t("admin.choose"), "x")] + payers, errs(t, "payer_id"), required: true,
-        help: I18n.t("admin.dossiers.help.payer"))
+        help: I18n.t(payers.empty? ? "admin.dossiers.help.no_payer" : "admin.dossiers.help.payer"))
       fields << FormField.new("package", I18n.t("admin.dossiers.fields.package"), input.package, "select", packages,
         errs(t, "package"), required: true, help: I18n.t("admin.dossiers.help.package"))
       fields << FormField.new("backup_schedule", I18n.t("admin.dossiers.fields.backup_schedule"), input.backup_schedule, "select",

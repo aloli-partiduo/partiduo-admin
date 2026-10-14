@@ -155,6 +155,8 @@ en:
         payer: "Who orders and pays for the file: required."
         package: "FreeBSD package that will serve the company file; beryl updates it on every server, and the company file migrates itself when it starts."
         modules_kept: "Disabling a module keeps its data, read-only."
+        no_firm: "No organisation yet: create one first (« Organisations » menu)."
+        no_payer: "No payer yet: create one first (« Payers » menu), attached to the managing organisation."
       states:
         creating: "being created"
         active: "active"

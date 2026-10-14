@@ -155,6 +155,8 @@ fr:
         payer: "Celui qui commande et paie le dossier : obligatoire."
         package: "Paquet FreeBSD qui servira le dossier ; sa mise à jour est faite sur tous les serveurs par beryl, et le dossier se migre à son démarrage."
         modules_kept: "Désactiver un module conserve ses données, en lecture seule."
+        no_firm: "Aucune structure : créez-en une d'abord (menu « Structures »)."
+        no_payer: "Aucun donneur d'ordre : créez-en un d'abord (menu « Donneurs d'ordre »), rattaché à la structure gestionnaire."
       states:
         creating: "en création"
         active: "actif"

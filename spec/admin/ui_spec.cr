@@ -97,6 +97,19 @@ describe "Interface de l'administration" do
     PartiduoAdmin::Dossier.get!(slug: "formulaire").package.should eq("app")
   end
 
+  it "dit quoi créer d'abord quand il n'y a ni structure ni donneur d'ordre" do
+    root = AdminSpec.user(PartiduoAdmin::Config::SUPER_ADMIN, password: false, totp: false)
+    browser = AdminSpec::Browser.new(token: AdminSpec.session(root))
+    empty = browser.get("/dossiers/new").html
+    empty.should contain("Aucune structure : créez-en une d'abord")
+    empty.should contain("Aucun donneur d'ordre : créez-en un d'abord")
+    firm = AdminSpec.firm
+    AdminSpec.payer(firm)
+    filled = browser.get("/dossiers/new").html
+    filled.should_not contain("Aucune structure")
+    filled.should contain("Celui qui commande et paie le dossier")
+  end
+
   it "choisit le paquet à la création et l'affiche sur la fiche et dans la liste" do
     firm = AdminSpec.firm
     server, _ = AdminSpec.server

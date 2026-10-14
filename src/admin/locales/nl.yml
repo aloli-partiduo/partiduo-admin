@@ -155,6 +155,8 @@ nl:
         payer: "Wie het dossier bestelt en betaalt: verplicht."
         package: "FreeBSD-pakket dat het dossier bedient; beryl werkt het bij op alle servers, en het dossier migreert zichzelf bij het opstarten."
         modules_kept: "Een module uitschakelen bewaart haar gegevens, alleen-lezen."
+        no_firm: "Nog geen structuur: maak er eerst een aan (menu « Structuren »)."
+        no_payer: "Nog geen opdrachtgever: maak er eerst een aan (menu « Opdrachtgevers »), gekoppeld aan de beherende structuur."
       states:
         creating: "wordt aangemaakt"
         active: "actief"
