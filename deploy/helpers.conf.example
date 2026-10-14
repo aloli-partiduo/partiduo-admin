@@ -18,7 +18,7 @@ DOMAIN=partiduo.app
 #PG_SOCKET=/tmp
 # partiduo:partiduo-agent, mode 0770 : les deux comptes y écrivent (les
 # répertoires des dossiers héritent du groupe, règle BSD).
-#BACKUP_DIR=/var/backups/partiduo
+#BACKUP_DIR=/var/db/partiduo-backups
 # Fichiers produits par partiduo-provision (compte des instances,
 # partiduo:partiduo 0750), relus par root à l'installation.
 #STAGE_DIR=/var/db/partiduo-stage

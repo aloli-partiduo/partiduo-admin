@@ -94,7 +94,7 @@ describe PartiduoAdmin::Fleet do
     dossier.reload.state.should eq("active")
 
     task = PartiduoAdmin::Fleet.lifecycle(admin, dossier, "archive", "cessation d'activité").value!
-    finish(task, true, {"backup" => {"path" => "/var/backups/partiduo/x/archive.dump", "sha256" => "a" * 64, "verified" => true}})
+    finish(task, true, {"backup" => {"path" => "/var/db/partiduo-backups/x/archive.dump", "sha256" => "a" * 64, "verified" => true}})
     dossier.reload.state.should eq("archived")
     dossier.retention_until.should eq(SPEC_NOW.shift(years: 10))
     archive = PartiduoAdmin::Backup.get!(dossier_id: dossier.pk, kind: "archive")

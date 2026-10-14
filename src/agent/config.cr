@@ -52,7 +52,7 @@ module PartiduoAgent
     property mode : Mode = Mode::DryRun
     property state_dir : String = ENV["PARTIDUO_AGENT_STATE"]? || "/var/db/partiduo-agent"
     property work_dir : String = File.join(Dir.tempdir, "partiduo-agent")
-    property backup_dir : String = "/var/backups/partiduo"
+    property backup_dir : String = "/var/db/partiduo-backups"
     # Mode local : outils des paquets `app` (`partiduo-app`) et `devel`
     # (`partiduo-app-devel`). Les deux paquets s'installent aux mêmes
     # emplacements (un seul par serveur) : par défaut, leurs liens de
@@ -139,7 +139,7 @@ module PartiduoAgent
           config.store_command = value
         end
         parser.on("--store-dir RÉP", "stockage des sauvegardes dans un répertoire de ce serveur " \
-                                     "(sans serveur de sauvegarde ; ex. /var/backups/partiduo-store)") do |value|
+                                     "(sans serveur de sauvegarde ; ex. /var/db/partiduo-store)") do |value|
           config.store_dir = value
         end
         parser.on("--recipients FICHIER", "clés publiques d'exploitation (défaut en production : #{ETC}/exploitation.recipients)") do |value|

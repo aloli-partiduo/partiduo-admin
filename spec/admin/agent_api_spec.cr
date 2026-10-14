@@ -35,7 +35,7 @@ describe "API de l'exécutant" do
     api("/api/agent/v1/tasks/#{task.pk}/log", token, {"lines" => ["pg_dump fait"]}).status.should eq(200)
     task.reload.log.to_s.should contain("pg_dump fait")
 
-    result = {"path" => "/var/backups/partiduo/x.dump", "media_path" => "", "size_bytes" => 1234, "sha256" => "b" * 64,
+    result = {"path" => "/var/db/partiduo-backups/x.dump", "media_path" => "", "size_bytes" => 1234, "sha256" => "b" * 64,
               "taken_at" => SPEC_NOW.to_rfc3339}
     api("/api/agent/v1/tasks/#{task.pk}/finish", token, {"ok" => true, "result" => result, "lines" => ["fin"]}).status.should eq(200)
     task.reload.state.should eq("succeeded")

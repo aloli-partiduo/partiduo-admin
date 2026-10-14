@@ -287,7 +287,7 @@ obligatoire) :
   commande sans shell qui parle le protocole de `partiduo-agent
   store-serve`, en général `ssh` vers le serveur de sauvegarde ;
 * *sur le serveur même* (D-CHF-025), quand il n'y a qu'un serveur :
-  `--store-dir /var/backups/partiduo-store`, répertoire de l'exécutant
+  `--store-dir /var/db/partiduo-store`, répertoire de l'exécutant
   (partiduo-agent, 0700), distinct de `--backup-dir`. Les mêmes règles
   s'appliquent (écriture une seule fois, archives gardées). Les
   sauvegardes restent chiffrées et signées, mais disparaissent avec le
@@ -542,8 +542,9 @@ install -o root -g wheel -m 644 deploy/helpers.conf.example /usr/local/etc/parti
 visudo -c   # règles de /usr/local/etc/sudoers.d/partiduo-agent (paquet)
 # Répertoires : sauvegardes (les deux comptes y écrivent ; les répertoires des
 # dossiers héritent du groupe, règle BSD), fichiers de partiduo-provision,
-# état de l'exécutant
-install -d -o partiduo -g partiduo-agent -m 770 /var/backups/partiduo
+# état de l'exécutant. Jamais sous /var/backups : root:wheel 0750 (mtree de
+# base), les comptes de service ne peuvent pas le traverser (D-CHF-026).
+install -d -o partiduo -g partiduo-agent -m 770 /var/db/partiduo-backups
 install -d -o partiduo -g partiduo -m 750 /var/db/partiduo-stage
 install -d -o partiduo-agent -g partiduo-agent -m 700 /var/db/partiduo-agent
 # Rôle PostgreSQL des instances (socket /tmp, authentification peer)
@@ -580,7 +581,7 @@ nom du serveur dans l'administration. `--store-command` (ou `--store-dir`
 sans serveur de sauvegarde, D-CHF-025) est obligatoire
 en production. Défauts de
 l'exécutant : `--state-dir /var/db/partiduo-agent`, `--backup-dir
-/var/backups/partiduo`, `--pg-socket /tmp`, `--helpers-dir
+/var/db/partiduo-backups`, `--pg-socket /tmp`, `--helpers-dir
 /usr/local/libexec/partiduo-agent`. `--mail-command` exige un MTA local
 (D-CRA-003).
 

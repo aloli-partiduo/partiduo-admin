@@ -133,18 +133,18 @@ describe "Sauvegardes : stockage de l'exécutant (D-CHF-024, D-CHF-025)" do
     config.signing_key_path.should eq("/usr/local/etc/partiduo-agent/backup-signing.key")
     config.local_store?.should be_false
     # Sans serveur de sauvegarde : un répertoire du serveur (D-CHF-025).
-    config.store_dir = "/var/backups/partiduo-store"
+    config.store_dir = "/var/db/partiduo-store"
     expect_raises(ArgumentError, /s'excluent/) { config.validate! }
     config.store_command = ""
     config.validate!
     config.local_store?.should be_true
-    config.store_path.should eq("/var/backups/partiduo-store")
+    config.store_path.should eq("/var/db/partiduo-store")
     # Jamais dans les sauvegardes en préparation, que l'exécutant vide.
-    config.store_dir = "/var/backups/partiduo/store"
+    config.store_dir = "/var/db/partiduo-backups/store"
     expect_raises(ArgumentError, /distinct du répertoire des sauvegardes/) { config.validate! }
-    config.store_dir = "/var/backups"
+    config.store_dir = "/var/db"
     expect_raises(ArgumentError, /distinct du répertoire des sauvegardes/) { config.validate! }
-    config.store_dir = "/var/backups/partiduo-store"
+    config.store_dir = "/var/db/partiduo-store"
     config.server_name = "Lou Lou"
     expect_raises(ArgumentError, /nom de serveur/) { config.validate! }
   end

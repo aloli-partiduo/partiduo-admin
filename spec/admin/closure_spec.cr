@@ -90,7 +90,7 @@ describe "Administration : double validation et compte rendu atomiques (D-AFN-01
     task = running(PartiduoAdmin::Fleet.backup_now(AdminSpec.super_admin, dossier).value!)
     first = PartiduoAdmin::Task.get!(id: task.pk)
     second = PartiduoAdmin::Task.get!(id: task.pk)
-    data = {"path" => "/var/backups/partiduo/x/b.dump", "sha256" => "0" * 64}
+    data = {"path" => "/var/db/partiduo-backups/x/b.dump", "sha256" => "0" * 64}
     result = JSON.parse(data.to_json)
     PartiduoAdmin::Tasks.finish(first, true, result, "", Array(String).new, SPEC_NOW).should be_true
     PartiduoAdmin::Tasks.finish(second, true, result, "", Array(String).new, SPEC_NOW).should be_false
