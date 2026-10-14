@@ -528,6 +528,20 @@ describe "partiduo-agent : scripts enveloppes de sudo (D-AFN-002)" do
     FileUtils.rm_rf(dir) if dir
   end
 
+  it "lancent les programmes depuis /, jamais depuis le répertoire privé de l'exécutant" do
+    dir = File.join(Dir.tempdir, "partiduo-helpers-#{Random::Secure.hex(4)}")
+    conf = helper_bench(dir)
+    manage = File.join(dir, "root", "usr", "local", "lib", "partiduo", "bin", "partiduo-manage")
+    File.write(manage, "#!/bin/sh\npwd\n", perm: 0o755)
+    private_dir = File.join(dir, "agent-state")
+    Dir.mkdir_p(private_dir)
+    code, output, _ = Dir.cd(private_dir) { helper("partiduo-agent-instance", conf, ["cli", "demo", "-", "app", "version"]) }
+    code.should eq(0)
+    output.strip.should eq("/")
+  ensure
+    FileUtils.rm_rf(dir) if dir
+  end
+
   it "installent, servent et retirent une instance comme l'INSTALL.txt de partiduo-provision" do
     dir = File.join(Dir.tempdir, "partiduo-helpers-#{Random::Secure.hex(4)}")
     conf = helper_bench(dir)

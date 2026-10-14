@@ -34,6 +34,11 @@ set -eu
 PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 export PATH
 umask 027
+# Répertoire neutre : l'exécutant lance ces enveloppes depuis son propre
+# répertoire (/var/db/partiduo-agent, 0700), que le compte cible ne peut pas
+# lire ; un programme Crystal 1.21 y plante dès le démarrage (« Thread#
+# execution_context cannot be nil », loulou, 14 oct. 2026).
+cd /
 
 die() {
   echo "partiduo-agent-instance : $*" >&2
