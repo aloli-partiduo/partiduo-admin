@@ -34,7 +34,7 @@ shards:
 
   jose:
     git: https://github.com/aloli-crystal/jose.git
-    version: 0.2.0
+    version: 0.2.1
 
   jwt:
     git: https://github.com/crystal-community/jwt.git
