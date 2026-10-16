@@ -74,8 +74,10 @@ Les serveurs d'hébergement sont sous FreeBSD ; les instances Partiduo y
 sont installées par l'un de deux paquets exclusifs, aux mêmes emplacements :
 `partiduo-app` (production) ou `partiduo-app-devel` (développement, sur le
 serveur de test) ; une seule version par serveur. Chaque dossier porte le
-paquet attendu sur son serveur, son *paquet* (`app` ou `devel`), choisi à la
-création (`app` par défaut) et affiché sur la fiche et la liste des
+paquet attendu sur son serveur, son *paquet* (`app` ou `devel`), celui de
+l'administration qui le crée (D-ADM-014) : `partiduo-admin-devel`, compilé
+avec `-Dpartiduo_devel`, ne crée que des dossiers `devel`, `partiduo-admin`
+que des dossiers `app`. Il est affiché sur la fiche et la liste des
 dossiers ; une restauration dans une instance neuve garde le paquet du
 dossier restauré. Chaque tâche d'un dossier transmet son paquet à
 l'exécutant (paramètre `package`), qui le compare au paquet installé pour

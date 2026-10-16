@@ -34,7 +34,7 @@ describe "Exécutant contre l'administration" do
     input = PartiduoAdmin::Fleet::DossierInput.new(slug: "bout-en-bout", label: "Bout en bout SAS", regime: "fr",
       admin_email: "gerant@bout.fr", server_id: PartiduoAdmin.id?(server.pk), firm_id: PartiduoAdmin.id?(firm.pk),
       payer_id: PartiduoAdmin.id?(AdminSpec.payer(firm).pk), package: "devel")
-    dossier = PartiduoAdmin::Fleet.create_dossier(admin, input).value!
+    dossier = with_dossier_package("devel") { PartiduoAdmin::Fleet.create_dossier(admin, input).value! }
 
     with_admin_server do |url|
       config = PartiduoAgent::Config.new

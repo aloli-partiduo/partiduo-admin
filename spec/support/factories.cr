@@ -77,3 +77,14 @@ module AdminSpec
       keep_until: taken_at + 30.days, version: dossier.version.to_s)
   end
 end
+
+# Administration d'une autre variante le temps d'un bloc : `devel` pour
+# partiduo-admin-devel, `app` pour partiduo-admin (Config.dossier_package,
+# fixé à la compilation hors specs).
+def with_dossier_package(package : String, &)
+  previous = PartiduoAdmin::Config.dossier_package
+  PartiduoAdmin::Config.dossier_package = package
+  yield
+ensure
+  PartiduoAdmin::Config.dossier_package = previous if previous
+end

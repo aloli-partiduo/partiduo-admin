@@ -93,9 +93,13 @@ module PartiduoAdmin
     end
 
     private def self.schedule_errors(input : DossierInput, errors : Errors) : Nil
-      # Paquet choisi : `app` ou `devel`, jamais une valeur libre (il désigne
-      # le paquet FreeBSD qui servira l'instance).
-      add(errors, "package", "admin.errors.dossier.package") unless Protocol.valid_package?(input.package)
+      # Paquet : celui de cette administration (Config.dossier_package), jamais
+      # une valeur libre (il désigne le paquet FreeBSD qui servira l'instance).
+      if !Protocol.valid_package?(input.package)
+        add(errors, "package", "admin.errors.dossier.package")
+      elsif input.package != Config.dossier_package
+        add(errors, "package", "admin.errors.dossier.package_build")
+      end
       add(errors, "backup_schedule", "admin.errors.invalid") unless Dossier::SCHEDULES.includes?(input.backup_schedule)
       add(errors, "backup_retention_days", "admin.errors.dossier.retention") unless (1..3650).includes?(input.backup_retention_days)
     end

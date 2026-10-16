@@ -48,7 +48,7 @@ module PartiduoAdmin
         extensions: field("extensions").split(/[\s,]+/).map(&.strip.downcase).reject(&.empty?),
         admin_email: field("admin_email"), server_id: field("server_id").to_i64?,
         firm_id: user.firm_admin? ? PartiduoAdmin.id?(user.firm_id) : field("firm_id").to_i64?, payer_id: field("payer_id").to_i64?,
-        package: field("package").presence || "app", backup_schedule: field("backup_schedule").presence || "daily",
+        package: Config.dossier_package, backup_schedule: field("backup_schedule").presence || "daily",
         backup_retention_days: field("backup_retention_days").to_i? || 0)
       outcome = Fleet.create_dossier(user, input)
       if outcome.ok?
@@ -64,7 +64,6 @@ module PartiduoAdmin
       firms = Access.firms(user).filter(active: true).order("name").map { |firm| opt.call(firm.pk.to_s, firm.name.to_s, input.firm_id.to_s) }
       payers = Access.payers(user).order("name").map { |payer| opt.call(payer.pk.to_s, "#{payer.name} (#{payer.firm_name})", input.payer_id.to_s) }
       servers = Server.filter(active: true).order("name").map { |server| opt.call(server.pk.to_s, "#{server.name} — #{server.domain}", input.server_id.to_s) }
-      packages = Dossier::PACKAGES.map { |code| opt.call(code, I18n.t("admin.packages.#{code}"), input.package) }
       modules = Protocol::MODULES.map { |code| FormField::Option.new(code, I18n.t("admin.modules.#{code}"), input.modules.includes?(code)) }
       fields = [
         FormField.new("slug", I18n.t("admin.dossiers.fields.slug"), input.slug, errors: errs(t, "slug"), required: true,
@@ -92,13 +91,12 @@ module PartiduoAdmin
       fields << FormField.new("payer_id", I18n.t("admin.dossiers.fields.payer"), input.payer_id.to_s, "select",
         [opt.call("", I18n.t("admin.choose"), "x")] + payers, errs(t, "payer_id"), required: true,
         help: I18n.t(payers.empty? ? "admin.dossiers.help.no_payer" : "admin.dossiers.help.payer"))
-      fields << FormField.new("package", I18n.t("admin.dossiers.fields.package"), input.package, "select", packages,
-        errs(t, "package"), required: true, help: I18n.t("admin.dossiers.help.package"))
       fields << FormField.new("backup_schedule", I18n.t("admin.dossiers.fields.backup_schedule"), input.backup_schedule, "select",
         Dossier::SCHEDULES.map { |code| opt.call(code, I18n.t("admin.schedules.#{code}"), input.backup_schedule) })
       fields << FormField.new("backup_retention_days", I18n.t("admin.dossiers.fields.backup_retention_days"),
         input.backup_retention_days.to_s, "number", errors: errs(t, "backup_retention_days"))
-      page("admin/dossier_new.html", {"fields" => fields, "base_errors" => errs(t, "base")}, status: status)
+      page("admin/dossier_new.html", {"fields" => fields, "base_errors" => errs(t, "base") + errs(t, "package"),
+                                      "package_key" => "admin.packages.#{Config.dossier_package}"}, status: status)
     end
   end
 

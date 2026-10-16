@@ -189,8 +189,10 @@ describe "PartiduoAdmin : paquet d'un dossier" do
   it "crée un dossier servi par partiduo-app-devel et transmet le paquet à l'exécutant" do
     firm = AdminSpec.firm
     server, _ = AdminSpec.server
-    dossier = PartiduoAdmin::Fleet.create_dossier(AdminSpec.super_admin, input(firm, server, AdminSpec.payer(firm), "essai-devel",
-      package: "devel")).value!
+    dossier = with_dossier_package("devel") do
+      PartiduoAdmin::Fleet.create_dossier(AdminSpec.super_admin, input(firm, server, AdminSpec.payer(firm), "essai-devel",
+        package: "devel")).value!
+    end
     dossier.package.should eq("devel")
     dossier.package_name.should eq("partiduo-app-devel")
     task = PartiduoAdmin::Task.get!(dossier_id: dossier.pk, kind: "instance.create")

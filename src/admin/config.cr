@@ -115,6 +115,15 @@ module PartiduoAdmin
       (ENV["PARTIDUO_ADMIN_ALERTS_TO"]? || "").split(',').map(&.strip).reject(&.empty?)
     end
 
+    # Paquet des dossiers que crée cette administration, fixé à la
+    # compilation : `partiduo-admin-devel` (port, `-Dpartiduo_devel`) ne crée
+    # que des dossiers `devel` (partiduo-app-devel, serveurs de test) ;
+    # `partiduo-admin`, que des dossiers `app` (production). Aucun choix dans
+    # le formulaire : une administration ne crée jamais un dossier de l'autre
+    # monde (D-ADM-014). Réglable par les specs seulement.
+    BUILD_PACKAGE = {% if flag?(:partiduo_devel) %} "devel" {% else %} "app" {% end %}
+    class_property dossier_package : String = BUILD_PACKAGE
+
     # Horloge remplaçable dans les specs.
     class_property clock : Proc(Time) = -> { Time.utc }
 

@@ -91,7 +91,7 @@ describe "Protocole : sous-domaines réservés" do
     outcome.errors["slug"].should eq(["admin.errors.dossier.slug"])
   end
 
-  it "n'accepte pour un dossier que le paquet app ou devel, jamais une valeur libre" do
+  it "n'accepte pour un dossier que le paquet de l'administration, jamais une valeur libre" do
     firm = AdminSpec.firm
     server, _ = AdminSpec.server
     payer = AdminSpec.payer(firm)
@@ -106,7 +106,14 @@ describe "Protocole : sous-domaines réservés" do
     PartiduoAdmin::Fleet.create_dossier(root, base).value!.package.should eq("app")
     ok = PartiduoAdmin::Fleet::DossierInput.new(slug: "paquet-devel", label: base.label, regime: base.regime, admin_email: base.admin_email,
       server_id: base.server_id, firm_id: base.firm_id, payer_id: base.payer_id, package: "devel")
-    PartiduoAdmin::Fleet.create_dossier(root, ok).value!.package.should eq("devel")
+    # Jamais le paquet de l'autre variante de l'administration (D-ADM-014).
+    PartiduoAdmin::Fleet.create_dossier(root, ok).errors["package"].should eq(["admin.errors.dossier.package_build"])
+    with_dossier_package("devel") do
+      PartiduoAdmin::Fleet.create_dossier(root, ok).value!.package.should eq("devel")
+      app = PartiduoAdmin::Fleet::DossierInput.new(slug: "paquet-app", label: base.label, regime: base.regime, admin_email: base.admin_email,
+        server_id: base.server_id, firm_id: base.firm_id, payer_id: base.payer_id, package: "app")
+      PartiduoAdmin::Fleet.create_dossier(root, app).errors["package"].should eq(["admin.errors.dossier.package_build"])
+    end
   end
 end
 

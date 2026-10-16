@@ -126,23 +126,23 @@ describe "Interface de l'administration" do
     browser.get("/dossiers/#{dossier.pk}").html.should contain("Aucun message renvoyé par l'exécutant")
   end
 
-  it "choisit le paquet à la création et l'affiche sur la fiche et dans la liste" do
+  it "crée les dossiers du paquet de l'administration, sans choix, et l'affiche sur la fiche et dans la liste" do
     firm = AdminSpec.firm
     server, _ = AdminSpec.server
     payer = AdminSpec.payer(firm)
     browser = AdminSpec::Browser.new(token: AdminSpec.session(AdminSpec.user(PartiduoAdmin::Config::FIRM_ADMIN, firm)))
     form = browser.get("/dossiers/new").html
-    form.should contain(%(name="package"))
-    form.should contain("partiduo-app (production)")
-    form.should contain("partiduo-app-devel (développement)")
+    form.should_not contain(%(name="package"))
     form.should_not contain(%(name="version"))
+    form.should contain("partiduo-app (production)")
     data = {"slug" => "essai-devel", "label" => "Essai SAS", "regime" => "fr", "locale" => "fr",
             "modules" => ["accounting"], "admin_email" => "gerant@essai.fr", "server_id" => server.pk.to_s,
-            "payer_id" => payer.pk.to_s, "package" => "beta", "backup_schedule" => "daily", "backup_retention_days" => "30"}
-    refused = browser.post("/dossiers/new", data)
-    refused.status.should eq(422)
-    refused.html.should contain("Paquet inconnu")
-    browser.post("/dossiers/new", data.merge({"package" => "devel"})).status.should eq(302)
+            "payer_id" => payer.pk.to_s, "package" => "app", "backup_schedule" => "daily", "backup_retention_days" => "30"}
+    with_dossier_package("devel") do
+      browser.get("/dossiers/new").html.should contain("partiduo-app-devel (développement)")
+      # Un paquet envoyé à la main est ignoré : celui de l'administration.
+      browser.post("/dossiers/new", data).status.should eq(302)
+    end
     dossier = PartiduoAdmin::Dossier.get!(slug: "essai-devel")
     dossier.package.should eq("devel")
     PartiduoAdmin::Task.get!(dossier_id: dossier.pk).params_json["package"].should eq("devel")
