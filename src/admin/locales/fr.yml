@@ -411,6 +411,16 @@ fr:
       result: "Résultat"
       retry: "Relancer"
       cancel: "Annuler"
+      filters:
+        title: "Filtrer les tâches"
+        from: "Du"
+        to: "Au"
+        without_supervision: "Tous sauf supervision"
+        reset: "Réinitialiser"
+        pagination: "Pages de tâches"
+        previous: "Précédente"
+        next: "Suivante"
+        count: "%{total} tâche(s) — page %{number} sur %{pages}"
       enqueued: "Tâche en file d'attente."
       states:
         pending: "en attente"

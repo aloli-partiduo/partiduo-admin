@@ -1,11 +1,29 @@
-{# SPDX-License-Identifier: AGPL-3.0-or-later. File de tâches (ADR-008 D4). #}{% extend "admin/base.html" %}
+{# SPDX-License-Identifier: AGPL-3.0-or-later. File de tâches (ADR-008 D4) : un filtre par colonne, 50 tâches par page. #}{% extend "admin/base.html" %}
 {% block title %}{% translate "admin.tasks.title" %}{% endblock title %}
 {% block crumbs %}<li>{% translate "admin.tasks.title" %}</li>{% endblock crumbs %}
 {% block heading %}{% translate "admin.tasks.title" %}{% endblock heading %}
 {% block content %}
-<form method="get" action="{% url 'tasks' %}" class="pd-inline mb-4">
-  <div class="field"><label class="label" for="pd-task-state">{% translate "admin.tasks.state" %}</label><div class="select"><select id="pd-task-state" name="state"><option value="">{% translate "admin.all" %}</option>{% for option in states %}<option value="{{ option.code }}"{% if option.code == state %} selected{% endif %}>{% translate option.key %}</option>{% endfor %}</select></div></div>
-  <button class="button" type="submit">{% translate "admin.filter" %}</button>
+<form method="get" action="{% url 'tasks' %}" class="pd-panel mb-4" aria-label="{% translate 'admin.tasks.filters.title' %}">
+  <div class="columns is-multiline">
+    <div class="column is-1"><div class="field"><label class="label" for="pd-task-id">#</label><input class="input" id="pd-task-id" name="id" inputmode="numeric" value="{{ filter.id }}"></div></div>
+    <div class="column is-3"><div class="field"><label class="label" for="pd-task-kind">{% translate "admin.tasks.kind" %}</label><div class="select is-fullwidth"><select id="pd-task-kind" name="kind"><option value="">{% translate "admin.all" %}</option>{% for option in kinds %}<option value="{{ option.code }}"{% if option.selected %} selected{% endif %}>{% translate option.key %}</option>{% endfor %}</select></div></div></div>
+    <div class="column is-2"><div class="field"><label class="label" for="pd-task-dossier">{% translate "admin.tasks.dossier" %}</label><input class="input" id="pd-task-dossier" name="dossier" value="{{ filter.dossier }}"></div></div>
+    <div class="column is-2"><div class="field"><label class="label" for="pd-task-state">{% translate "admin.tasks.state" %}</label><div class="select is-fullwidth"><select id="pd-task-state" name="state"><option value="">{% translate "admin.all" %}</option>{% for option in states %}<option value="{{ option.code }}"{% if option.selected %} selected{% endif %}>{% translate option.key %}</option>{% endfor %}</select></div></div></div>
+    <div class="column is-2"><div class="field"><label class="label" for="pd-task-requested-by">{% translate "admin.tasks.requested_by" %}</label><input class="input" id="pd-task-requested-by" name="requested_by" value="{{ filter.requested_by }}"></div></div>
+    <div class="column is-1"><div class="field"><label class="label" for="pd-task-from">{% translate "admin.tasks.filters.from" %}</label><input class="input" type="date" id="pd-task-from" name="from" value="{{ filter.from }}"></div></div>
+    <div class="column is-1"><div class="field"><label class="label" for="pd-task-to">{% translate "admin.tasks.filters.to" %}</label><input class="input" type="date" id="pd-task-to" name="to" value="{{ filter.to }}"></div></div>
+  </div>
+  <div class="buttons"><button class="button is-primary" type="submit">{% translate "admin.filter" %}</button>{% if filter.active %}<a class="button" href="{% url 'tasks' %}">{% translate "admin.tasks.filters.reset" %}</a>{% endif %}</div>
 </form>
 {% include "admin/_tasks_table.html" %}
+{% if pages > 1 %}<nav class="pagination is-centered mt-4" aria-label="{% translate 'admin.tasks.filters.pagination' %}">
+  {% if previous %}<a class="pagination-previous" href="{{ previous }}">{% translate "admin.tasks.filters.previous" %}</a>{% endif %}
+  {% if next %}<a class="pagination-next" href="{{ next }}">{% translate "admin.tasks.filters.next" %}</a>{% endif %}
+  <ul class="pagination-list">
+    {% if first %}<li><a class="pagination-link" href="{{ first }}">1</a></li><li><span class="pagination-ellipsis">&hellip;</span></li>{% endif %}
+    <li><span class="pagination-link is-current" aria-current="page">{{ number }}</span></li>
+    {% if last %}<li><span class="pagination-ellipsis">&hellip;</span></li><li><a class="pagination-link" href="{{ last }}">{{ pages }}</a></li>{% endif %}
+  </ul>
+</nav>{% endif %}
+<p class="pd-muted mt-2">{% translate "admin.tasks.filters.count" total: total, number: number, pages: pages %}</p>
 {% endblock content %}

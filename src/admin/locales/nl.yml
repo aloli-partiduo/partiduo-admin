@@ -411,6 +411,16 @@ nl:
       result: "Resultaat"
       retry: "Opnieuw starten"
       cancel: "Annuleren"
+      filters:
+        title: "Taken filteren"
+        from: "Van"
+        to: "Tot"
+        without_supervision: "Alles behalve toezicht"
+        reset: "Wissen"
+        pagination: "Takenpagina's"
+        previous: "Vorige"
+        next: "Volgende"
+        count: "%{total} ta(a)k(en) — pagina %{number} van %{pages}"
       enqueued: "Taak in de wachtrij."
       states:
         pending: "wachtend"

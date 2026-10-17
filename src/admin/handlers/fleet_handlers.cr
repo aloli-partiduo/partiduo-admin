@@ -34,11 +34,32 @@ module PartiduoAdmin
   end
 
   class TasksHandler < ScreenHandler
+    # Une valeur de filtre par colonne, 50 tâches par page (TaskFilter).
     def get
-      scope = Access.tasks(user).order("-id")
-      state = query("state")
-      scope = scope.filter(state: state) if Protocol::STATES.includes?(state)
-      page("admin/tasks.html", {"tasks" => scope.to_a.first(200), "state" => state, "states" => Protocol::STATES.map { |code| {"code" => code, "key" => "admin.tasks.states.#{code}"} }})
+      filter = TaskFilter.from_query { |name| query(name) }
+      paginator = filter.apply(Access.tasks(user)).order("-id").paginator(TaskFilter::PAGE_SIZE)
+      current = paginator.page(query("page").to_i? || 1)
+      page("admin/tasks.html", {
+        "tasks"    => current.to_a,
+        "filter"   => filter,
+        "kinds"    => kinds(filter.kind),
+        "states"   => Protocol::STATES.map { |code| {"code" => code, "key" => "admin.tasks.states.#{code}", "selected" => code == filter.state} },
+        "number"   => current.number,
+        "pages"    => current.pages_count,
+        "total"    => current.total_count,
+        "previous" => current.previous_page? ? filter.url(current.number - 1) : "",
+        "next"     => current.next_page? ? filter.url(current.number + 1) : "",
+        "first"    => current.number > 2 ? filter.url(1) : "",
+        "last"     => current.number < current.pages_count - 1 ? filter.url(current.pages_count) : "",
+      })
+    end
+
+    private def kinds(selected : String)
+      without = {"code" => TaskFilter::WITHOUT_SUPERVISION, "key" => "admin.tasks.filters.without_supervision",
+                 "selected" => selected == TaskFilter::WITHOUT_SUPERVISION}
+      [without] + Protocol::KINDS.map do |code|
+        {"code" => code, "key" => "admin.tasks.kinds.#{code.tr(".", "_")}", "selected" => code == selected}
+      end
     end
   end
 

@@ -411,6 +411,16 @@ en:
       result: "Result"
       retry: "Retry"
       cancel: "Cancel"
+      filters:
+        title: "Filter tasks"
+        from: "From"
+        to: "To"
+        without_supervision: "All but supervision"
+        reset: "Reset"
+        pagination: "Task pages"
+        previous: "Previous"
+        next: "Next"
+        count: "%{total} task(s) — page %{number} of %{pages}"
       enqueued: "Task queued."
       states:
         pending: "pending"
