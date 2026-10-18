@@ -315,7 +315,8 @@ sauvegardes d'un dossier déplacé les garde (`kept`).
 * Base et pièces jointes : fichiers `age` (C2SP `age-encryption.org/v1`),
   un seul destinataire `mlkem768x25519` (la clé de sauvegarde), segments de
   64 Kio ChaCha20-Poly1305 authentifiés. `age-inspect --json` en donne la
-  structure.
+  structure ; l'exécutant lit lui-même l'en-tête (partiduo-backup), sans
+  `age-inspect`.
 * Capsule : `age` (destinataires `mlkem768x25519` des clés d'exploitation)
   ou RSA-OAEP (SHA-256, MGF1-SHA-256, sans étiquette) de la clé de
   sauvegarde, en texte.
@@ -461,7 +462,7 @@ Hors production, le stockage est un répertoire (`--store-dir`, défaut
 `<state-dir>/store`), la clé de signature est créée au premier usage dans
 l'état de l'exécutant, et les clés d'exploitation sont lues dans
 `<state-dir>/exploitation.recipients`. `age` 1.3 ou suivant (`age`,
-`age-keygen`, `age-inspect`) et `ssh-keygen` sont requis, par l'exécutant
+`age-keygen`) et `ssh-keygen` sont requis, par l'exécutant
 comme par l'administration (contrôle d'une clé de sauvegarde remise).
 
 Specs (base propre, dont le nom contient `test`) ; celles du chiffrement et

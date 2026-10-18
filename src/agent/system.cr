@@ -427,7 +427,7 @@ module PartiduoAgent
     end
 
     def check_envelope(path : String) : Nil
-      op("age-inspect", path)
+      op("en-tête age", path)
     end
 
     # Clés simulées : une identité et un destinataire bien formés, le
