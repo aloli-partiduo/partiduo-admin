@@ -1,6 +1,11 @@
 # SPDX-License-Identifier: AGPL-3.0-or-later
 en:
   admin:
+    copy:
+      copy: "Copy"
+      copied: "Copied ✓"
+      failed: "Copy failed"
+      log: "Copy the task log"
     brand: "Fleet administration"
     yes_label: "yes"
     all: "All"
@@ -412,6 +417,12 @@ en:
       result: "Result"
       retry: "Retry"
       cancel: "Cancel"
+      banner:
+        pending: "Waiting for the agent: this page updates itself."
+        running: "Running on the server: this page updates itself."
+        succeeded: "Task succeeded."
+        failed: "Task failed"
+        cancelled: "Task cancelled."
       filters:
         title: "Filter tasks"
         from: "From"

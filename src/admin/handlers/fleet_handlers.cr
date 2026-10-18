@@ -69,6 +69,13 @@ module PartiduoAdmin
     def get
       task = Access.tasks(user).filter(id: id_param).first
       raise Access::Denied.new("task") if task.nil?
+      # Rafraîchissement HTMX d'une tâche qui vient de se terminer : page
+      # entière rechargée une fois, pour l'état final et le bouton « Relancer ».
+      if htmx? && task.finished
+        response = Marten::HTTP::Response.new("", status: 200)
+        response.headers["HX-Refresh"] = "true"
+        return response
+      end
       template = htmx? ? "admin/_task_body.html" : "admin/task.html"
       page(template, {"task" => task, "result" => task.result.presence || "{}",
                       "can_retry" => Tasks.retryable?(task) && !user.file_manager?, "can_cancel" => task.state == "pending" && !user.file_manager?})
@@ -81,7 +88,9 @@ module PartiduoAdmin
       task = Access.tasks(user).filter(id: id_param).first
       raise Access::Denied.new("task") if task.nil?
       done = params["command"].to_s == "retry" ? Tasks.retry(user, task) : Tasks.cancel(user, task)
-      flash[done ? "success" : "danger"] = I18n.t(done ? "admin.saved" : "admin.errors.task.state")
+      # Pas de « Enregistré » vert : la relance n'est qu'une mise en file ; le
+      # bandeau d'état de la page (_task_body) suit la tâche jusqu'à son issue.
+      flash["danger"] = I18n.t("admin.errors.task.state") unless done
       go("/tasks/#{task.pk}")
     end
   end

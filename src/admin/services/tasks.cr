@@ -169,9 +169,13 @@ module PartiduoAdmin
     end
 
     # Rejouer une tâche échouée : même type, mêmes paramètres ; les étapes
-    # déjà faites sont sautées par l'exécutant (tâches idempotentes).
+    # déjà faites sont sautées par l'exécutant (tâches idempotentes). Seules
+    # les clés de signature d'une sauvegarde sont relues : une clé déclarée
+    # après la création de la tâche doit servir à la relance (loulou, 18 oct.
+    # 2026 : relances refusées, « clé de signature inconnue »).
     def self.retry(user : User, task : Task) : Bool
       return false unless retryable?(task)
+      refresh_signers(task)
       task.state = "pending"
       task.finished_at = nil
       task.error = ""
@@ -182,6 +186,15 @@ module PartiduoAdmin
       end
       Audit.log(user, "task.retry", target: task)
       true
+    end
+
+    private def self.refresh_signers(task : Task) : Nil
+      params = task.params_json.as_h? || return
+      return unless params.has_key?("signers")
+      id = params["backup_id"]?.try(&.as_i64?) || return
+      backup = Backup.filter(id: id).first || return
+      params["signers"] = JSON::Any.new(BackupEncryption.signers(backup).map { |line| JSON::Any.new(line) })
+      task.params = params.to_json
     end
 
     def self.cancel(user : User, task : Task) : Bool

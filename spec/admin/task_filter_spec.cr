@@ -69,3 +69,62 @@ describe "Interface de l'administration : file des tâches" do
     browser.get("/tasks?dossier=pipo").html.should contain(%(href="/tasks/#{ancienne.pk}"))
   end
 end
+
+describe "Interface de l'administration : relance d'une tâche" do
+  it "ne dit jamais « Enregistré » en vert : un bandeau suit la tâche jusqu'à son issue" do
+    firm = AdminSpec.firm
+    server, _ = AdminSpec.server
+    pipo = AdminSpec.dossier(firm, server, slug: "pipo")
+    echec = PartiduoAdmin::Task.create!(kind: "backup.run", server: server, dossier: pipo, state: "failed", error: "courriel non remis : Read timed out")
+    browser = AdminSpec::Browser.new(token: AdminSpec.session(AdminSpec.super_admin))
+
+    page = browser.get("/tasks/#{echec.pk}").html
+    page.should contain("is-danger")
+    page.should contain("Tâche échouée : courriel non remis : Read timed out")
+    # Journal copiable d'un clic.
+    page.should contain(%(data-copy-target="pd-task-log"))
+    page.should contain(%(id="pd-task-log"))
+    page.should contain("copy.js")
+
+    browser.post("/tasks/#{echec.pk}/retry").status.should eq(302)
+    relancee = browser.get("/tasks/#{echec.pk}").html
+    relancee.should_not contain("Enregistré")
+    relancee.should contain("En attente de l'exécutant")
+    relancee.should contain(%(hx-trigger="every 5s"))
+
+    # La tâche se termine : le prochain rafraîchissement recharge la page.
+    echec.reload
+    echec.state = "succeeded"
+    echec.save!
+    refresh = browser.get("/tasks/#{echec.pk}", {"HX-Request" => "true"})
+    refresh.headers["HX-Refresh"]?.should eq("true")
+    browser.get("/tasks/#{echec.pk}").html.should contain("Tâche réussie.")
+  end
+end
+
+describe "Relance d'une restauration test" do
+  it "prend les clés de signature déclarées après la création de la tâche" do
+    firm = AdminSpec.firm
+    server, _ = AdminSpec.server("loulou-relance")
+    dossier = AdminSpec.dossier(firm, server, slug: "pipo-relance")
+    backup = AdminSpec.backup(dossier)
+    task = PartiduoAdmin::Fleet.test_restore(AdminSpec.super_admin, backup).value!
+    task.params_json["signers"].as_a.should be_empty
+    task.state = "failed"
+    task.save!
+
+    dir = File.join(Dir.tempdir, "partiduo-relance-#{Random::Secure.hex(4)}")
+    Dir.mkdir_p(dir)
+    signing = File.join(dir, "backup-signing.key")
+    PartiduoAdmin::BackupCrypto::Signature.generate(signing, "loulou-relance")
+    public_key = PartiduoAdmin::BackupCrypto::Signature.public_line(signing)
+    PartiduoAdmin::BackupEncryption.add_signing_key(AdminSpec.super_admin, server, public_key).ok?.should be_true
+
+    PartiduoAdmin::Tasks.retry(AdminSpec.super_admin, task).should be_true
+    task.reload
+    task.state.should eq("pending")
+    task.params_json["signers"].as_a.size.should eq(1)
+    task.params_json["signers"][0].as_s.should contain("loulou-relance")
+    task.params_json["backup_id"].as_i64.should eq(backup.pk)
+  end
+end

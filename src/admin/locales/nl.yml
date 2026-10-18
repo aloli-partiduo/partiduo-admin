@@ -1,6 +1,11 @@
 # SPDX-License-Identifier: AGPL-3.0-or-later
 nl:
   admin:
+    copy:
+      copy: "Kopiëren"
+      copied: "Gekopieerd ✓"
+      failed: "Kopiëren mislukt"
+      log: "Het takenlogboek kopiëren"
     brand: "Beheer van het park"
     yes_label: "ja"
     all: "Alle"
@@ -412,6 +417,12 @@ nl:
       result: "Resultaat"
       retry: "Opnieuw starten"
       cancel: "Annuleren"
+      banner:
+        pending: "Wacht op de uitvoerder: deze pagina werkt zichzelf bij."
+        running: "Bezig op de server: deze pagina werkt zichzelf bij."
+        succeeded: "Taak geslaagd."
+        failed: "Taak mislukt"
+        cancelled: "Taak geannuleerd."
       filters:
         title: "Taken filteren"
         from: "Van"

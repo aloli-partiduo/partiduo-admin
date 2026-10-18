@@ -1,4 +1,5 @@
 {# SPDX-License-Identifier: AGPL-3.0-or-later. Corps du détail d'une tâche ; se recharge toutes les 5 s tant qu'elle n'est pas terminée. #}<div id="pd-task"{% if not task.finished %} hx-get="{% url 'task' id: task.id %}" hx-trigger="every 5s" hx-swap="outerHTML"{% endif %}>
+  {% include "admin/_task_banner.html" %}
   <section class="pd-panel" aria-labelledby="pd-task-title">
     <h2 id="pd-task-title">{% translate "admin.tasks.task" %} {{ task.id }}</h2>
     <dl class="pd-dl">
@@ -12,8 +13,8 @@
     </dl>
   </section>
   <section class="pd-panel" aria-labelledby="pd-log-title">
-    <h2 id="pd-log-title">{% translate "admin.tasks.log" %}</h2>
-    <pre class="pd-log" tabindex="0">{{ task.log|default:"—" }}</pre>
+    <div class="level mb-2"><h2 id="pd-log-title" class="level-left">{% translate "admin.tasks.log" %}</h2><button class="button is-small level-right" type="button" data-copy-target="pd-task-log" data-copy-label="{% translate 'admin.copy.copy' %}" data-copied-label="{% translate 'admin.copy.copied' %}" data-failed-label="{% translate 'admin.copy.failed' %}" aria-label="{% translate 'admin.copy.log' %}">{% translate "admin.copy.copy" %}</button></div>
+    <pre class="pd-log" id="pd-task-log" tabindex="0">{{ task.log|default:"—" }}</pre>
   </section>
   <section class="pd-panel" aria-labelledby="pd-result-title">
     <h2 id="pd-result-title">{% translate "admin.tasks.result" %}</h2>
