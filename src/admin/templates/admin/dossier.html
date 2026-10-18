@@ -16,7 +16,7 @@
   <section class="pd-panel" aria-labelledby="pd-inventory-title">
     <h2 id="pd-inventory-title">{% translate "admin.dossiers.inventory" %}</h2>
     <dl class="pd-dl">
-      <dt>{% translate "admin.dossiers.fields.host" %}</dt><dd class="pd-mono">{{ dossier.host }}</dd>
+      <dt>{% translate "admin.dossiers.fields.host" %}</dt><dd class="pd-mono">{{ dossier.host }}{% include "admin/_open_dossier.html" %}</dd>
       <dt>{% translate "admin.dossiers.fields.regime" %}</dt><dd>{{ dossier.regime|upcase }}</dd>
       <dt>{% translate "admin.dossiers.fields.modules" %}</dt><dd>{{ dossier.modules }}</dd>
       <dt>{% translate "admin.dossiers.fields.extensions" %}</dt><dd>{{ dossier.extensions|default:"—" }}</dd>

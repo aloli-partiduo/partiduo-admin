@@ -419,7 +419,11 @@ obligatoire : l'hôte et la base de chaque tâche sont recalculés depuis le
 sous-domaine (D-AFN-002, D-AFN-004, D-AFN-005).
 
 *Invitations remises par le serveur* (tous modes, recommandé en production) :
-`--mail-command "/usr/sbin/sendmail -oi" --mail-from noreply@partiduo.app`.
+`--smtp-url-file /usr/local/etc/partiduo-agent/smtp.url --mail-from
+notifications@partiduo.app`. Le fichier (partiduo-agent 0600, posé par beryl
+depuis le coffre) contient l'URL du compte SMTP de Partiduo
+(`smtp://notifications%40partiduo.app:secret@hôte:587`, shard marten-mail) :
+jamais le relais SMTP du serveur, réservé aux alertes du système.
 L'exécutant envoie lui-même le lien d'invitation de l'administrateur d'un
 dossier (création, recours d'accès) ; l'administration n'en reçoit que la
 trace `invitation_delivered`. Sans cette option, le lien lui est rendu et
@@ -559,7 +563,7 @@ sysrc partiduo_agent_enable=YES
 sysrc partiduo_agent_flags="--mode production --admin-url https://admin.partiduo.app \
   --token-file /usr/local/etc/partiduo-agent/agent.token --domain partiduo.app --server-name loulou \
   --store-command '/usr/bin/ssh -T -i /usr/local/etc/partiduo-agent/store.key -o BatchMode=yes partiduo-store@quantas' \
-  --mail-command '/usr/sbin/sendmail -oi' --mail-from noreply@partiduo.app"
+  --smtp-url-file /usr/local/etc/partiduo-agent/smtp.url --mail-from notifications@partiduo.app"
 service partiduo_agent start
 ----
 
@@ -584,8 +588,12 @@ sans serveur de sauvegarde, D-CHF-025) est obligatoire
 en production. Défauts de
 l'exécutant : `--state-dir /var/db/partiduo-agent`, `--backup-dir
 /var/db/partiduo-backups`, `--pg-socket /tmp`, `--helpers-dir
-/usr/local/libexec/partiduo-agent`. `--mail-command` exige un MTA local
+/usr/local/libexec/partiduo-agent`. `--smtp-url-file` exige `--mail-from`
 (D-CRA-003).
+
+L'administration envoie ses propres courriels (invitations des utilisateurs,
+alertes) par le même type de compte : `PARTIDUO_ADMIN_SMTP_URL` dans son
+environnement (`admin.env`). Sans elle, tout envoi est refusé avec la cause.
 
 Pour chaque instance, l'enveloppe racine fait les gestes de l'`INSTALL.txt`
 de `partiduo-provision` : environnement `/usr/local/etc/partiduo/<dossier>.env`

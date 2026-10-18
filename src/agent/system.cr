@@ -214,27 +214,24 @@ module PartiduoAgent
       end
     end
 
-    # Courriel remis par le serveur (`--mail-command`, D-CRA-003).
+    # Courriel remis par le serveur (`--smtp-url-file`, D-CRA-003).
     def mailer? : Bool
-      !config.mail_command.strip.empty?
+      !config.smtp_url_file.empty?
     end
 
     def deliver_invitation(email : String, host : String, url : String, locale : String) : Nil
       raise StepError.new("adresse d'invitation refusée", "usage") unless InvitationMail.valid_address?(email)
       raise StepError.new("expéditeur des courriels manquant (--mail-from)", "usage") if config.mail_from.empty?
-      send_mail(email, InvitationMail.build(config.mail_from, email, host, url, locale.presence || "fr"))
+      send_mail(InvitationMail.build(config.mail_from, email, host, url, locale.presence || "fr"))
       # Le lien n'est jamais écrit au journal renvoyé à l'administration.
       log("invitation remise par le serveur à #{email}")
     end
 
-    # Commande de courriel lancée sans shell ; message sur l'entrée standard.
-    def send_mail(recipient : String, message : String) : Nil
-      argv = config.mail_command.split(' ', remove_empty: true) + [recipient]
-      stderr = IO::Memory.new
-      status = Process.run(argv[0], argv[1..], input: IO::Memory.new(message), output: Process::Redirect::Close,
-        error: stderr)
-      raise StepError.new("courriel non remis (code #{status.exit_code? || -1}) : #{stderr.to_s.strip[0, 200]?}") unless status.success?
-    rescue ex : File::NotFoundError | IO::Error
+    # Remise par le compte SMTP de Partiduo (marten-mail) ; un refus du
+    # serveur ou une coupure fait échouer l'étape, avec la cause.
+    def send_mail(message : MartenMail::Message) : Nil
+      MartenMail::Client.from_url(config.smtp_url).deliver(message)
+    rescue ex : MartenMail::DeliveryError | IO::Error | Socket::Error | File::Error | ArgumentError
       raise StepError.new("courriel non remis : #{ex.message}")
     end
 
@@ -500,12 +497,12 @@ module PartiduoAgent
       files.has_key?(path)
     end
 
-    # Courriels remis à blanc : destinataire et message (specs).
+    # Courriels remis à blanc : destinataire et message MIME (specs).
     getter mails = [] of {String, String}
 
-    def send_mail(recipient : String, message : String) : Nil
-      op("courriel", recipient)
-      mails << {recipient, message}
+    def send_mail(message : MartenMail::Message) : Nil
+      op("courriel", message.to.join(", "))
+      mails << {message.to.join(", "), message.to_mime}
     end
 
     # Même garde-fou qu'en production : un essai à blanc refuse ce que le

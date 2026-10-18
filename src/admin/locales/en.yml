@@ -116,6 +116,7 @@ en:
     dashboard:
       title: "Dashboard"
     dossiers:
+      open: "Open the company file in a new tab"
       title: "Company files"
       new: "New company file"
       create: "Create the company file"

@@ -1,5 +1,5 @@
 name: partiduo-admin
-version: 0.1.15
+version: 0.1.16
 
 description: |
   Administration du parc de dossiers Partiduo (ADR-008) : cabinets,
@@ -26,6 +26,11 @@ targets:
 dependencies:
   marten:
     github: aloli-crystal/marten
+    branch: production
+  # Courriels par SMTP (administration et invitations de l'exécutant), sans
+  # sendmail ni relais du serveur.
+  marten-mail:
+    github: aloli-crystal/marten-mail
     branch: production
   pg:
     github: will/crystal-pg

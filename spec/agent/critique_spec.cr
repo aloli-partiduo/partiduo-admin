@@ -99,7 +99,7 @@ describe "partiduo-agent : invitation remise par le serveur (D-CRA-003)" do
   it "remet le lien du recours d'accès sans le rendre à l'administration" do
     with_admin do |admin|
       config = admin.config
-      config.mail_command = "/usr/sbin/sendmail -oi"
+      config.smtp_url_file = "/usr/local/etc/partiduo-agent/smtp.url"
       config.mail_from = "noreply@partiduo.localhost"
       report, dry = run_dry(admin, 740_i64, "instance.admin_invite",
         params(email: "gerant@demo.fr", reason: "gérant parti", approval_ref: "DV-1", approvers: ["a@x.fr", "b@x.fr"]),
@@ -121,7 +121,7 @@ describe "partiduo-agent : invitation remise par le serveur (D-CRA-003)" do
   it "remet le lien de création sans le rendre à l'administration" do
     with_admin do |admin|
       config = admin.config
-      config.mail_command = "/usr/sbin/sendmail -oi"
+      config.smtp_url_file = "/usr/local/etc/partiduo-agent/smtp.url"
       config.mail_from = "noreply@partiduo.localhost"
       report, dry = run_dry(admin, 741_i64, "instance.create",
         params(name: "Garde", regime: "fr", admin_email: "patron@garde.fr", siren: "", vat: ""), config)
@@ -143,34 +143,85 @@ describe "partiduo-agent : invitation remise par le serveur (D-CRA-003)" do
     end
   end
 
-  it "envoie par la commande configurée, sans shell, le destinataire en dernier argument" do
+  it "remet l'invitation par le compte SMTP du fichier, et refuse une adresse dangereuse" do
     dir = File.join(Dir.tempdir, "partiduo-mail-#{Random::Secure.hex(4)}")
     Dir.mkdir_p(dir)
-    script = File.join(dir, "sendmail")
-    File.write(script, "#!/bin/sh\nprintf '%s\\n' \"$@\" > #{dir}/argv\ncat > #{dir}/message\n", perm: 0o755)
+    server = TCPServer.new("127.0.0.1", 0)
+    commands = [] of String
+    received = Channel(String).new(1)
+    spawn do
+      if client = server.accept?
+        client << "220 ok\r\n"
+        data = String::Builder.new
+        in_data = false
+        while line = client.gets(chomp: true)
+          if in_data
+            if line == "."
+              in_data = false
+              received.send(data.to_s)
+              client << "250 ok\r\n"
+            else
+              data << line << "\n"
+            end
+            next
+          end
+          commands << line
+          case line.split(' ', 2).first
+          when "EHLO" then client << "250 ok\r\n"
+          when "DATA"
+            in_data = true
+            client << "354 go\r\n"
+          when "QUIT"
+            client << "221 bye\r\n"
+            break
+          else client << "250 ok\r\n"
+          end
+        end
+        client.close
+      end
+    end
+    url_file = File.join(dir, "smtp.url")
+    File.write(url_file, "smtp://127.0.0.1:#{server.local_address.port}?security=none\n")
     config = PartiduoAgent::Config.new
     config.mode = PartiduoAgent::Mode::Local
-    config.mail_command = "#{script} -oi"
-    config.mail_from = "noreply@partiduo.localhost"
+    config.smtp_url_file = url_file
+    config.mail_from = "notifications@partiduo.localhost"
     system = PartiduoAgent::LocalSystem.new(config, ->(_line : String) { nil })
     system.deliver_invitation("patron@garde.fr", "garde.partiduo.localhost", "https://garde.partiduo.localhost/invitation/abc", "fr")
-    File.read_lines(File.join(dir, "argv")).should eq(["-oi", "patron@garde.fr"])
-    File.read(File.join(dir, "message")).should contain("Subject: =?UTF-8?B?")
+    message = received.receive
+    commands.should contain("MAIL FROM:<notifications@partiduo.localhost>")
+    commands.should contain("RCPT TO:<patron@garde.fr>")
+    message.should contain("Subject: =?UTF-8?B?")
     expect_raises(PartiduoAgent::StepError, /adresse/) do
       system.deliver_invitation("-oQ/tmp@x.fr", "garde.partiduo.localhost", "https://x/invitation/abc", "fr")
     end
     expect_raises(PartiduoAgent::StepError, /adresse/) do
       system.deliver_invitation("a@x.fr\r\nBcc: z@y.fr", "garde.partiduo.localhost", "https://x/invitation/abc", "fr")
     end
+    # Serveur injoignable : l'étape échoue avec la cause.
+    server.close
+    expect_raises(PartiduoAgent::StepError, /courriel non remis/) do
+      system.deliver_invitation("patron@garde.fr", "garde.partiduo.localhost", "https://x/invitation/abc", "fr")
+    end
   ensure
     FileUtils.rm_rf(dir) if dir
   end
 
-  it "exige un expéditeur avec une commande de courriel" do
+  it "exige un expéditeur et un fichier d'URL SMTP lisible et valide" do
     ENV["PARTIDUO_AGENT_TOKEN"] = "jeton"
+    url_file = File.tempname("smtp", ".url")
+    File.write(url_file, "smtps://u:p@mail.example.net")
     expect_raises(ArgumentError, /--mail-from/) do
-      PartiduoAgent::Config.parse(["--mode", "dry-run", "--mail-command", "/usr/sbin/sendmail"])
+      PartiduoAgent::Config.parse(["--mode", "dry-run", "--smtp-url-file", url_file])
     end
+    expect_raises(ArgumentError, /illisible/) do
+      PartiduoAgent::Config.parse(["--mode", "dry-run", "--smtp-url-file", "/nonexistent/smtp.url", "--mail-from", "n@x.fr"])
+    end
+    File.write(url_file, "http://mail.example.net")
+    expect_raises(ArgumentError, /URL SMTP invalide/) do
+      PartiduoAgent::Config.parse(["--mode", "dry-run", "--smtp-url-file", url_file, "--mail-from", "n@x.fr"])
+    end
+    File.delete(url_file)
   ensure
     ENV.delete("PARTIDUO_AGENT_TOKEN")
   end

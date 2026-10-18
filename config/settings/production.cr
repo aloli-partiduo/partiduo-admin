@@ -14,6 +14,9 @@ Marten.configure :production do |config|
   config.csrf.cookie_secure = true
   config.csrf.cookie_http_only = true
   config.templates.cached = true
+  # Courriels (invitations, alertes) par le compte SMTP de Partiduo
+  # (PARTIDUO_ADMIN_SMTP_URL, marten-mail) : jamais par le relais du serveur.
+  config.emailing.backend = PartiduoAdmin::MailBackend.build
 
   # Fichiers lus à l'exécution, rangés à côté des programmes installés.
   #

@@ -12,8 +12,8 @@ exit PartiduoAgent::Tools.run(ARGV) if PartiduoAgent::Tools.command?(ARGV)
 
 begin
   config = PartiduoAgent::Config.parse(ARGV)
-  if config.production? && config.mail_command.strip.empty?
-    STDERR.puts "partiduo-agent : sans --mail-command, les liens d'invitation passent par l'administration (D-CRA-003)"
+  if config.production? && config.smtp_url_file.empty?
+    STDERR.puts "partiduo-agent : sans --smtp-url-file, les liens d'invitation passent par l'administration (D-CRA-003)"
   end
   if config.production? && config.local_store?
     STDERR.puts "partiduo-agent : sauvegardes gardées sur ce serveur (#{config.store_path}) : copiez ce répertoire " \

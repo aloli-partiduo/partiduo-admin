@@ -116,6 +116,7 @@ nl:
     dashboard:
       title: "Dashboard"
     dossiers:
+      open: "Het dossier in een nieuw tabblad openen"
       title: "Dossiers"
       new: "Nieuw dossier"
       create: "Dossier aanmaken"

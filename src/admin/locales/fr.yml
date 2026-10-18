@@ -116,6 +116,7 @@ fr:
     dashboard:
       title: "Tableau de bord"
     dossiers:
+      open: "Ouvrir le dossier dans un nouvel onglet"
       title: "Dossiers"
       new: "Nouveau dossier"
       create: "Créer le dossier"

@@ -1,7 +1,6 @@
 # SPDX-License-Identifier: AGPL-3.0-or-later
 
-require "base64"
-require "random/secure"
+require "marten-mail/client"
 
 module PartiduoAgent
   # Courriel d'invitation de l'administrateur d'un dossier, remis par le
@@ -11,9 +10,8 @@ module PartiduoAgent
   # pas le lien qui ouvre un compte d'administrateur de dossier (ADR-008 D3,
   # « Conséquences positives »).
   #
-  # Envoi par la commande `--mail-command` (par exemple
-  # `/usr/sbin/sendmail -oi`), lancée sans shell, message RFC 5322 sur
-  # l'entrée standard, destinataire en dernier argument.
+  # Envoi par le compte SMTP de Partiduo (`--smtp-url-file`, marten-mail),
+  # jamais par le relais du serveur.
   module InvitationMail
     # Adresse sûre : ni espace, ni retour à la ligne, ni séparateur d'en-tête,
     # jamais prise pour une option.
@@ -46,25 +44,11 @@ module PartiduoAgent
       (TEXTS[locale]? || TEXTS["fr"])[key].gsub("%{host}", host)
     end
 
-    def self.encode_header(text : String) : String
-      text.ascii_only? ? text : "=?UTF-8?B?#{Base64.strict_encode(text)}?="
-    end
-
-    # Message complet (en-têtes et corps), lignes terminées par CRLF.
+    # Message de l'invitation, texte seul, dans la langue du dossier.
     def self.build(from : String, to : String, host : String, url : String, locale : String,
-                   date : Time = Time.utc) : String
+                   date : Time = Time.utc) : MartenMail::Message
       body = "#{text(locale, "intro", host)}\n\n#{url}\n\n#{text(locale, "ignore", host)}\n"
-      String.build do |io|
-        io << "From: " << from << "\r\n"
-        io << "To: " << to << "\r\n"
-        io << "Subject: " << encode_header(text(locale, "subject", host)) << "\r\n"
-        io << "Date: " << date.to_rfc2822 << "\r\n"
-        io << "Message-ID: <" << Random::Secure.hex(12) << "@partiduo-agent>\r\n"
-        io << "MIME-Version: 1.0\r\n"
-        io << "Content-Type: text/plain; charset=UTF-8\r\n"
-        io << "Content-Transfer-Encoding: base64\r\n\r\n"
-        io << Base64.encode(body).gsub("\n", "\r\n")
-      end
+      MartenMail::Message.new(from: from, to: [to], subject: text(locale, "subject", host), text: body, date: date)
     end
   end
 end

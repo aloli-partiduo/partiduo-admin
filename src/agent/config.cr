@@ -1,5 +1,6 @@
 # SPDX-License-Identifier: AGPL-3.0-or-later
 
+require "marten-mail/client"
 require "option_parser"
 require "uri"
 
@@ -74,11 +75,13 @@ module PartiduoAgent
     property pg_socket : String = "/tmp"
     property acme_email : String = ""
     property acme_staging : Bool = false
-    # Remise des invitations par le serveur (D-CRA-003) : commande de
-    # courriel (sans shell, message sur l'entrée standard, destinataire en
-    # dernier argument) et expéditeur. Vide : le lien est rendu à
-    # l'administration, qui l'envoie (D-ADM-009).
-    property mail_command : String = ""
+    # Remise des invitations par le serveur (D-CRA-003), par le compte SMTP de
+    # Partiduo (marten-mail) : fichier qui contient l'URL du compte
+    # (`smtp://notifications%40partiduo.app:secret@hôte:587`, posé par beryl
+    # depuis le coffre ; jamais en argument, visible par ps) et expéditeur.
+    # Jamais le relais du serveur, réservé aux alertes du système. Vide : le
+    # lien est rendu à l'administration, qui l'envoie (D-ADM-009).
+    property smtp_url_file : String = ""
     property mail_from : String = ""
     # Nom de ce serveur (celui de l'administration) : répertoire des
     # sauvegardes qu'il prend dans le stockage, signataire de leurs
@@ -127,8 +130,8 @@ module PartiduoAgent
         parser.on("--pg-socket RÉP", "socket PostgreSQL") { |value| config.pg_socket = value }
         parser.on("--acme-email ADRESSE", "compte ACME") { |value| config.acme_email = value }
         parser.on("--acme-staging", "autorité de test de Let's Encrypt") { config.acme_staging = true }
-        parser.on("--mail-command COMMANDE", "remise des invitations par le serveur (ex. « /usr/sbin/sendmail -oi »)") do |value|
-          config.mail_command = value
+        parser.on("--smtp-url-file FICHIER", "remise des invitations par le serveur : fichier contenant l'URL du compte SMTP") do |value|
+          config.smtp_url_file = value
         end
         parser.on("--mail-from ADRESSE", "expéditeur des invitations remises par le serveur") { |value| config.mail_from = value }
         parser.on("--server-name NOM", "nom de ce serveur dans l'administration (défaut : nom court de la machine)") do |value|
@@ -210,10 +213,25 @@ module PartiduoAgent
       store_argv.empty?
     end
 
-    # Remise des invitations par le serveur : expéditeur obligatoire.
+    # URL du compte SMTP (contenu de --smtp-url-file), vide sans remise par
+    # le serveur. Lue à chaque envoi : un secret changé par beryl est pris
+    # sans redémarrage.
+    def smtp_url : String
+      smtp_url_file.empty? ? "" : File.read(smtp_url_file).strip
+    end
+
+    # Remise des invitations par le serveur : fichier lisible, URL valide,
+    # expéditeur obligatoire.
     private def validate_mail! : Nil
-      return if mail_command.strip.empty? || InvitationMail.valid_address?(mail_from)
-      raise ArgumentError.new("--mail-command exige --mail-from (adresse de l'expéditeur)")
+      return if smtp_url_file.empty?
+      raise ArgumentError.new("--smtp-url-file exige --mail-from (adresse de l'expéditeur)") unless InvitationMail.valid_address?(mail_from)
+      begin
+        MartenMail::Client.from_url(smtp_url)
+      rescue ex : File::Error
+        raise ArgumentError.new("--smtp-url-file illisible : #{smtp_url_file} (#{ex.message})")
+      rescue ex : ArgumentError | URI::Error
+        raise ArgumentError.new("--smtp-url-file : URL SMTP invalide (#{ex.message})")
+      end
     end
 
     # Échec simulé : jamais sur un vrai système.
