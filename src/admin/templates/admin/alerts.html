@@ -5,8 +5,8 @@
 {% block content %}
 {% if alerts %}<div class="table-container"><table class="table is-fullwidth is-striped">
   <caption class="is-sr-only">{% translate "admin.alerts.title" %}</caption>
-  <thead><tr><th scope="col">{% translate "admin.alerts.kind" %}</th><th scope="col">{% translate "admin.alerts.subject" %}</th><th scope="col">{% translate "admin.alerts.detail" %}</th><th scope="col">{% translate "admin.alerts.opened_at" %}</th></tr></thead>
-  <tbody>{% for alert in alerts %}<tr><td><span class="pd-state pd-state-{{ alert.severity }}">{% translate alert.kind_key %}</span></td><td>{{ alert.subject }}</td><td>{{ alert.detail_text }}</td><td class="pd-mono">{{ alert.opened_at|time:"%Y-%m-%d %H:%M" }}</td></tr>{% endfor %}</tbody>
+  <thead><tr><th scope="col">{% translate "admin.alerts.kind" %}</th><th scope="col">{% translate "admin.alerts.subject" %}</th><th scope="col">{% translate "admin.alerts.detail" %}</th><th scope="col">{% translate "admin.alerts.opened_at" %}</th>{% if can_close %}<th scope="col"><span class="is-sr-only">{% translate "admin.alerts.actions" %}</span></th>{% endif %}</tr></thead>
+  <tbody>{% for alert in alerts %}<tr><td><span class="pd-state pd-state-{{ alert.severity }}">{% translate alert.kind_key %}</span></td><td>{% if alert.dossier_id %}<a href="{% url 'dossier' id: alert.dossier_id %}">{{ alert.subject }}</a>{% else %}{{ alert.subject }}{% endif %}</td><td>{{ alert.detail_text }}</td><td class="pd-mono">{{ alert.opened_at|time:"%Y-%m-%d %H:%M" }}</td>{% if can_close %}<td><form method="post" action="{% url 'alert_close' id: alert.id %}">{% csrf_input %}<button class="button is-small" type="submit" title="{% translate 'admin.alerts.close_help' %}">{% translate "admin.alerts.close" %}</button></form></td>{% endif %}</tr>{% endfor %}</tbody>
 </table></div>{% else %}<p class="pd-muted">{% translate "admin.alerts.none" %}</p>{% endif %}
 <section class="pd-panel mt-5" aria-labelledby="pd-quota-title">
   <h2 id="pd-quota-title">{% translate "admin.quota.title" %}</h2>

@@ -455,6 +455,10 @@ en:
         backup_restore: "restore"
         supervision_check: "monitoring"
     alerts:
+      actions: "Actions"
+      close: "Close"
+      close_help: "Acknowledged: the alert is closed; monitoring reopens it if the cause persists."
+      closed: "Alert closed."
       title: "Alerts"
       none: "No open alert."
       kind: "Alert"

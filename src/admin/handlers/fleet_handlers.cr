@@ -97,7 +97,21 @@ module PartiduoAdmin
 
   class AlertsHandler < ScreenHandler
     def get
-      page("admin/alerts.html", {"alerts" => Alerts.visible(user).order("-opened_at").to_a, "quota" => LetsEncrypt.usage(Config.now)})
+      page("admin/alerts.html", {"alerts" => Alerts.visible(user).order("-opened_at").to_a, "quota" => LetsEncrypt.usage(Config.now),
+                                 "can_close" => !user.file_manager?})
+    end
+  end
+
+  # Alerte close à la main (« pris en compte ») : la supervision la rouvre
+  # si la cause persiste ; geste inscrit au journal d'audit.
+  class AlertCloseHandler < ScreenHandler
+    def post
+      require_admin!
+      alert = Alerts.visible(user).filter(id: id_param).first
+      raise Access::Denied.new("alert") if alert.nil?
+      Alerts.close(user, alert)
+      flash["info"] = I18n.t("admin.alerts.closed")
+      go("/alerts")
     end
   end
 

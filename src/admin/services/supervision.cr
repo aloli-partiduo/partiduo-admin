@@ -59,6 +59,16 @@ module PartiduoAdmin
       scope.update(resolved_at: now)
     end
 
+    # Clôture à la main d'une alerte (« pris en compte »), inscrite au
+    # journal d'audit ; la supervision la rouvre si la cause persiste.
+    def self.close(user : User, alert : Alert, now : Time = Config.now) : Nil
+      return unless alert.resolved_at.nil?
+      alert.resolved_at = now
+      alert.save!
+      Audit.log(user, "alert.close", target: alert.dossier || alert.server,
+        detail: {"kind" => alert.kind.to_s, "detail" => alert.detail.to_s})
+    end
+
     def self.set(condition : Bool, kind : String, severity : String, dossier : Dossier? = nil, server : Server? = nil,
                  detail : String = "", now : Time = Config.now) : Nil
       condition ? open(kind, severity, dossier, server, detail, now) : resolve(kind, dossier, server, now)

@@ -149,6 +149,9 @@ module PartiduoAdmin
         return if id.nil?
         backup = Backup.filter(id: id).first
         return if backup.nil?
+        # Restauration test réussie : l'alerte d'un échec précédent du dossier
+        # n'a plus lieu d'être.
+        Alerts.resolve("test_restore_failed", dossier: backup.dossier, now: now) if ok
         if ok && task.result_json["check"]?.try(&.as_s?) == "envelope"
           # Clé du cabinet absente : empreinte et enveloppe vérifiées, le
           # contenu ne l'est qu'avec la clé du cabinet (D-CHF-007).

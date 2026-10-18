@@ -455,6 +455,10 @@ fr:
         backup_restore: "restauration"
         supervision_check: "supervision"
     alerts:
+      actions: "Actions"
+      close: "Clore"
+      close_help: "Pris en compte : l'alerte est close ; la supervision la rouvrira si la cause persiste."
+      closed: "Alerte close."
       title: "Alertes"
       none: "Aucune alerte ouverte."
       kind: "Alerte"

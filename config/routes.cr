@@ -41,6 +41,7 @@ Marten.routes.draw do
   path "/tasks/<id:int>", PartiduoAdmin::TaskHandler, name: "task"
   path "/tasks/<id:int>/<command:str>", PartiduoAdmin::TaskCommandHandler, name: "task_command"
   path "/alerts", PartiduoAdmin::AlertsHandler, name: "alerts"
+  path "/alerts/<id:int>/close", PartiduoAdmin::AlertCloseHandler, name: "alert_close"
   path "/audit", PartiduoAdmin::AuditHandler, name: "audit"
 
   # Référentiels.

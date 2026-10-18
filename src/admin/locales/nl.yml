@@ -455,6 +455,10 @@ nl:
         backup_restore: "terugzetting"
         supervision_check: "toezicht"
     alerts:
+      actions: "Acties"
+      close: "Sluiten"
+      close_help: "Gezien: de waarschuwing wordt gesloten; de bewaking opent ze opnieuw als de oorzaak blijft."
+      closed: "Waarschuwing gesloten."
       title: "Waarschuwingen"
       none: "Geen open waarschuwing."
       kind: "Waarschuwing"
