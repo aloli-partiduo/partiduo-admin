@@ -15,6 +15,7 @@ Marten.routes.draw do
   # Connexion (ADR-002).
   path "/login", PartiduoConnect::LoginHandler, name: "login"
   path "/login/second-factor", PartiduoConnect::SecondFactorHandler, name: "second_factor"
+  path "/login/recover", PartiduoConnect::RecoverHandler, name: "recover"
   path "/login/passkey/options", PartiduoConnect::PasskeyLoginOptionsHandler, name: "login_passkey_options"
   path "/login/passkey", PartiduoConnect::PasskeyLoginHandler, name: "login_passkey"
   path "/language", PartiduoConnect::LanguageHandler, name: "language"
