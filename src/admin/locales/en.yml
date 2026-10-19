@@ -19,6 +19,9 @@ en:
     search: "Search"
     reason: "Reason"
     shell:
+      aloli_line_1: "Business IT"
+      aloli_line_2: "from the Aubrac since 2011"
+      credit: "a creation by"
       skip: "Skip to content"
       tagline: "company file administration"
       language: "Language"

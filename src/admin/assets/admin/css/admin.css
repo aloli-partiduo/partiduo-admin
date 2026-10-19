@@ -124,3 +124,19 @@ fieldset.pd-fieldset legend { font-weight: 600; margin-block-end: .35rem; }
   .pd-main { padding: 1rem; }
 }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+
+/* En-tête des pages d'accès : Partiduo à gauche (logo, nom, mention), « une
+   création » au milieu, ALOLI à droite (logo, ligne, lien vers son site).
+   Sur un écran étroit, les trois s'empilent, centrés. */
+.pd-auth-banner { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 1rem; width: 100%; max-width: 62rem; margin-block-start: .5rem; }
+.pd-auth-banner .pd-auth-brand { flex-direction: row; justify-self: start; text-align: start; margin: 0; gap: .75rem; }
+.pd-auth-banner .pd-auth-brand > span { display: flex; flex-direction: column; gap: .3rem; }
+.pd-auth-credit { font-size: 1.6rem; font-weight: 600; font-style: italic; color: var(--pd-muted); white-space: nowrap; }
+.pd-auth-aloli { justify-self: end; display: flex; align-items: center; gap: .6rem; color: var(--pd-muted); font-size: .85rem; line-height: 1.3; text-decoration: none; }
+.pd-auth-aloli:hover, .pd-auth-aloli:focus-visible { color: var(--pd-ink); text-decoration: underline; }
+.pd-auth-aloli img { width: auto; height: 3.5rem; }
+@media (max-width: 720px) {
+  .pd-auth-banner { grid-template-columns: 1fr; justify-items: center; text-align: center; gap: .5rem; }
+  .pd-auth-banner .pd-auth-brand, .pd-auth-aloli { justify-self: center; }
+  .pd-auth-credit { font-size: 1.2rem; }
+}

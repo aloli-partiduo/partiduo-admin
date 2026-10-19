@@ -19,6 +19,9 @@ fr:
     search: "Rechercher"
     reason: "Motif"
     shell:
+      aloli_line_1: "Informatique d'entreprise"
+      aloli_line_2: "sur l'Aubrac depuis 2011"
+      credit: "une création"
       skip: "Aller au contenu"
       tagline: "administration des dossiers"
       language: "Langue"

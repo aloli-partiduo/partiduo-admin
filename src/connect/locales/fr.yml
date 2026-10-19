@@ -167,6 +167,9 @@ fr:
       waiting: "Suivez les indications de votre appareil…"
     save: "Enregistrer"
     shell:
+      aloli_line_1: "Informatique d'entreprise"
+      aloli_line_2: "sur l'Aubrac depuis 2011"
+      credit: "une création"
       apply: "Appliquer"
       language: "Langue"
       skip: "Aller au contenu"

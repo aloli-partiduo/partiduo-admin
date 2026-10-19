@@ -167,6 +167,9 @@ nl:
       waiting: "Volg de aanwijzingen op uw toestel…"
     save: "Opslaan"
     shell:
+      aloli_line_1: "Bedrijfsinformatica"
+      aloli_line_2: "uit de Aubrac sinds 2011"
+      credit: "een creatie van"
       apply: "Toepassen"
       language: "Taal"
       skip: "Naar de inhoud"

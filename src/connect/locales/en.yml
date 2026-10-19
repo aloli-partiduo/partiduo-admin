@@ -167,6 +167,9 @@ en:
       waiting: "Follow the instructions on your device…"
     save: "Save"
     shell:
+      aloli_line_1: "Business IT"
+      aloli_line_2: "from the Aubrac since 2011"
+      credit: "a creation by"
       apply: "Apply"
       language: "Language"
       skip: "Skip to content"

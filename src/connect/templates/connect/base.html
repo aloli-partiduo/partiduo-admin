@@ -14,7 +14,11 @@
         <div class="select is-small"><select id="pd-lang" name="locale">{% for code in locales %}<option value="{{ code }}" lang="{{ code }}"{% if code == locale %} selected{% endif %}>{{ code|upcase }}</option>{% endfor %}</select></div>
         <button class="button is-small" type="submit">{% translate "connect.shell.apply" %}</button>
       </form>
-      <div class="pd-auth-brand"><img class="pd-logo" src="{% asset 'connect/brand/logo.svg' %}" alt="" width="56" height="56"><b class="pd-name">Parti<span>duo</span></b><small>{% translate "connect.shell.tagline" %}</small></div>
+      <div class="pd-auth-banner">
+        <div class="pd-auth-brand"><img class="pd-logo" src="{% asset 'connect/brand/logo.svg' %}" alt="" width="56" height="56"><span><b class="pd-name">Parti<span>duo</span></b><small>{% translate "connect.shell.tagline" %}</small></span></div>
+        <p class="pd-auth-credit">{% translate "connect.shell.credit" %}</p>
+        <a class="pd-auth-aloli" href="https://aloli.fr" target="_blank" rel="noopener"><img src="{% asset 'connect/brand/aloli-logo.svg' %}" alt="ALOLI" width="46" height="56"><span>{% translate "connect.shell.aloli_line_1" %}<br>{% translate "connect.shell.aloli_line_2" %}</span></a>
+      </div>
     </header>
     <main class="pd-auth" id="pd-main" tabindex="-1">
       <div class="pd-auth-card{% block card_class %}{% endblock card_class %}" id="pd-content">
