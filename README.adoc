@@ -488,6 +488,10 @@ crystal build lib/ameba/bin/ameba.cr -o bin/ameba && bin/ameba
 
 == connect (ADR-012)
 
+*Exploitation* (commandes du serveur, récupération d'un compte dont la clé
+d'accès et les codes sont perdus, clients, registraires, clés) : fiche
+`partiduo-docs/exploitation/connect.adoc`.
+
 `connect` est un troisième programme du dépôt, *déployé à part* : son
 sous-domaine (`connect.<domaine>`), sa base (`partiduo_connect`), sa
 configuration Marten (`config/connect/`), son application (`src/connect/`,
