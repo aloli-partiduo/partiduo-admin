@@ -125,6 +125,9 @@ module PartiduoConnect
     field :display_name, :string, max_size: 200, blank: true, default: ""
     field :locale, :string, max_size: 8, default: "fr"
     field :client, :many_to_one, to: PartiduoConnect::Client, null: true, blank: true, on_delete: :cascade
+    # Récupération : le compte à rouvrir (facteurs retirés), au lieu d'en
+    # créer un.
+    field :account, :many_to_one, to: PartiduoConnect::Account, null: true, blank: true, on_delete: :cascade
     field :return_to, :string, max_size: 1000, blank: true, default: ""
     field :created_by, :string, max_size: 255, blank: true, default: ""
     field :attempts, :int, default: 0

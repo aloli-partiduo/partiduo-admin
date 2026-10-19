@@ -76,6 +76,7 @@ nl:
         intro: "Hallo %{name}, bevestig het nieuwe adres van uw Partiduo-account via deze link:"
         subject: "Partiduo: bevestig uw nieuwe e-mailadres"
       events:
+        recovery_issued: "De support is begonnen met het herstel van uw account: uw aanmeldmiddelen zijn verwijderd en uw sessies afgesloten. Hebt u dit niet gevraagd, neem dan meteen contact op."
         email_changed: "Het e-mailadres van uw account is gewijzigd. Het is niet langer dit adres."
         passkey_added: "Er is een toegangssleutel aan uw account toegevoegd."
         passkey_removed: "Er is een toegangssleutel van uw account verwijderd."
@@ -91,6 +92,8 @@ nl:
         subject: "Partiduo: activiteit op uw account"
         when: "Datum: %{at}"
     errors:
+      recovery:
+        invalid: "Onjuist e-mailadres of onjuiste herstelcode."
       sso:
         denied: "De aanmeldservice van uw kantoor heeft de aanmelding geweigerd."
         domain: "Dit adres hoort niet bij de aanmeldservice van dit kantoor."
@@ -149,6 +152,7 @@ nl:
         invalid: "Uitnodiging onbekend, verlopen of al gebruikt."
         return_to: "Terugkeeradres niet toegestaan."
     login:
+      lost_key: "Ik ben mijn toegangssleutel kwijt"
       sso_help: "Heeft uw kantoor een eigen aanmeldservice? Voer uw werkadres in: u wordt ernaartoe gestuurd."
       sso_submit: "Doorgaan bij mijn kantoor"
       sso_title: "Met het account van uw kantoor"
@@ -177,6 +181,15 @@ nl:
       failed: "De toegangssleutel kon niet worden gebruikt. Probeer opnieuw."
       unsupported: "Deze browser ondersteunt geen toegangssleutels."
       waiting: "Volg de aanwijzingen op uw toestel…"
+
+    recover:
+      code: "Herstelcode"
+      code_help: "Een van de codes die bij het aanmaken van uw account werden getoond (elk één keer bruikbaar)."
+      done: "U bent aangemeld met een herstelcode: registreer nu een nieuwe toegangssleutel en genereer uw codes opnieuw."
+      intro: "Voer uw e-mailadres en een van uw herstelcodes in: u kunt dan een nieuwe toegangssleutel registreren."
+      no_codes: "Ook geen codes meer? Vraag de Partiduo-support om uw account te herstellen: u krijgt een link per e-mail en een code via een ander kanaal."
+      submit: "Toegang herstellen"
+      title: "Toegangssleutel kwijt"
     save: "Opslaan"
     shell:
       aloli_line_1: "Bedrijfsinformatica"
@@ -187,6 +200,7 @@ nl:
       skip: "Naar de inhoud"
       tagline: "één account voor al uw dossiers"
     signup:
+      recover_intro: "Herstel van uw Partiduo-account (%{email}): voer de code in die de support u gaf en registreer daarna een nieuwe toegangssleutel. Uw toegang tot uw dossiers blijft behouden."
       code: "Code ontvangen via een ander kanaal"
       code_help: "De persoon die u uitnodigde, gaf u die mondeling of telefonisch door (acht tekens)."
       intro: "Uw Partiduo-account aanmaken voor %{email}. U gebruikt dit account voor al uw dossiers."

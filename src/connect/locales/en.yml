@@ -76,6 +76,7 @@ en:
         intro: "Hello %{name}, confirm the new address of your Partiduo account by opening this link:"
         subject: "Partiduo: confirm your new email address"
       events:
+        recovery_issued: "Support started the recovery of your account: your sign-in methods were removed and your sessions closed. If you did not ask for it, contact support right away."
         email_changed: "The email address of your account was changed. It is no longer this one."
         passkey_added: "A passkey was added to your account."
         passkey_removed: "A passkey was removed from your account."
@@ -91,6 +92,8 @@ en:
         subject: "Partiduo: activity on your account"
         when: "Date: %{at}"
     errors:
+      recovery:
+        invalid: "Wrong email address or recovery code."
       sso:
         denied: "Your firm sign-in service refused the sign-in."
         domain: "This address does not belong to the sign-in service of this firm."
@@ -149,6 +152,7 @@ en:
         invalid: "Invitation unknown, expired or already used."
         return_to: "Return address not allowed."
     login:
+      lost_key: "I lost my passkey"
       sso_help: "Does your firm have its own sign-in service? Enter your work address: you will be sent there."
       sso_submit: "Continue with my firm"
       sso_title: "With your firm account"
@@ -177,6 +181,15 @@ en:
       failed: "The passkey could not be used. Try again."
       unsupported: "This browser does not support passkeys."
       waiting: "Follow the instructions on your device…"
+
+    recover:
+      code: "Recovery code"
+      code_help: "One of the codes shown when your account was created (each works once)."
+      done: "You signed in with a recovery code: register a new passkey now, and regenerate your codes."
+      intro: "Enter your email address and one of your recovery codes: you will be able to register a new passkey."
+      no_codes: "No codes left either? Ask Partiduo support to recover your account: you will receive a link by email and a code through another channel."
+      submit: "Recover access"
+      title: "Lost passkey"
     save: "Save"
     shell:
       aloli_line_1: "Business IT"
@@ -187,6 +200,7 @@ en:
       skip: "Skip to content"
       tagline: "one account for all your files"
     signup:
+      recover_intro: "Recovery of your Partiduo account (%{email}): enter the code support gave you, then register a new passkey. Your access to your files is kept."
       code: "Code received through another channel"
       code_help: "The person who invited you gave it to you in person or by phone (eight characters)."
       intro: "Creating your Partiduo account for %{email}. You will use this account for all your files."

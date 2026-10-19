@@ -1,0 +1,22 @@
+{# SPDX-License-Identifier: AGPL-3.0-or-later. Clé d'accès perdue : adresse et code de récupération (ADR-002 D7) ; sans eux, l'exploitation rouvre le compte. #}{% extend "connect/base.html" %}
+{% block title %}{% translate "connect.recover.title" %}{% endblock title %}
+{% block content %}
+<h1 class="pd-auth-title">{% translate "connect.recover.title" %}</h1>
+<p class="mb-3">{% translate "connect.recover.intro" %}</p>
+{% if error %}<div class="notification is-danger is-light" role="alert" id="pd-recover-error">{{ error }}</div>{% endif %}
+<form method="post" action="{% url 'recover' %}" novalidate>
+  {% csrf_input %}
+  <input type="hidden" name="next" value="{{ next }}">
+  <div class="field">
+    <label class="label" for="pd-email">{% translate "connect.login.email" %}</label>
+    <div class="control"><input class="input" id="pd-email" name="email" type="email" value="{{ email }}" autocomplete="username" required></div>
+  </div>
+  <div class="field">
+    <label class="label" for="pd-code">{% translate "connect.recover.code" %}</label>
+    <div class="control"><input class="input pd-mono" id="pd-code" name="code" type="text" autocomplete="off" autocapitalize="characters" required aria-describedby="pd-code-help{% if error %} pd-recover-error{% endif %}"></div>
+    <p class="help" id="pd-code-help">{% translate "connect.recover.code_help" %}</p>
+  </div>
+  <button class="button is-primary" type="submit">{% translate "connect.recover.submit" %}</button>
+</form>
+<p class="help mt-4">{% translate "connect.recover.no_codes" %}</p>
+{% endblock content %}

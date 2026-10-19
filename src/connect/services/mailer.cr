@@ -43,7 +43,7 @@ module PartiduoConnect
     Log = ::Log.for("connect.mailer")
 
     EVENTS = %w[passkey_added passkey_removed recovery_regenerated recovery_used password_changed totp_enabled
-      email_changed]
+      email_changed recovery_issued]
 
     def self.notify(account : Account, event : String, ip : String = "", address : String? = nil) : Nil
       I18n.with_locale(account.locale.presence || "fr") do

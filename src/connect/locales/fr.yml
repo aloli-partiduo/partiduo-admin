@@ -76,6 +76,7 @@ fr:
         intro: "Bonjour %{name}, confirmez la nouvelle adresse de votre compte Partiduo en ouvrant ce lien :"
         subject: "Partiduo : confirmez votre nouvelle adresse"
       events:
+        recovery_issued: "La récupération de votre compte a été lancée par le support : vos moyens de connexion ont été retirés et vos sessions fermées. Si vous ne l'avez pas demandée, contactez-le sans attendre."
         email_changed: "L'adresse de votre compte a été changée. Elle n'est plus celle-ci."
         passkey_added: "Une clé d'accès a été ajoutée à votre compte."
         passkey_removed: "Une clé d'accès a été retirée de votre compte."
@@ -91,6 +92,8 @@ fr:
         subject: "Partiduo : activité sur votre compte"
         when: "Date : %{at}"
     errors:
+      recovery:
+        invalid: "Adresse ou code de récupération incorrect."
       sso:
         denied: "Le service de connexion de votre cabinet a refusé la connexion."
         domain: "Cette adresse ne relève pas du service de connexion de ce cabinet."
@@ -149,6 +152,7 @@ fr:
         invalid: "Invitation inconnue, expirée ou déjà utilisée."
         return_to: "Adresse de retour non autorisée."
     login:
+      lost_key: "J'ai perdu ma clé d'accès"
       sso_help: "Votre cabinet a son propre service de connexion ? Saisissez votre adresse professionnelle : vous serez envoyé chez lui."
       sso_submit: "Continuer chez mon cabinet"
       sso_title: "Avec le compte de votre cabinet"
@@ -177,6 +181,15 @@ fr:
       failed: "La clé d'accès n'a pas pu être utilisée. Réessayez."
       unsupported: "Ce navigateur ne gère pas les clés d'accès."
       waiting: "Suivez les indications de votre appareil…"
+
+    recover:
+      code: "Code de récupération"
+      code_help: "L'un des codes affichés à la création de votre compte (une seule fois chacun)."
+      done: "Vous êtes connecté avec un code de récupération : enregistrez maintenant une nouvelle clé d'accès, et régénérez vos codes."
+      intro: "Saisissez votre adresse et l'un de vos codes de récupération : vous pourrez enregistrer une nouvelle clé d'accès."
+      no_codes: "Plus de codes non plus ? Demandez la récupération de votre compte au support Partiduo : vous recevrez un lien par courriel et un code par un autre canal."
+      submit: "Récupérer l'accès"
+      title: "Clé d'accès perdue"
     save: "Enregistrer"
     shell:
       aloli_line_1: "L'informatique d'entreprise"
@@ -187,6 +200,7 @@ fr:
       skip: "Aller au contenu"
       tagline: "un compte pour tous vos dossiers"
     signup:
+      recover_intro: "Récupération de votre compte Partiduo (%{email}) : saisissez le code que vous a transmis le support, puis enregistrez une nouvelle clé d'accès. Vos accès aux dossiers sont conservés."
       code: "Code reçu par un autre canal"
       code_help: "La personne qui vous a invité vous l'a transmis de vive voix, par téléphone ou en main propre (huit caractères)."
       intro: "Création de votre compte Partiduo pour %{email}. Ce compte vous servira pour tous vos dossiers."

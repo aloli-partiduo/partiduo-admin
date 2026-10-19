@@ -465,6 +465,37 @@ module PartiduoConnect
       end
     end
 
+    # Clé d'accès perdue (ADR-002 D7) : adresse et code de récupération, sans
+    # mot de passe — un compte à passkey seule n'en a pas. Mêmes paliers
+    # d'échecs que la connexion. Réussi : session de niveau 2 (permet
+    # d'enregistrer une nouvelle passkey), autres sessions fermées, personne
+    # prévenue.
+    def self.recover_with_code(email : String, code : String, ip : String = "", user_agent : String = "",
+                               now : Time = Time.utc) : LoginResult
+      address = email.strip.downcase
+      account = Account.filter(email: address).first
+      if account.nil? || !account.can_sign_in? || account.upstream?
+        Audit.log(nil, "auth.recovery", {"reason" => "unknown"}, outcome: "fail", ip: ip, label: address)
+        return LoginResult.new(error: "connect.errors.recovery.invalid")
+      end
+      reservation = Throttle.reserve(account, now)
+      unless reservation.granted
+        key = reservation.locked ? "connect.errors.login.locked" : "connect.errors.login.wait"
+        return LoginResult.new(error: key, wait: reservation.wait)
+      end
+      unless RecoveryCodes.consume!(account, code, now)
+        Throttle.confirm_failure(account, now)
+        Audit.log(account, "auth.recovery", outcome: "fail", ip: ip)
+        return LoginResult.new(error: account.locked? ? "connect.errors.login.locked" : "connect.errors.recovery.invalid")
+      end
+      Throttle.record_success(account)
+      opened = Sessions.open(account, TWO_FACTOR, "recovery_code", ip, user_agent, now)
+      Sessions.revoke_all(account, now, except: opened.session.pk.as?(Int64))
+      Audit.log(account, "auth.recovery", {"remaining" => RecoveryCodes.remaining(account).to_s}, ip: ip)
+      Mailer.notify(account, "recovery_used", ip: ip)
+      LoginResult.new(opened: opened)
+    end
+
     # Suspension par l'exploitation : sessions fermées, clients avisés.
     def self.suspend(account : Account, now : Time = Time.utc) : Nil
       account.active = false

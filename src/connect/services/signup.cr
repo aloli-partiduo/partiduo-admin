@@ -47,6 +47,33 @@ module PartiduoConnect
       Issued.new(ticket, token, code)
     end
 
+    # Récupération par l'exploitation (clé d'accès et codes perdus) : retire
+    # tous les facteurs du compte, ferme ses sessions (clients avisés), puis
+    # émet un lien et un code comme une invitation ; le compte rouvert garde
+    # son `sub`. Geste grave : journalisé, la personne est prévenue.
+    def self.recover(account : Account, created_by : String = "exploitation", now : Time = Time.utc) : Issued
+      Passkey.filter(account_id: account.pk).delete
+      RecoveryCode.filter(account_id: account.pk).delete
+      account.password_digest = nil
+      account.totp_secret = nil
+      account.totp_pending_secret = nil
+      account.totp_enabled_at = nil
+      account.last_otp_counter = nil
+      account.save!
+      Auth::Throttle.unlock(account)
+      Auth::Sessions.revoke_all(account, now)
+      SignupTicket.filter(email: account.email, used_at__isnull: true, cancelled_at__isnull: true).update(cancelled_at: now)
+      token = Secrets.token
+      code = Secrets.readable_code(8)
+      ticket = SignupTicket.create!(token_digest: Secrets.digest(token),
+        code_digest: Secrets.digest(Secrets.normalize_code(code)), email: account.email.to_s,
+        display_name: account.display_name.to_s, locale: account.locale.to_s, account: account,
+        created_by: created_by[0, 255]? || "", expires_at: now + Config::SIGNUP_TTL)
+      Audit.log(account, "account.recover_issue", {"by" => created_by})
+      Mailer.notify(account, "recovery_issued")
+      Issued.new(ticket, token, code)
+    end
+
     def self.find(token : String?, now : Time = Time.utc) : SignupTicket?
       return if token.nil? || token.empty?
       SignupTicket.filter(token_digest: Secrets.digest(token), used_at__isnull: true, cancelled_at__isnull: true,
@@ -77,6 +104,13 @@ module PartiduoConnect
       end
       claimed = SignupTicket.filter(id: ticket.pk, used_at__isnull: true, cancelled_at__isnull: true).update(used_at: now)
       return Outcome.new(error: "connect.errors.signup.invalid") unless claimed == 1
+      # Récupération par l'exploitation : le compte existant rouvert, même
+      # `sub` (ses liens avec les dossiers et l'administration restent).
+      if recovered = ticket.account
+        return Outcome.new(error: "connect.errors.signup.invalid") unless recovered.active
+        Audit.log(recovered, "account.recover", {"by" => ticket.created_by.to_s}, ip: ip)
+        return Outcome.new(account: recovered, return_to: ticket.return_to.to_s)
+      end
       address = ticket.email.to_s
       return Outcome.new(error: "connect.errors.signup.exists") if Account.filter(email: address).exists?
       account = Account.create!(sub: Secrets.token(24), email: address,

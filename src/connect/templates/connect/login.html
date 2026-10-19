@@ -10,6 +10,7 @@
   <button type="button" class="button is-primary is-fullwidth" data-passkey="login" data-options-url="{% url 'login_passkey_options' %}"
           data-submit-url="{% url 'login_passkey' %}" data-next="{{ next }}" data-status="pd-passkey-status">{% translate "connect.login.passkey_button" %}</button>
   <p class="help" id="pd-passkey-status" role="status" aria-live="polite" data-unsupported="{% translate 'connect.passkey.unsupported' %}" data-failed="{% translate 'connect.passkey.failed' %}" data-waiting="{% translate 'connect.passkey.waiting' %}"></p>
+  <p class="help"><a href="{% url 'recover' %}?next={{ next }}">{% translate "connect.login.lost_key" %}</a></p>
 </section>
 <p class="pd-or">{% translate "connect.login.or" %}</p>
 <form method="post" action="{% url 'login' %}" novalidate aria-labelledby="pd-password-title">

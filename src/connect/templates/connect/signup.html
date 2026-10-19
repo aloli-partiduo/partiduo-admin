@@ -6,7 +6,7 @@
 {% if error %}<div class="notification is-danger is-light" role="alert">{{ error }}</div>{% endif %}
 <p role="alert">{% translate "connect.signup.invalid" %}</p>
 {% else %}
-<p class="mb-3">{% translate "connect.signup.intro" email: ticket.email %}</p>
+<p class="mb-3">{% if ticket.account_id %}{% translate "connect.signup.recover_intro" email: ticket.email %}{% else %}{% translate "connect.signup.intro" email: ticket.email %}{% endif %}</p>
 {% if error %}<div class="notification is-danger is-light" role="alert" id="pd-signup-error">{{ error }}</div>{% endif %}
 <form method="post" action="{% url 'signup' token: token %}" novalidate>
   {% csrf_input %}

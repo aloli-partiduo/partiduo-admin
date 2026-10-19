@@ -181,4 +181,24 @@ module PartiduoConnect
       page("connect/licences.html", {"text" => PartiduoLicences::TEXT, "components" => PartiduoLicences.components})
     end
   end
+
+  # Clé d'accès perdue : adresse et code de récupération (ADR-002 D7). La
+  # session ouverte permet d'enregistrer une nouvelle passkey.
+  class RecoverHandler < BaseHandler
+    def get
+      page("connect/recover.html", {"email" => query("email"), "next" => safe_next(query("next"))})
+    end
+
+    def post
+      result = Auth.recover_with_code(field("email"), field("code"), ip, user_agent, Config.now)
+      if opened = result.opened
+        open_session(opened)
+        flash["warning"] = I18n.t("connect.recover.done")
+        return redirect("/account?next=#{URI.encode_www_form(safe_next(field("next")))}")
+      end
+      error = I18n.t(result.error || "connect.errors.recovery.invalid", seconds: result.wait.try(&.total_seconds.ceil.to_i).to_s)
+      page("connect/recover.html", {"email" => field("email"), "next" => safe_next(field("next")), "error" => error},
+        status: 422)
+    end
+  end
 end

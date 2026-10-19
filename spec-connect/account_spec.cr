@@ -165,3 +165,44 @@ describe "connect : comptes" do
     account.locked?.should be_true
   end
 end
+
+describe "connect : clé d'accès perdue (ADR-002 D7)" do
+  it "rouvre un compte à passkey seule par adresse et code de récupération, puis permet une nouvelle passkey" do
+    issued = PartiduoConnect::Signup.issue("perdu@example.net", now: SPEC_NOW)
+    browser = ConnectSpec::Browser.new
+    browser.post(URI.parse(issued.url).path, {"code" => issued.code})
+    first = ConnectSpec::Authenticator.new
+    html = JSON.parse(browser.post("/account/passkey", first.register(browser.post("/account/passkey/options").content)).content)["html"].as_s
+    code = html.match!(/<li>([A-Z2-9-]{19})<\/li>/)[1]
+    account = PartiduoConnect::Account.get!(email: "perdu@example.net")
+    account.usable_password?.should be_false
+
+    other = ConnectSpec::Browser.new
+    other.post("/login/recover", {"email" => "perdu@example.net", "code" => "AAAA-AAAA-AAAA-AAAA"}).status.should eq(422)
+    other.post("/login/recover", {"email" => "perdu@example.net", "code" => code}).location.should start_with("/account")
+    browser.get("/account").location.should start_with("/login")
+    second = ConnectSpec::Authenticator.new
+    answer = JSON.parse(other.post("/account/passkey", second.register(other.post("/account/passkey/options").content)).content)
+    answer["ok"].as_bool.should be_true
+    PartiduoConnect::Passkey.filter(account_id: account.pk).count.should eq(2)
+    # Un code ne sert qu'une fois.
+    ConnectSpec::Browser.new.post("/login/recover", {"email" => "perdu@example.net", "code" => code}).status.should eq(422)
+  end
+
+  it "rouvre le même compte par l'exploitation : facteurs retirés, lien et code, même sub" do
+    account = ConnectSpec.account("support@example.net")
+    PartiduoConnect::Auth::RecoveryCodes.generate(account)
+    sub = account.sub
+    issued = PartiduoConnect::Signup.recover(account, "spec", SPEC_NOW)
+    account.reload
+    {account.usable_password?, account.totp_enabled?, PartiduoConnect::Auth::RecoveryCodes.remaining(account)}.should eq({false, false, 0})
+    browser = ConnectSpec::Browser.new
+    browser.get(URI.parse(issued.url).path).html.should contain("Récupération de votre compte")
+    browser.post(URI.parse(issued.url).path, {"code" => issued.code}).location.should eq("/account")
+    PartiduoConnect::Account.filter(email: "support@example.net").count.should eq(1)
+    PartiduoConnect::Account.get!(email: "support@example.net").sub.should eq(sub)
+    authenticator = ConnectSpec::Authenticator.new
+    JSON.parse(browser.post("/account/passkey", authenticator.register(browser.post("/account/passkey/options").content)).content)["ok"]
+      .as_bool.should be_true
+  end
+end

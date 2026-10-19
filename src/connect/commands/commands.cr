@@ -133,10 +133,12 @@ module PartiduoConnect
       end
     end
 
-    # `partiduo-connect-manage account <show|suspend|reactivate|unlock> --email=…`
+    # `partiduo-connect-manage account <show|suspend|reactivate|unlock|recover> --email=…`
     #
     # Exploitation d'un compte : suspension (sessions fermées, clients
-    # avisés), réactivation, déblocage après trop d'échecs.
+    # avisés), réactivation, déblocage après trop d'échecs, récupération
+    # (clé d'accès et codes perdus : facteurs retirés, lien + code émis, même
+    # compte).
     class AccountCommand < Marten::CLI::Manage::Command::Base
       command_name :account
       help "Montre, suspend, réactive ou débloque un compte (ADR-012 D7)."
@@ -145,7 +147,7 @@ module PartiduoConnect
       @email = ""
 
       def setup
-        on_argument(:action, "show, suspend, reactivate ou unlock") { |value| @action = value }
+        on_argument(:action, "show, suspend, reactivate, unlock ou recover") { |value| @action = value }
         on_option_with_arg("email", "adresse", "adresse du compte") { |value| @email = value }
       end
 
@@ -163,12 +165,17 @@ module PartiduoConnect
         when "reactivate"
           Auth.reactivate(account)
           print("#{account.email} : réactivé.")
+        when "recover"
+          issued = Signup.recover(account, "exploitation", Config.now)
+          print("#{account.email} : facteurs retirés, sessions fermées.")
+          print("Lien (valable #{Config::SIGNUP_TTL.days} jours) : #{issued.url}")
+          print("Code (à transmettre par un autre canal)  : #{issued.code}")
         when "unlock"
           Auth::Throttle.unlock(account)
           Audit.log(account, "account.unlock", label: account.email.to_s)
           print("#{account.email} : débloqué.")
         else
-          print_error_and_exit("action inconnue : #{@action} (show, suspend, reactivate, unlock)")
+          print_error_and_exit("action inconnue : #{@action} (show, suspend, reactivate, unlock, recover)")
         end
       end
     end
