@@ -13,6 +13,9 @@ module PartiduoAdmin
     class Outcome(T)
       getter value : T?
       getter errors : Errors
+      # Code de création du compte connect d'une invitation (ADR-012 D6), à
+      # montrer une fois à qui invite.
+      property signup_code : String? = nil
 
       def initialize(@value : T? = nil, @errors : Errors = Errors.new)
       end

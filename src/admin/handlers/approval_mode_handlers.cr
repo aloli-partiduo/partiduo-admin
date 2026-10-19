@@ -101,6 +101,7 @@ module PartiduoAdmin
         "has_totp"           => !user.super_admin? && user.totp_enabled?,
         "is_delete"          => approval.kind == "delete",
         "confirm_path"       => "/approvals/#{approval.pk}/confirm",
+        "connect_reauth"     => Connect.configured? ? "/login/connect?acr=#{Auth.required_level(user)}&fresh=1&next=#{URI.encode_www_form("/approvals/#{approval.pk}/confirm")}" : nil,
         "errors"             => errs(errors, "base") + errs(errors, "reauth"),
         "confirm_errors"     => errs(errors, "confirmation"),
         "confirmation_value" => field_or_empty("confirmation"),

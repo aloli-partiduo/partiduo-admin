@@ -12,6 +12,16 @@
   {% if missing %}<div class="notification is-warning is-light mt-3" role="status"><p>{% translate "admin.account.missing" %}</p><ul>{% for item in missing %}<li>{% translate item %}</li>{% endfor %}</ul></div>{% endif %}
 </section>
 
+{% if connect %}
+<section class="pd-panel" aria-labelledby="pd-connect-title">
+  <h2 id="pd-connect-title">{% translate "admin.account.connect_title" %}</h2>
+  <p class="mb-3">{% translate "admin.account.connect_help" %}</p>
+  <div class="buttons">
+    {% if not elevated %}<a class="button is-primary" href="{{ connect_elevate }}">{% translate "admin.account.connect_elevate" %}</a>{% endif %}
+    {% if connect_account %}<a class="button" href="{{ connect_account }}" target="_blank" rel="noopener">{% translate "admin.account.connect_manage" %}</a>{% endif %}
+  </div>
+</section>
+{% else %}
 <section class="pd-panel" aria-labelledby="pd-passkeys-title">
   <h2 id="pd-passkeys-title">{% translate "admin.account.passkeys" %}</h2>
   {% if passkeys %}<ul class="mb-3">{% for key in passkeys %}<li>{{ key.name|default:"—" }} · {% translate "admin.account.added" %} {{ key.created_at|time:"%Y-%m-%d" }}</li>{% endfor %}</ul>{% endif %}
@@ -62,4 +72,5 @@
   {% if elevated %}<form method="post" action="{% url 'account_recovery_codes' %}">{% csrf_input %}<button class="button" type="submit">{% translate "admin.account.recovery_regenerate" %}</button></form>
   {% else %}<p class="help" data-recovery-elevate>{% translate "admin.account.recovery_elevate" %}</p>{% endif %}
 </section>
+{% endif %}
 {% endblock content %}

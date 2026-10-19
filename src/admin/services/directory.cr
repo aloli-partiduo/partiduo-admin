@@ -24,9 +24,12 @@ module PartiduoAdmin
       user = User.create!(email: email, first_name: input.first_name.strip, last_name: input.last_name.strip,
         role: input.role, firm_id: firm_id, locale: locale)
       raw = Auth::Invitations.issue(user, actor, now)
+      code = Auth::Invitations.attach_connect(user, raw)
       Mailer.invitation(user, Auth::Invitations.url(raw))
       Audit.log(actor, "user.invite", target: user, detail: {"role" => user.role.to_s}, actor_label: actor ? nil : "bootstrap")
-      Outcome(User).new(user)
+      outcome = Outcome(User).new(user)
+      outcome.signup_code = code
+      outcome
     end
 
     private def self.add(errors : Errors, field : String, key : String) : Nil
@@ -58,7 +61,9 @@ module PartiduoAdmin
 
     # Recours pour un utilisateur de l'administration qui a perdu ses
     # moyens : nouvelle invitation, sessions et secrets révoqués.
-    def self.reinvite(actor : User, user : User, now : Time = Config.now) : Bool
+    # `codes` reçoit le code de création du compte connect, s'il y en a un
+    # (ADR-012 D6).
+    def self.reinvite(actor : User, user : User, now : Time = Config.now, codes : Array(String)? = nil) : Bool
       return false unless Access.can_manage_user?(actor, user) && actor.pk != user.pk
       Auth::Sessions.revoke_all(user, now)
       user.password_digest = nil
@@ -69,7 +74,14 @@ module PartiduoAdmin
       Passkey.filter(user_id: user.pk).delete
       RecoveryCode.filter(user_id: user.pk).delete
       Auth::Throttle.unlock(user)
+      # connect : l'identité liée est déliée ; la nouvelle invitation en lie
+      # une, à l'adresse de l'utilisateur.
+      user.connect_sub = nil
+      user.save!
       raw = Auth::Invitations.issue(user, actor, now)
+      if code = Auth::Invitations.attach_connect(user, raw)
+        codes.try(&.<< code)
+      end
       Mailer.invitation(user, Auth::Invitations.url(raw))
       Audit.log(actor, "user.reinvite", target: user)
       true

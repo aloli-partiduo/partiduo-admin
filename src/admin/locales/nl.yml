@@ -58,6 +58,8 @@ nl:
       micro: "Micro-onderneming"
       liberal: "Vrije beroepen (2035)"
     login:
+      connect_button: "Aanmelden met mijn Partiduo-account"
+      connect_help: "Eén account voor het beheer en al uw dossiers: toegangssleutel, authenticatie-app en herstelcodes worden door connect bewaard."
       title: "Aanmelden bij het beheer"
       passkey_title: "Met een toegangssleutel (passkey)"
       passkey_help: "Verplicht voor de superbeheerder. Uw toestel vraagt uw vingerafdruk, gezicht of code."
@@ -76,11 +78,19 @@ nl:
       failed: "De toegangssleutel kon niet worden gebruikt. Probeer opnieuw."
       waiting: "Volg de aanwijzingen van uw toestel…"
     invitation:
+      connect_existing: "Ik heb al een Partiduo-account: aanmelden"
+      connect_intro: "Toegang tot het beheer voor %{email}, met uw Partiduo-account (hetzelfde als voor uw dossiers)."
+      connect_new: "Mijn Partiduo-account aanmaken"
+      connect_new_help: "Nog geen account? U hebt de code nodig die de persoon die u uitnodigt doorgaf (mondeling of telefonisch)."
       title: "Uitnodiging"
       intro: "U bent uitgenodigd om het Partiduo-park te beheren met het adres %{email}. Daarna kiest u hoe u zich aanmeldt."
       accept: "Uitnodiging aanvaarden"
       invalid: "Deze uitnodigingslink is niet meer geldig. Vraag een nieuwe aan uw beheerder."
     account:
+      connect_elevate: "Bevestigen met mijn Partiduo-account"
+      connect_help: "Uw aanmeldmiddelen (toegangssleutel, authenticatie-app, herstelcodes) worden bewaard door uw Partiduo-account, gedeeld door het beheer en uw dossiers."
+      connect_manage: "Mijn Partiduo-account beheren"
+      connect_title: "Partiduo-account"
       title: "Beveiliging van het account"
       level_title: "Authenticatieniveau"
       email: "Adres"
@@ -390,6 +400,7 @@ nl:
       confirm_button: "Bevestigen en de taak starten"
       confirmed: "Aanvraag %{reference} bevestigd: de taak staat in de wachtrij."
     reauth:
+      connect: "Bevestigen met mijn Partiduo-account"
       title: "Opnieuw aanmelden"
       recent: "Identiteit bevestigd om"
       needed: "Bevestig uw identiteit voor u alleen beslist"
@@ -519,6 +530,7 @@ nl:
         independent: "Zelfstandige dossierbeheerder"
         fleet: "Park zonder kantoor"
     users:
+      signup_code: "Code voor het aanmaken van het Partiduo-account: %{code} — mondeling of telefonisch doorgeven, nooit per e-mail."
       title: "Gebruikers"
       new: "Een gebruiker uitnodigen"
       invite: "Uitnodiging versturen"
@@ -585,6 +597,13 @@ nl:
       alert:
         subject: "[Partiduo] %{kind}: %{subject}"
     errors:
+      connect:
+        already_linked: "Er is al een Partiduo-account aan deze gebruiker gekoppeld."
+        denied: "connect heeft de aanmelding geweigerd."
+        invalid: "Het antwoord van connect is ongeldig."
+        invitation_email: "Dit Partiduo-account heeft niet het uitgenodigde adres: meld u aan met het account van het adres dat de uitnodiging ontving."
+        unknown: "Dit Partiduo-account heeft geen toegang tot het beheer."
+        unreachable: "connect antwoordt niet; probeer later opnieuw."
       required: "Dit veld is verplicht."
       invalid: "Ongeldige waarde."
       forbidden: "U mag dit niet doen."

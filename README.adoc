@@ -563,6 +563,23 @@ fichier 0600 effacé aussitôt (mode local), entrée standard de
 l'administrateur du dossier s'affiche sur la page de la tâche, à lui
 transmettre de vive voix (ADR-012 D6).
 
+L'administration est elle aussi cliente (ADR-012 D4) : réglée par
+`PARTIDUO_ADMIN_CONNECT_URL`, `PARTIDUO_ADMIN_CONNECT_CLIENT_ID` et
+`PARTIDUO_ADMIN_CONNECT_CLIENT_SECRET` (ou `_SECRET_FILE`), elle n'accepte plus
+ni mot de passe, ni TOTP, ni passkey locaux : la connexion passe par
+`/login/connect` (niveau attesté par connect, passkey redemandée au
+super-admin), la déconnexion par connect, l'invitation d'un utilisateur lie
+son compte connect (même adresse) et rend le code de création du compte.
+Client à déclarer chez connect :
+
+[source,sh]
+----
+partiduo-connect-manage client add --client-id=admin --name="Partiduo administration" \
+  --redirect-uri=https://admin.partiduo.dev/login/connect/callback \
+  --post-logout-uri=https://admin.partiduo.dev/login \
+  --backchannel-uri=https://admin.partiduo.dev/login/connect/backchannel-logout
+----
+
 Clé de signature pour le coffre (une ligne, rien sur le disque) :
 `partiduo-connect-manage signing-key generate`. Rotation : nouvelle clé en
 *seconde* position du fichier (publiée), puis en première une heure plus

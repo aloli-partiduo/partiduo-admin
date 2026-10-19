@@ -65,6 +65,10 @@ module PartiduoAdmin
       private def print_link(user : User, raw : String) : Nil
         print("Super-admin : #{user.email}")
         print("Invitation (valable #{Config::INVITATION_TTL.days} jours) : #{Auth::Invitations.url(raw)}")
+        # connect (ADR-012 D6) : code de création du compte, par un autre canal.
+        if code = Auth::Invitations.attach_connect(user, raw)
+          print("Code de création du compte Partiduo (à transmettre par un autre canal) : #{code}")
+        end
       end
     end
 

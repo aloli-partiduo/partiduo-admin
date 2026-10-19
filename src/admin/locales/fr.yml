@@ -58,6 +58,8 @@ fr:
       micro: "Micro-entreprise"
       liberal: "Professions libérales (2035)"
     login:
+      connect_button: "Me connecter avec mon compte Partiduo"
+      connect_help: "Un seul compte pour l'administration et tous vos dossiers : passkey, application d'authentification et codes de récupération sont tenus par connect."
       title: "Connexion à l'administration"
       passkey_title: "Avec une clé d'accès (passkey)"
       passkey_help: "Exigée pour le super-admin. Votre appareil vous demande votre empreinte, votre visage ou votre code."
@@ -76,11 +78,19 @@ fr:
       failed: "La clé d'accès n'a pas pu être utilisée. Réessayez."
       waiting: "Suivez les indications de votre appareil…"
     invitation:
+      connect_existing: "J'ai déjà un compte Partiduo : me connecter"
+      connect_intro: "Accès à l'administration pour %{email}, avec votre compte Partiduo (le même que pour vos dossiers)."
+      connect_new: "Créer mon compte Partiduo"
+      connect_new_help: "Pas encore de compte ? Il vous faudra le code transmis par la personne qui vous invite (de vive voix ou par téléphone)."
       title: "Invitation"
       intro: "Vous êtes invité à administrer le parc Partiduo avec l'adresse %{email}. Vous choisirez ensuite vos moyens d'authentification."
       accept: "Accepter l'invitation"
       invalid: "Ce lien d'invitation n'est plus valable. Demandez-en un nouveau à votre administrateur."
     account:
+      connect_elevate: "Confirmer avec mon compte Partiduo"
+      connect_help: "Vos moyens de connexion (passkey, application d'authentification, codes de récupération) sont tenus par votre compte Partiduo, commun à l'administration et à vos dossiers."
+      connect_manage: "Gérer mon compte Partiduo"
+      connect_title: "Compte Partiduo"
       title: "Sécurité du compte"
       level_title: "Niveau d'authentification"
       email: "Adresse"
@@ -390,6 +400,7 @@ fr:
       confirm_button: "Confirmer et lancer la tâche"
       confirmed: "Demande %{reference} confirmée : la tâche est en file d'attente."
     reauth:
+      connect: "Confirmer avec mon compte Partiduo"
       title: "Ré-authentification"
       recent: "Identité confirmée à"
       needed: "Confirmez votre identité avant de décider seul"
@@ -519,6 +530,7 @@ fr:
         independent: "Gestionnaire indépendant"
         fleet: "Parc sans cabinet"
     users:
+      signup_code: "Code de création du compte Partiduo : %{code} — à transmettre de vive voix ou par téléphone, jamais par courriel."
       title: "Utilisateurs"
       new: "Inviter un utilisateur"
       invite: "Envoyer l'invitation"
@@ -585,6 +597,13 @@ fr:
       alert:
         subject: "[Partiduo] %{kind} : %{subject}"
     errors:
+      connect:
+        already_linked: "Un compte Partiduo est déjà lié à cet utilisateur."
+        denied: "connect a refusé la connexion."
+        invalid: "La réponse de connect est invalide."
+        invitation_email: "Ce compte Partiduo n'a pas l'adresse invitée : connectez-vous avec le compte de l'adresse qui a reçu l'invitation."
+        unknown: "Ce compte Partiduo n'a pas accès à l'administration."
+        unreachable: "connect ne répond pas ; réessayez plus tard."
       required: "Ce champ est obligatoire."
       invalid: "Valeur invalide."
       forbidden: "Vous n'avez pas le droit de faire cela."

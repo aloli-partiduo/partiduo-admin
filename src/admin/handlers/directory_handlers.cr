@@ -62,6 +62,9 @@ module PartiduoAdmin
       outcome = Directory.invite_user(user, input)
       if outcome.ok?
         flash["success"] = I18n.t("admin.users.invited", email: outcome.value!.email.to_s)
+        if code = outcome.signup_code
+          flash["info"] = I18n.t("admin.users.signup_code", code: code)
+        end
         return redirect("/users")
       end
       form(input, outcome.errors, 422)
@@ -94,8 +97,9 @@ module PartiduoAdmin
       require_admin!
       target = Access.users(user).filter(id: id_param).first
       raise Access::Denied.new("user") if target.nil?
+      codes = [] of String
       done = case params["command"].to_s
-             when "reinvite" then Directory.reinvite(user, target)
+             when "reinvite" then Directory.reinvite(user, target, codes: codes)
              when "disable"  then Directory.set_active(user, target, false)
              when "enable"   then Directory.set_active(user, target, true)
              when "unlock"   then Directory.unlock(user, target)
@@ -103,6 +107,7 @@ module PartiduoAdmin
              end
       raise Access::Denied.new("user") unless done
       flash["success"] = I18n.t("admin.saved")
+      flash["info"] = I18n.t("admin.users.signup_code", code: codes.first) unless codes.empty?
       go("/users")
     end
   end

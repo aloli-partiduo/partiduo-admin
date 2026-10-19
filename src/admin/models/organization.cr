@@ -93,6 +93,8 @@ module PartiduoAdmin
     field :last_failed_at, :date_time, null: true, blank: true
     field :locked_at, :date_time, null: true, blank: true
     field :active, :bool, default: true
+    # Identité connect liée par l'invitation (ADR-012 D4).
+    field :connect_sub, :string, max_size: 64, null: true, blank: true, unique: true
     field :last_login_at, :date_time, null: true, blank: true
     field :created_at, :date_time, auto_now_add: true
     field :updated_at, :date_time, auto_now: true

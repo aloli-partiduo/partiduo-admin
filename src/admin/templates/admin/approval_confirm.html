@@ -27,6 +27,7 @@
   <h2 id="pd-reauth-title">{% translate "admin.reauth.title" %}</h2>
   {% if recent %}<p class="pd-ok-text" role="status">{% translate "admin.reauth.recent" %} <span class="pd-mono">{{ strong_at }}</span></p>
   {% else %}<p class="mb-3">{% translate "admin.reauth.needed" %} ({{ window }} min)</p>
+    {% if connect_reauth %}<div class="buttons"><a class="button is-link" href="{{ connect_reauth }}">{% translate "admin.reauth.connect" %}</a></div>{% endif %}
     {% if has_passkey %}<div class="buttons">
       <button type="button" class="button is-link" data-passkey="elevate" data-options-url="{% url 'elevate_options' %}" data-submit-url="{% url 'elevate' %}" data-next="{{ confirm_path }}" data-status="pd-reauth-status">{% translate "admin.reauth.passkey" %}</button>
     </div>

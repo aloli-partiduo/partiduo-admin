@@ -58,6 +58,8 @@ en:
       micro: "Micro-enterprise"
       liberal: "Liberal professions (2035)"
     login:
+      connect_button: "Sign in with my Partiduo account"
+      connect_help: "One account for the administration and all your files: passkey, authenticator app and recovery codes are held by connect."
       title: "Sign in to the administration"
       passkey_title: "With a passkey"
       passkey_help: "Required for the super admin. Your device asks for your fingerprint, face or PIN."
@@ -76,11 +78,19 @@ en:
       failed: "The passkey could not be used. Please try again."
       waiting: "Follow the instructions on your device…"
     invitation:
+      connect_existing: "I already have a Partiduo account: sign in"
+      connect_intro: "Access to the administration for %{email}, with your Partiduo account (the same as for your files)."
+      connect_new: "Create my Partiduo account"
+      connect_new_help: "No account yet? You will need the code given by the person inviting you (in person or by phone)."
       title: "Invitation"
       intro: "You are invited to administer the Partiduo fleet with the address %{email}. You will then choose how you sign in."
       accept: "Accept the invitation"
       invalid: "This invitation link is no longer valid. Ask your administrator for a new one."
     account:
+      connect_elevate: "Confirm with my Partiduo account"
+      connect_help: "Your sign-in methods (passkey, authenticator app, recovery codes) are held by your Partiduo account, shared by the administration and your files."
+      connect_manage: "Manage my Partiduo account"
+      connect_title: "Partiduo account"
       title: "Account security"
       level_title: "Authentication level"
       email: "Address"
@@ -390,6 +400,7 @@ en:
       confirm_button: "Confirm and start the task"
       confirmed: "Request %{reference} confirmed: the task is queued."
     reauth:
+      connect: "Confirm with my Partiduo account"
       title: "Re-authentication"
       recent: "Identity confirmed at"
       needed: "Confirm your identity before deciding alone"
@@ -519,6 +530,7 @@ en:
         independent: "Independent manager"
         fleet: "Fleet without a firm"
     users:
+      signup_code: "Partiduo account creation code: %{code} — give it in person or by phone, never by email."
       title: "Users"
       new: "Invite a user"
       invite: "Send the invitation"
@@ -585,6 +597,13 @@ en:
       alert:
         subject: "[Partiduo] %{kind}: %{subject}"
     errors:
+      connect:
+        already_linked: "A Partiduo account is already linked to this user."
+        denied: "connect refused the sign-in."
+        invalid: "The response of connect is invalid."
+        invitation_email: "This Partiduo account does not have the invited address: sign in with the account of the address that received the invitation."
+        unknown: "This Partiduo account has no access to the administration."
+        unreachable: "connect does not answer; try again later."
       required: "This field is required."
       invalid: "Invalid value."
       forbidden: "You are not allowed to do that."

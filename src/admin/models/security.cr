@@ -20,6 +20,8 @@ module PartiduoAdmin
     # élévation ou ré-authentification. Une opération sensible confirmée
     # par une seule personne l'exige récente (D-VAL2-004).
     field :strong_auth_at, :date_time, null: true, blank: true
+    # Session de connect qui a ouvert celle-ci (`sid`, ADR-012 D8).
+    field :federated_sid, :string, max_size: 64, null: true, blank: true
   end
 
   # Défi à usage unique (WebAuthn, second facteur en attente).
@@ -43,6 +45,9 @@ module PartiduoAdmin
     field :created_at, :date_time, auto_now_add: true
     field :expires_at, :date_time
     field :used_at, :date_time, null: true, blank: true
+    # Lien de création du compte connect (ADR-012 D6) ; vide sans connect ou
+    # si la personne a déjà un compte.
+    field :signup_url, :string, max_size: 1000, blank: true, default: ""
   end
 
   # Passkey enrôlée : clé publique COSE, aucun secret.

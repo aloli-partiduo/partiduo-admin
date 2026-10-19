@@ -8,10 +8,13 @@ module PartiduoAdmin
   class LoginHandler < BaseHandler
     def get
       return redirect("/") if elevated?
-      page("admin/login.html", {"next" => safe_next(query("next")), "email" => ""})
+      page("admin/login.html", {"next" => safe_next(query("next")), "email" => "", "connect" => Connect.configured?,
+                                "connect_url" => "/login/connect?next=#{URI.encode_www_form(safe_next(query("next")))}"})
     end
 
     def post
+      # connect réglé (ADR-012 D4) : plus de mot de passe local.
+      return redirect("/login") if Connect.configured?
       result = Auth.login_password(field("email"), request.data.fetch("password", "").to_s, ip, user_agent, Config.now)
       if handle = result.pending
         request.cookies.set(PENDING_COOKIE, handle, expires: Time.utc + Config::PENDING_LIFETIME, http_only: true,
@@ -29,11 +32,13 @@ module PartiduoAdmin
 
   class SecondFactorHandler < BaseHandler
     def get
+      return redirect("/login") if Connect.configured?
       return redirect("/login") if request.cookies[PENDING_COOKIE]?.nil?
       page("admin/second_factor.html", {"next" => safe_next(query("next"))})
     end
 
     def post
+      return redirect("/login") if Connect.configured?
       result = Auth.login_second_factor(request.cookies[PENDING_COOKIE]?, field("code"), ip, user_agent, Config.now)
       if opened = result.opened
         request.cookies.delete(PENDING_COOKIE)
@@ -52,6 +57,7 @@ module PartiduoAdmin
   # Options WebAuthn d'une connexion par passkey (credential découvrable).
   class PasskeyLoginOptionsHandler < BaseHandler
     def post
+      raise Access::Denied.new("connect") if Connect.configured?
       options, _ = Auth::Passkeys.authentication_options
       json(options)
     end
@@ -59,6 +65,7 @@ module PartiduoAdmin
 
   class PasskeyLoginHandler < BaseHandler
     def post
+      raise Access::Denied.new("connect") if Connect.configured?
       user = Auth::Passkeys.finish_authentication(field("challenge_id"), field("credential_id"),
         field("authenticator_data"), field("client_data_json"), field("signature"), now: Config.now)
       return json({"ok" => false, "error" => I18n.t("admin.errors.login.invalid")}.to_json) unless user.can_sign_in?
@@ -72,13 +79,20 @@ module PartiduoAdmin
     end
   end
 
+  # Déconnexion ; une session ouverte par connect se ferme aussi chez lui
+  # (déconnexion unique, ADR-012 D8).
   class LogoutHandler < BaseHandler
     def post
+      federated = false
       if session = session_record
+        federated = !session.federated_sid.nil?
         Auth::Sessions.revoke(session)
         Audit.log(session.user, "auth.logout", target: session.user, ip: ip)
       end
       request.cookies.delete(COOKIE, same_site: "Strict")
+      if federated && (url = Connect.end_session_url)
+        return redirect(url)
+      end
       redirect("/login")
     end
   end
@@ -89,10 +103,14 @@ module PartiduoAdmin
     def get
       user = Auth::Invitations.peek(params["token"].to_s, Config.now)
       return page("admin/invitation.html", {"invalid" => true}, status: 404) if user.nil?
-      page("admin/invitation.html", {"invited" => user, "token" => params["token"].to_s})
+      token = params["token"].to_s
+      page("admin/invitation.html", {"invited" => user, "token" => token, "connect" => Connect.configured?,
+                                     "signup_url" => Auth::Invitations.signup_url(token, Config.now),
+                                     "connect_path" => "/invitation/#{token}/connect"})
     end
 
     def post
+      return redirect("/invitation/#{params["token"]}/connect") if Connect.configured?
       user = Auth::Invitations.consume(params["token"].to_s, Config.now)
       return page("admin/invitation.html", {"invalid" => true}, status: 404) if user.nil? || !user.can_sign_in?
       Auth::Sessions.revoke_all(user)
@@ -137,6 +155,10 @@ module PartiduoAdmin
         "totp_uri"         => secret ? Auth::Totp.provisioning_uri(current, secret) : nil,
         "enrollment"       => level == Auth::ENROLLMENT,
         "password_allowed" => !current.super_admin?,
+        # connect (ADR-012 D4) : moyens d'authentification tenus par connect.
+        "connect"         => Connect.configured?,
+        "connect_account" => Connect.url.try { |base| "#{base}/account" },
+        "connect_elevate" => "/login/connect?acr=#{Auth.required_level(current)}&fresh=1&next=%2Faccount",
       })
     end
   end
@@ -144,6 +166,7 @@ module PartiduoAdmin
   # Choix du mot de passe (enrôlement, ou changement à niveau suffisant).
   class AccountPasswordHandler < AccountScreenHandler
     def post
+      raise Access::Denied.new("connect") if Connect.configured?
       current = user
       raise Access::Denied.new("password") if current.super_admin?
       if current.usable_password? && level < Auth::TWO_FACTOR && level != Auth::ENROLLMENT
@@ -167,6 +190,7 @@ module PartiduoAdmin
 
   class AccountTotpHandler < AccountScreenHandler
     def post
+      raise Access::Denied.new("connect") if Connect.configured?
       current = user
       raise Access::Denied.new("totp") if current.super_admin?
       if field("command") == "begin"
@@ -191,6 +215,7 @@ module PartiduoAdmin
 
   class RecoveryCodesHandler < AccountScreenHandler
     def post
+      raise Access::Denied.new("connect") if Connect.configured?
       raise Access::Denied.new("recovery") unless elevated?
       codes = Auth::RecoveryCodes.generate(user)
       Audit.log(user, "account.recovery_codes", target: user, ip: ip)
@@ -200,6 +225,7 @@ module PartiduoAdmin
 
   class PasskeyRegisterOptionsHandler < AccountScreenHandler
     def post
+      raise Access::Denied.new("connect") if Connect.configured?
       options, _ = Auth::Passkeys.registration_options(user)
       json(options)
     end
@@ -207,6 +233,7 @@ module PartiduoAdmin
 
   class PasskeyRegisterHandler < AccountScreenHandler
     def post
+      raise Access::Denied.new("connect") if Connect.configured?
       current = user
       Auth::Passkeys.finish_registration(current, field("challenge_id"), field("attestation_object"),
         field("client_data_json"), field("name"))

@@ -3,6 +3,10 @@
 {% block content %}
 <h1 class="pd-auth-title">{% translate "admin.login.title" %}</h1>
 {% if error %}<div class="notification is-danger is-light" role="alert" id="pd-login-error">{{ error }}</div>{% endif %}
+{% if connect %}
+<p class="mb-3">{% translate "admin.login.connect_help" %}</p>
+<a class="button is-primary is-fullwidth" href="{{ connect_url }}">{% translate "admin.login.connect_button" %}</a>
+{% else %}
 <section aria-labelledby="pd-passkey-title">
   <h2 id="pd-passkey-title" class="title is-6">{% translate "admin.login.passkey_title" %}</h2>
   <p class="pd-muted mb-2">{% translate "admin.login.passkey_help" %}</p>
@@ -25,4 +29,5 @@
   </div>
   <button class="button is-link" type="submit">{% translate "admin.login.submit" %}</button>
 </form>
+{% endif %}
 {% endblock content %}

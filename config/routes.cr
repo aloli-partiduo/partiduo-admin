@@ -10,6 +10,11 @@ Marten.routes.draw do
   path "/login/passkey", PartiduoAdmin::PasskeyLoginHandler, name: "login_passkey"
   path "/logout", PartiduoAdmin::LogoutHandler, name: "logout"
   path "/invitation/<token:str>", PartiduoAdmin::InvitationHandler, name: "invitation"
+  path "/invitation/<token:str>/connect", PartiduoAdmin::InvitationConnectHandler, name: "invitation_connect"
+  # connect (ADR-012 D4).
+  path "/login/connect", PartiduoAdmin::ConnectLoginHandler, name: "login_connect"
+  path "/login/connect/callback", PartiduoAdmin::ConnectCallbackHandler, name: "login_connect_callback"
+  path "/login/connect/backchannel-logout", PartiduoAdmin::ConnectBackchannelHandler, name: "login_connect_logout"
   path "/language", PartiduoAdmin::LanguageHandler, name: "language"
   path "/account", PartiduoAdmin::AccountHandler, name: "account"
   path "/account/password", PartiduoAdmin::AccountPasswordHandler, name: "account_password"

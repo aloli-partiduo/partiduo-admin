@@ -4,6 +4,11 @@
 <h1 class="pd-auth-title">{% translate "admin.invitation.title" %}</h1>
 {% if invalid %}
 <p role="alert">{% translate "admin.invitation.invalid" %}</p>
+{% elsif connect %}
+<p class="mb-3">{% translate "admin.invitation.connect_intro" email: invited.email %}</p>
+{% if signup_url %}<p class="mb-2">{% translate "admin.invitation.connect_new_help" %}</p>
+<a class="button is-primary mb-4" href="{{ signup_url }}">{% translate "admin.invitation.connect_new" %}</a>{% endif %}
+<p><a class="button{% if signup_url %} is-light{% else %} is-primary{% endif %}" href="{{ connect_path }}">{% translate "admin.invitation.connect_existing" %}</a></p>
 {% else %}
 <p class="mb-3">{% translate "admin.invitation.intro" email: invited.email %}</p>
 <form method="post" action="{% url 'invitation' token: token %}">
