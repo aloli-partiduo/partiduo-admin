@@ -77,7 +77,10 @@ module PartiduoAdmin
         return response
       end
       template = htmx? ? "admin/_task_body.html" : "admin/task.html"
-      page(template, {"task" => task, "result" => task.result.presence || "{}",
+      # Code de création du compte connect (ADR-012 D6), à transmettre de
+      # vive voix à l'administrateur du dossier : mis en évidence.
+      signup_code = (JSON.parse(task.result.presence || "{}")["signup_code"]?.try(&.as_s?) rescue nil)
+      page(template, {"task" => task, "result" => task.result.presence || "{}", "signup_code" => signup_code,
                       "can_retry" => Tasks.retryable?(task) && !user.file_manager?, "can_cancel" => task.state == "pending" && !user.file_manager?})
     end
   end

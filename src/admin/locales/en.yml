@@ -400,6 +400,7 @@ en:
       before_confirm: "Re-authenticate first: otherwise the confirmation will be refused."
       done: "Identity confirmed."
     tasks:
+      signup_code: "Partiduo account creation code of the file administrator: give it to them in person or by phone, never by email (the link is sent to them by email)."
       title: "Tasks"
       recent: "Latest tasks"
       task: "Task"

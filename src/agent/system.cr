@@ -56,6 +56,23 @@ module PartiduoAgent
       @log = sink
     end
 
+    # connect (ADR-012) : déclare le client du dossier `host` (nouveau secret
+    # à chaque appel) ; `nil` si cet exécutant n'est pas réglé pour connect.
+    def connect_client(host : String) : ConnectClient?
+      return unless config.connect?
+      log("connect : client de #{host}")
+      Connect.register(config.connect_url, config.connect_token, host)
+    end
+
+    # Dossier supprimé : client désactivé chez connect ; un échec n'arrête
+    # pas la suppression (il est journalisé).
+    def disable_connect_client(host : String) : Nil
+      return unless config.connect?
+      Connect.disable(config.connect_url, config.connect_token, host)
+    rescue ex : StepError
+      log("connect : #{ex.message}")
+    end
+
     # Nom de la base d'un dossier dans ce mode.
     def database_for(slug : String) : String
       PartiduoAdmin::Protocol.database_for(slug, local: config.local? || config.mode.dry_run?)
@@ -83,11 +100,15 @@ module PartiduoAgent
     abstract def database_exists?(database : String) : Bool
     abstract def createdb(database : String) : Nil
     abstract def dropdb(database : String) : Nil
-    abstract def provision(slug : String, domain : String, params : JSON::Any, database : String, skip_createdb : Bool) : String
+    # `connect` : client connect du dossier (ADR-012), posé dans son
+    # environnement ; `nil` sans connect.
+    abstract def provision(slug : String, domain : String, params : JSON::Any, database : String, skip_createdb : Bool,
+                           connect : ConnectClient? = nil) : String
     # Fichiers de service d'une instance dont la base est déjà remplie
     # (restauration dans une instance neuve) : `partiduo-provision
     # --files-only`, nouveau port et nouvelle clé secrète.
-    abstract def provision_files(slug : String, domain : String, params : JSON::Any, database : String) : String
+    abstract def provision_files(slug : String, domain : String, params : JSON::Any, database : String,
+                                 connect : ConnectClient? = nil) : String
     abstract def install_instance(slug : String, host : String, package : String) : Bool
     # Interface en ligne de commande d'une instance. `package` (`app` ou
     # `devel`) : paquet dont l'outil `manage` est pris, seulement pour une
@@ -293,18 +314,30 @@ module PartiduoAgent
       databases.delete(database)
     end
 
-    def provision(slug : String, domain : String, params : JSON::Any, database : String, skip_createdb : Bool) : String
+    def connect_client(host : String) : ConnectClient?
+      return unless config.connect?
+      op("connect", host)
+      ConnectClient.new(config.connect_url, host, "secret-a-blanc")
+    end
+
+    def disable_connect_client(host : String) : Nil
+      op("connect-disable", host) if config.connect?
+    end
+
+    def provision(slug : String, domain : String, params : JSON::Any, database : String, skip_createdb : Bool,
+                  connect : ConnectClient? = nil) : String
       package = System.package_of(params)
-      op("partiduo-provision", "#{slug} #{database} #{package}")
+      op("partiduo-provision", "#{slug} #{database} #{package}#{connect ? " connect=#{connect.client_id}" : ""}")
       databases << database
       provisioned << database
       packages[slug] = package
       "== Instance #{slug} provisionnée.\nInvitation : https://#{slug}.#{domain}/invitation/DRYRUNTOKEN\n"
     end
 
-    def provision_files(slug : String, domain : String, params : JSON::Any, database : String) : String
+    def provision_files(slug : String, domain : String, params : JSON::Any, database : String,
+                        connect : ConnectClient? = nil) : String
       package = System.package_of(params)
-      op("partiduo-provision --files-only", "#{slug} #{database} #{package}")
+      op("partiduo-provision --files-only", "#{slug} #{database} #{package}#{connect ? " connect=#{connect.client_id}" : ""}")
       packages[slug] = package
       "== Instance #{slug} provisionnée.\n"
     end
@@ -615,18 +648,22 @@ module PartiduoAgent
     end
 
     # Exécute un programme (jamais un shell) ; journalise la commande.
-    def run(argv : Array(String), env = {} of String => String, chdir : String? = nil, quiet : Bool = false) : {Int32, String, String}
+    # `input` : entrée standard du programme (un secret qui ne doit paraître
+    # ni en argument ni dans le journal).
+    def run(argv : Array(String), env = {} of String => String, chdir : String? = nil, quiet : Bool = false,
+            input : String? = nil) : {Int32, String, String}
       log("+ #{argv.map { |arg| arg.includes?(' ') ? "'#{arg}'" : arg }.join(' ')}") unless quiet
       stdout = IO::Memory.new
       stderr = IO::Memory.new
-      status = Process.run(argv[0], argv[1..], env: env, chdir: chdir, output: stdout, error: stderr)
+      stdin = input ? IO::Memory.new(input) : Process::Redirect::Close
+      status = Process.run(argv[0], argv[1..], env: env, chdir: chdir, input: stdin, output: stdout, error: stderr)
       {status.exit_code? || -1, stdout.to_s, stderr.to_s}
     rescue ex : File::NotFoundError | IO::Error
       raise StepError.new("#{argv[0]} : #{ex.message}")
     end
 
-    def run!(argv : Array(String), env = {} of String => String, chdir : String? = nil) : String
-      code, output, err = run(argv, env, chdir)
+    def run!(argv : Array(String), env = {} of String => String, chdir : String? = nil, input : String? = nil) : String
+      code, output, err = run(argv, env, chdir, input: input)
       raise StepError.new("#{File.basename(argv[0])} (code #{code}) : #{System.redact_errors(err).strip[0, 500]? || ""}") unless code == 0
       output
     end
@@ -647,7 +684,8 @@ module PartiduoAgent
       run!(["dropdb", "--if-exists", database], pg_env)
     end
 
-    def provision(slug : String, domain : String, params : JSON::Any, database : String, skip_createdb : Bool) : String
+    def provision(slug : String, domain : String, params : JSON::Any, database : String, skip_createdb : Bool,
+                  connect : ConnectClient? = nil) : String
       guard_database!(database)
       package = System.package_of(params)
       argv = provision_for(package) + ["--manage", manage_for(package).join(' '), "--domain", domain, "--database", database,
@@ -656,24 +694,41 @@ module PartiduoAgent
       argv += ["--acme-email", config.acme_email] unless config.acme_email.empty?
       argv << "--acme-staging" if config.acme_staging
       argv << "--skip-createdb" if skip_createdb
-      argv << slug
       Dir.mkdir_p(instances_dir)
-      output = run!(argv, pg_env)
-      declare_package(slug, package)
-      output
+      with_connect_secret(connect) do |options|
+        output = run!(argv + options + [slug], pg_env)
+        declare_package(slug, package)
+        output
+      end
     end
 
-    def provision_files(slug : String, domain : String, params : JSON::Any, database : String) : String
+    # Options connect de `partiduo-provision` ; le secret passe par un
+    # fichier de ce répertoire (0600), effacé aussitôt après.
+    private def with_connect_secret(connect : ConnectClient?, & : Array(String) -> String) : String
+      return yield([] of String) if connect.nil?
+      path = File.join(instances_dir, ".connect-#{Random::Secure.hex(8)}")
+      File.write(path, connect.secret, perm: 0o600)
+      begin
+        yield ["--connect-url", connect.url, "--connect-client-id", connect.client_id, "--connect-client-secret-file", path]
+      ensure
+        File.delete?(path)
+      end
+    end
+
+    def provision_files(slug : String, domain : String, params : JSON::Any, database : String,
+                        connect : ConnectClient? = nil) : String
       guard_database!(database)
       package = System.package_of(params)
       argv = provision_for(package) + ["--files-only", "--manage", manage_for(package).join(' '), "--domain", domain,
                                        "--database", database, "--pg-socket", config.pg_socket,
                                        "--output-dir", instances_dir] + module_options(params)
-      argv += ["--locale", locale(params), slug]
+      argv += ["--locale", locale(params)]
       Dir.mkdir_p(instances_dir)
-      output = run!(argv, pg_env)
-      declare_package(slug, package)
-      output
+      with_connect_secret(connect) do |options|
+        output = run!(argv + options + [slug], pg_env)
+        declare_package(slug, package)
+        output
+      end
     end
 
     # Société : options de `partiduo-provision` (valeurs passées telles
@@ -1142,20 +1197,26 @@ module PartiduoAgent
     # `partiduo-provision` sous le compte des instances : domaine, rôle
     # propriétaire, socket, racines et gabarits viennent de la
     # configuration de l'enveloppe ; la base est celle du sous-domaine.
-    def provision(slug : String, domain : String, params : JSON::Any, database : String, skip_createdb : Bool) : String
+    # connect : identifiant en argument, secret sur l'entrée standard de
+    # l'enveloppe ; l'émetteur est celui de sa configuration (root).
+    def provision(slug : String, domain : String, params : JSON::Any, database : String, skip_createdb : Bool,
+                  connect : ConnectClient? = nil) : String
       guard_slug!(slug)
       guard_database!(database)
       raise StepError.new("base refusée : #{database}", "usage") unless database == database_for(slug)
       argv = ["provision", slug] + company_options(params) + module_options(params) + package_option(params)
       argv << "--skip-createdb" if skip_createdb
-      run!(as_instance(argv))
+      argv += ["--connect-client-id", connect.client_id, "--connect-secret-stdin"] if connect
+      run!(as_instance(argv), input: connect.try(&.secret))
     end
 
-    def provision_files(slug : String, domain : String, params : JSON::Any, database : String) : String
+    def provision_files(slug : String, domain : String, params : JSON::Any, database : String,
+                        connect : ConnectClient? = nil) : String
       guard_slug!(slug)
       raise StepError.new("base refusée : #{database}", "usage") unless database == database_for(slug)
-      run!(as_instance(["provision", slug, "--files-only", "--locale", locale(params)] + module_options(params) +
-                       package_option(params)))
+      argv = ["provision", slug, "--files-only", "--locale", locale(params)] + module_options(params) + package_option(params)
+      argv += ["--connect-client-id", connect.client_id, "--connect-secret-stdin"] if connect
+      run!(as_instance(argv), input: connect.try(&.secret))
     end
 
     # Paquet qui servira l'instance : toujours transmis (`app` par défaut),

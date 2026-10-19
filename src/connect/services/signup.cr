@@ -161,4 +161,77 @@ module PartiduoConnect
       raise ArgumentError.new("Adresse invalide : #{uri}")
     end
   end
+
+  # Registraires (ADR-012) : un jeton par serveur d'hébergement, remis à son
+  # exécutant ; il déclare le client de chaque dossier qu'il crée.
+  module Registrars
+    record Created, registrar : Registrar, token : String
+
+    # Adresses d'un dossier, fixées ici et non par le registraire : retour
+    # de connexion, page de connexion après déconnexion, déconnexion par
+    # canal arrière (routes de partiduo-ui-bulma).
+    CALLBACK    = "/login/federated/connect/callback"
+    AFTER       = "/login"
+    BACKCHANNEL = "/login/federated/connect/backchannel-logout"
+
+    def self.create(name : String) : Created
+      token = Secrets.token
+      registrar = Registrar.create!(name: name, token_digest: Secrets.digest(token))
+      Audit.log(nil, "registrar.create", {"name" => name}, label: "exploitation")
+      Created.new(registrar, token)
+    end
+
+    def self.authenticate(authorization : String?, now : Time = Time.utc) : Registrar?
+      token = authorization.try { |value| value.starts_with?("Bearer ") ? value[7..].strip : nil }
+      return if token.nil? || token.empty?
+      registrar = Registrar.filter(token_digest: Secrets.digest(token), active: true).first
+      return if registrar.nil?
+      registrar.last_used_at = now
+      registrar.save!
+      registrar
+    end
+
+    # Nom d'hôte d'un dossier : un seul nom sous le domaine du parc.
+    def self.dossier_host?(host : String) : Bool
+      suffix = ".#{Config.domain}"
+      return false unless host.ends_with?(suffix)
+      label = host[0, host.size - suffix.size]
+      label.matches?(/\A[a-z][a-z0-9-]{0,39}\z/) && !%w[admin connect www].includes?(label)
+    end
+
+    def self.base_url(host : String) : String
+      host.ends_with?(".localhost") ? "http://#{host}:8000" : "https://#{host}"
+    end
+
+    # Déclare (ou redéclare : nouveau secret) le client du dossier `host`.
+    # Un client déclaré par l'exploitation ou par un autre registraire n'est
+    # jamais repris.
+    def self.register(registrar : Registrar, host : String) : Clients::Registered
+      raise ArgumentError.new("nom de dossier refusé : #{host}") unless dossier_host?(host)
+      base = base_url(host)
+      existing = Client.filter(client_id: host).first
+      if existing
+        raise ArgumentError.new("client déjà déclaré par un autre : #{host}") unless existing.registrar == registrar.name
+        existing.active = true
+        existing.save!
+        secret = Clients.rotate_secret(existing)
+        Audit.log(nil, "client.reregister", {"registrar" => registrar.name.to_s}, client: existing, label: registrar.name.to_s)
+        return Clients::Registered.new(existing, secret)
+      end
+      registered = Clients.register(host, ["#{base}#{CALLBACK}"], ["#{base}#{AFTER}"], "#{base}#{BACKCHANNEL}", client_id: host)
+      registered.client.registrar = registrar.name.to_s
+      registered.client.save!
+      registered
+    end
+
+    # Dossier supprimé : son client est désactivé (gardé pour le journal).
+    def self.disable(registrar : Registrar, host : String) : Bool
+      client = Client.filter(client_id: host, registrar: registrar.name).first
+      return false if client.nil?
+      client.active = false
+      client.save!
+      Audit.log(nil, "client.disable", {"registrar" => registrar.name.to_s}, client: client, label: registrar.name.to_s)
+      true
+    end
+  end
 end

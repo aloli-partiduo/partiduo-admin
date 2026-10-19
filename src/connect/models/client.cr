@@ -12,6 +12,9 @@ module PartiduoConnect
     field :redirect_uris, :text
     field :post_logout_redirect_uris, :text, blank: true, default: ""
     field :backchannel_logout_uri, :string, max_size: 1000, blank: true, default: ""
+    # Registraire qui a déclaré ce client (dossier), vide pour un client
+    # déclaré par l'exploitation (administration).
+    field :registrar, :string, max_size: 64, blank: true, default: ""
     field :active, :bool, default: true
     field :created_at, :date_time, auto_now_add: true
     field :updated_at, :date_time, auto_now: true
@@ -47,5 +50,18 @@ module PartiduoConnect
     private def split(value : String) : Array(String)
       value.split(/[\s,]+/).map(&.strip).reject(&.empty?)
     end
+  end
+
+  # Registraire (ADR-012) : l'exécutant d'un serveur d'hébergement, qui
+  # déclare le client de chaque dossier qu'il crée. Jeton conservé en
+  # empreinte ; il ne peut déclarer que des dossiers `<nom>.<domaine>`, aux
+  # adresses fixées par connect, jamais un autre client.
+  class Registrar < Marten::Model
+    field :id, :big_int, primary_key: true, auto: true
+    field :name, :string, max_size: 64, unique: true
+    field :token_digest, :string, max_size: 64, unique: true
+    field :active, :bool, default: true
+    field :created_at, :date_time, auto_now_add: true
+    field :last_used_at, :date_time, null: true, blank: true
   end
 end

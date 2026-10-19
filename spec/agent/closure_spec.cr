@@ -11,9 +11,12 @@ private APP_ROOT = File.expand_path("../..", __DIR__)
 # Production enregistrée : aucune commande lancée, chaque argv retenu.
 private class RecordingProduction < PartiduoAgent::ProductionSystem
   getter argvs = [] of Array(String)
+  getter inputs = [] of String?
 
-  def run(argv : Array(String), env = {} of String => String, chdir : String? = nil, quiet : Bool = false) : {Int32, String, String}
+  def run(argv : Array(String), env = {} of String => String, chdir : String? = nil, quiet : Bool = false,
+          input : String? = nil) : {Int32, String, String}
     argvs << argv
+    inputs << input
     {0, %({"ok":true,"data":{"version":"0.1.0","contract":"1.0.0"}}), ""}
   end
 end
@@ -99,6 +102,15 @@ describe "partiduo-agent : mode production (D-AFN-002, D-AFN-005)" do
     argv.should contain("Garde SAS")
     argv.each_cons_pair.to_a.should contain({"--package", "app"})
     argv.should_not contain("--release")
+
+    # connect (ADR-012) : identifiant en argument, secret sur l'entrée
+    # standard seulement.
+    connect = PartiduoAgent::ConnectClient.new("https://connect.partiduo.app", "garde.partiduo.app", "secret-du-client-garde")
+    system.provision("garde", "partiduo.app", create, "partiduo_garde", skip_createdb: false, connect: connect)
+    system.argvs.last.each_cons_pair.to_a.should contain({"--connect-client-id", "garde.partiduo.app"})
+    system.argvs.last.should contain("--connect-secret-stdin")
+    system.argvs.last.join(' ').should_not contain("secret-du-client-garde")
+    system.inputs.last.should eq("secret-du-client-garde")
     # Rôle propriétaire, racines, socket et gabarits : fixés par l'enveloppe.
     %w[--manage --owner --output-dir --install-root --etc-dir --data-dir --database --version].each do |option|
       argv.any?(&.starts_with?(option)).should be_false

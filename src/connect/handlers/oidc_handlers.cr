@@ -110,4 +110,24 @@ module PartiduoConnect
       no_store(json({"error" => "invalid_request", "error_description" => error.key}.to_json, status: 400))
     end
   end
+
+  # Déclaration du client d'un dossier par l'exécutant de son serveur
+  # (registraire, `Authorization: Bearer …`). Rend l'identifiant et le
+  # secret, que l'exécutant pose dans l'environnement du dossier ; le secret
+  # ne reste pas ici en clair.
+  class RegistrarClientHandler < ApiHandler
+    def post
+      registrar = Registrars.authenticate(request.headers["Authorization"]?, Config.now)
+      return no_store(json({"error" => "unauthorized"}.to_json, status: 401)) if registrar.nil?
+      host = (form["host"]? || "").strip.downcase
+      if form["action"]? == "disable"
+        return no_store(json({"disabled" => Registrars.disable(registrar, host)}.to_json))
+      end
+      registered = Registrars.register(registrar, host)
+      no_store(json({"client_id" => registered.client.client_id, "client_secret" => registered.secret,
+                     "issuer" => Config.issuer}.to_json))
+    rescue error : ArgumentError
+      no_store(json({"error" => "invalid_request", "error_description" => error.message}.to_json, status: 400))
+    end
+  end
 end

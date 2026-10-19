@@ -255,9 +255,17 @@ module PartiduoAgent
         if provisioned
           ctx.log("base #{database} déjà provisionnée : rien à refaire")
         else
-          output = system.provision(ctx.slug, ctx.domain, ctx.params, database, skip_createdb: exists)
+          # Client connect du dossier (ADR-012) : déclaré juste avant, à chaque
+          # essai (un nouveau secret remplace celui d'un essai interrompu).
+          connect = system.connect_client(host)
+          output = system.provision(ctx.slug, ctx.domain, ctx.params, database, skip_createdb: exists, connect: connect)
           if link = output.match(/https?:\/\/\S+\/invitation\/\S+/)
             ctx.journal["invitation_url"] = link[0]
+          end
+          # Code de création du compte connect (ADR-012 D6), à transmettre à
+          # l'administrateur du dossier par un autre canal que le courriel.
+          if code = output.match(/\b([A-Z2-9]{4}-[A-Z2-9]{4})\s*$/m)
+            ctx.journal["signup_code"] = code[1]
           end
         end
       end
@@ -278,6 +286,9 @@ module PartiduoAgent
         else
           ctx.set("invitation_url", url)
         end
+      end
+      if code = ctx.journal["signup_code"]?
+        ctx.set("signup_code", code)
       end
       ctx.set("certificate", {"issued" => ctx.journal["certificate"]? == "true", "staging" => system.config.acme_staging})
     end
@@ -415,6 +426,7 @@ module PartiduoAgent
       ctx.system.guard_retention!(ctx.slug)
       ctx.log("suppression définitive — #{approval_line(ctx)}")
       ctx.step("retrait du service") { ctx.system.remove_instance(ctx.slug, ctx.host) }
+      ctx.step("client connect") { ctx.system.disable_connect_client(ctx.host) }
       ctx.step("suppression de la base") { ctx.system.dropdb(ctx.database) }
       ctx.step("suppression des sauvegardes") do
         backup_files(ctx, backups).each { |locator| ctx.system.store.delete(locator) }
@@ -480,7 +492,10 @@ module PartiduoAgent
         ctx.log("contrat d'instance #{contract} : validation à deux personnes transmise sans --approval-mode")
       end
       data = ctx.instance!("admin-invite", arguments + ["--approvers", approvers.join(',')])
-      %w[email user_created expires_at usable_admins].each { |key| ctx.result[key] = data[key] if data[key]? }
+      # `signup_code`, `connect_account` : connect (ADR-012 D6, contrat 1.3).
+      %w[email user_created expires_at usable_admins signup_code connect_account].each do |key|
+        ctx.result[key] = data[key] if data[key]?
+      end
       url = data["url"]?.try(&.as_s?)
       if url && ctx.system.mailer?
         # Lien remis par le serveur lui-même : il ne passe jamais par
@@ -936,7 +951,9 @@ module PartiduoAgent
         system.createdb(database)
         system.restore_database(database, path, identity)
       end
-      ctx.step("fichiers de service") { system.provision_files(new_slug, ctx.domain, ctx.params, database) }
+      ctx.step("fichiers de service") do
+        system.provision_files(new_slug, ctx.domain, ctx.params, database, connect: system.connect_client(host))
+      end
       ctx.step("installation") do
         ctx.journal["certificate"] = system.install_instance(new_slug, host, ctx.package.presence || "app").to_s
       end

@@ -400,6 +400,7 @@ fr:
       before_confirm: "Ré-authentifiez-vous d'abord : la confirmation sera refusée sinon."
       done: "Identité confirmée."
     tasks:
+      signup_code: "Code de création du compte Partiduo de l'administrateur du dossier : transmettez-le-lui de vive voix ou par téléphone, jamais par courriel (le lien lui est envoyé par courriel)."
       title: "Tâches"
       recent: "Dernières tâches"
       task: "Tâche"

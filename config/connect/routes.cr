@@ -22,6 +22,7 @@ Marten.routes.draw do
   # Création d'un compte (ADR-012 D6).
   path "/signup/<token:str>", PartiduoConnect::SignupHandler, name: "signup"
   path "/api/v1/signup-tickets", PartiduoConnect::SignupTicketHandler, name: "api_signup_tickets"
+  path "/api/v1/clients", PartiduoConnect::RegistrarClientHandler, name: "api_clients"
 
   # Compte.
   path "/account", PartiduoConnect::AccountHandler, name: "account"

@@ -172,5 +172,49 @@ module PartiduoConnect
         end
       end
     end
+
+    # `partiduo-connect-manage registrar <add|list|disable> --name=…`
+    #
+    # Registraire : l'exécutant d'un serveur d'hébergement, qui déclare le
+    # client des dossiers qu'il crée. Le jeton, affiché une fois, va au
+    # coffre ; beryl le pose chez l'exécutant (recette partiduo-agent).
+    class RegistrarCommand < Marten::CLI::Manage::Command::Base
+      command_name :registrar
+      help "Déclare les registraires (exécutants des serveurs, ADR-012)."
+
+      @action = ""
+      @name = ""
+
+      def setup
+        on_argument(:action, "add, list ou disable") { |value| @action = value }
+        on_option_with_arg("name", "nom", "nom du serveur (loulou…)") { |value| @name = value }
+      end
+
+      def run
+        case @action
+        when "add"
+          return print_error_and_exit("--name est exigé") if @name.empty?
+          return print_error_and_exit("registraire déjà déclaré : #{@name}") if Registrar.filter(name: @name).exists?
+          created = Registrars.create(@name)
+          print("Registraire : #{created.registrar.name}")
+          print("Jeton       : #{created.token}")
+          print("Jeton affiché une seule fois : à mettre au coffre.")
+        when "list"
+          Registrar.all.order("name").each do |registrar|
+            used = registrar.last_used_at.try(&.to_s("%Y-%m-%d %H:%M")) || "jamais"
+            print("#{registrar.name}  #{registrar.active ? "actif" : "désactivé"}  dernier usage : #{used}")
+          end
+        when "disable"
+          registrar = Registrar.filter(name: @name).first
+          return print_error_and_exit("registraire inconnu : #{@name}") if registrar.nil?
+          registrar.active = false
+          registrar.save!
+          Audit.log(nil, "registrar.disable", {"name" => @name}, label: "exploitation")
+          print("#{@name} : désactivé.")
+        else
+          print_error_and_exit("action inconnue : #{@action} (add, list, disable)")
+        end
+      end
+    end
   end
 end

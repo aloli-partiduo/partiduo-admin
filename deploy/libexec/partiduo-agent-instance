@@ -64,6 +64,8 @@ PG_OWNER=partiduo
 PG_SOCKET=/tmp
 BACKUP_DIR=/var/db/partiduo-backups
 STAGE_DIR=/var/db/partiduo-stage
+# connect (ADR-012) : émetteur des clients des dossiers ; vide sans connect.
+CONNECT_URL=""
 ACME_EMAIL=""
 ACME_WEBROOT=/usr/local/www/letsencrypt
 ACME_STAGING=0
@@ -87,7 +89,7 @@ LIB_DIR="$SYSTEM_ROOT/usr/local/lib"
 
 check_slug() {
   printf '%s' "$1" | grep -Eq '^[a-z][a-z0-9-]{0,39}$' || die "sous-domaine invalide"
-  case "$1" in *-) die "sous-domaine invalide" ;; admin | www | rt-*) die "sous-domaine réservé" ;; esac
+  case "$1" in *-) die "sous-domaine invalide" ;; admin | connect | www | rt-*) die "sous-domaine réservé" ;; esac
 }
 
 check_database() {
@@ -196,6 +198,8 @@ case "$command" in
     check_slug "$slug"
     [ -n "$DOMAIN" ] || die "DOMAIN manquant dans $CONF"
     package=""
+    connect_id=""
+    connect_stdin=0
     set -- "$@" --end--
     while [ "$1" != --end-- ]; do
       option="$1"
@@ -226,6 +230,13 @@ case "$command" in
           case "$1" in app | devel) package="$1" ;; *) die "paquet refusé" ;; esac
           shift
           ;;
+        --connect-client-id)
+          [ "$1" != --end-- ] || die "$option : valeur manquante"
+          printf '%s' "$1" | grep -Eq '^[a-z0-9][a-z0-9.-]{0,63}$' || die "client connect refusé"
+          connect_id="$1"
+          shift
+          ;;
+        --connect-secret-stdin) connect_stdin=1 ;;
         *) die "option refusée : $option" ;;
       esac
     done
@@ -243,10 +254,31 @@ case "$command" in
     # gabarits sont ceux du paquet (partiduo-provision les trouve dans
     # ../deploy/templates).
     database="partiduo_$(printf '%s' "$slug" | tr '-' '_')"
-    exec "$dir/bin/partiduo-provision" --version="$package" --domain="$DOMAIN" --owner="$PG_OWNER" \
-      --database="$database" --pg-socket="$PG_SOCKET" --data-dir="$DATA_DIR" --etc-dir="$ETC_DIR" \
-      --system-user="$SYSTEM_USER" --output-dir="$STAGE_DIR" --manage="$dir/bin/partiduo-manage" \
-      --acme-webroot="$ACME_WEBROOT" ${acme:+"$acme"} ${staging:+"$staging"} "$@" "$slug"
+    provision() {
+      "$dir/bin/partiduo-provision" --version="$package" --domain="$DOMAIN" --owner="$PG_OWNER" \
+        --database="$database" --pg-socket="$PG_SOCKET" --data-dir="$DATA_DIR" --etc-dir="$ETC_DIR" \
+        --system-user="$SYSTEM_USER" --output-dir="$STAGE_DIR" --manage="$dir/bin/partiduo-manage" \
+        --acme-webroot="$ACME_WEBROOT" ${acme:+"$acme"} ${staging:+"$staging"} "$@" "$slug"
+    }
+    if [ -z "$connect_id" ] && [ "$connect_stdin" = 0 ]; then
+      provision "$@"
+      exit $?
+    fi
+    # connect (ADR-012) : identifiant en argument, secret sur l'entrée
+    # standard (jamais en argument), émetteur de cette configuration. Le
+    # secret passe par un fichier du compte des instances (0600), effacé
+    # aussitôt après.
+    [ -n "$connect_id" ] && [ "$connect_stdin" = 1 ] || die "--connect-client-id et --connect-secret-stdin vont ensemble"
+    [ -n "$CONNECT_URL" ] || die "CONNECT_URL manquant dans $CONF"
+    secret=$(head -c 256 | tr -d ' \n\r\t')
+    printf '%s' "$secret" | grep -Eq '^[A-Za-z0-9_-]{16,128}$' || die "secret du client connect refusé"
+    secret_file="$STAGE_DIR/.connect-$slug"
+    (umask 077 && printf '%s\n' "$secret" >"$secret_file") || die "secret du client connect : écriture impossible"
+    status=0
+    provision --connect-url="$CONNECT_URL" --connect-client-id="$connect_id" \
+      --connect-client-secret-file="$secret_file" "$@" </dev/null || status=$?
+    rm -f "$secret_file"
+    exit "$status"
     ;;
 
   db-exists)

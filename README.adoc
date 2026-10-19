@@ -520,6 +520,13 @@ envoyer par courriel) et un code (à transmettre par un autre canal) ;
 |`/signup/<jeton>`, `/account`
 |Création du compte (lien + code), enrôlement, facteurs, codes,
 changement d'adresse, journal personnel.
+
+|`/api/v1/clients`
+|Déclaration du client d'un dossier par l'exécutant de son serveur
+(registraire, `Authorization: Bearer …`) : client `<dossier>.<domaine>`,
+adresses fixées par connect (`/login/federated/connect/…` de
+partiduo-ui-bulma), nouveau secret à chaque déclaration ; `action=disable`
+à la suppression du dossier.
 |===
 
 Réglages (environnement) : `PARTIDUO_DOMAIN`, `PARTIDUO_CONNECT_HOST`
@@ -544,6 +551,17 @@ MARTEN_ENV=development crystal run src/connect.cr                  # http://conn
 createdb --encoding=UTF8 partiduo_connect_test
 DATABASE_URL='postgres:///partiduo_connect_test?host=/tmp' crystal spec spec-connect --order random
 ----
+
+Dossiers clients de connect : l'exécutant de chaque serveur est
+*registraire* (`partiduo-connect-manage registrar add --name=loulou`, jeton au
+coffre) ; réglé par `--connect-url` et `--connect-token-file`, il déclare le
+client de chaque dossier qu'il crée juste avant `partiduo-provision
+--connect-*`. Le secret ne passe ni par l'administration ni en argument :
+fichier 0600 effacé aussitôt (mode local), entrée standard de
+`partiduo-agent-instance` (production), qui prend l'émetteur dans
+`helpers.conf` (`CONNECT_URL`). Le code de création du compte de
+l'administrateur du dossier s'affiche sur la page de la tâche, à lui
+transmettre de vive voix (ADR-012 D6).
 
 Clé de signature pour le coffre (une ligne, rien sur le disque) :
 `partiduo-connect-manage signing-key generate`. Rotation : nouvelle clé en

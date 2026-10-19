@@ -313,3 +313,45 @@ describe "partiduo-agent : durée légale revérifiée par le serveur (D-CRA-007
     end
   end
 end
+
+describe "partiduo-agent : client connect transmis par l'enveloppe (ADR-012)" do
+  it "passe l'émetteur de sa configuration, l'identifiant, et le secret par un fichier effacé aussitôt" do
+    dir = File.join(Dir.tempdir, "partiduo-helpers-#{Random::Secure.hex(4)}")
+    bin = File.join(dir, "usr", "local", "lib", "partiduo", "bin")
+    Dir.mkdir_p(bin)
+    Dir.mkdir_p(File.join(dir, "stage"))
+    report = File.join(dir, "report")
+    # Faux partiduo-provision : relève ses arguments et le secret lu.
+    File.write(File.join(bin, "partiduo-provision"), <<-SH, perm: 0o755)
+      #!/bin/sh
+      for arg in "$@"; do
+        echo "$arg" >>#{report}
+        case "$arg" in --connect-client-secret-file=*) echo "secret:$(cat "${arg#*=}")" >>#{report} ;; esac
+      done
+      SH
+    File.write(File.join(dir, "pkg"), "#!/bin/sh\nexit 0\n", perm: 0o755)
+    conf = File.join(dir, "helpers.conf")
+    File.write(conf, "DOMAIN=partiduo.test\nSYSTEM_ROOT=#{dir}\nPKG=#{dir}/pkg\nSTAGE_DIR=#{dir}/stage\n" \
+                     "CONNECT_URL=https://connect.partiduo.test\n")
+    env = {"PARTIDUO_AGENT_HELPERS_CONF" => conf, "SUDO_USER" => nil} of String => String?
+    helper = File.join(APP_ROOT, "deploy", "libexec", "partiduo-agent-instance")
+    args = ["provision", "demo", "--package", "devel", "--connect-client-id", "demo.partiduo.test", "--connect-secret-stdin"]
+    stderr = IO::Memory.new
+    status = Process.run(helper, args, env: env, input: IO::Memory.new("Secret_du-client-0123456789\n"), error: stderr)
+    status.exit_code.should eq(0)
+    lines = File.read_lines(report)
+    lines.should contain("--connect-url=https://connect.partiduo.test")
+    lines.should contain("--connect-client-id=demo.partiduo.test")
+    lines.should contain("secret:Secret_du-client-0123456789")
+    lines.select(&.starts_with?("--")).none?(&.includes?("Secret_du")).should be_true
+    Dir.children(File.join(dir, "stage")).should be_empty
+
+    # Sans émetteur dans la configuration : refus.
+    File.write(conf, "DOMAIN=partiduo.test\nSYSTEM_ROOT=#{dir}\nPKG=#{dir}/pkg\nSTAGE_DIR=#{dir}/stage\n")
+    stderr = IO::Memory.new
+    Process.run(helper, args, env: env, input: IO::Memory.new("Secret_du-client-0123456789\n"), error: stderr).exit_code.should eq(2)
+    stderr.to_s.should contain("CONNECT_URL")
+  ensure
+    FileUtils.rm_rf(dir) if dir
+  end
+end

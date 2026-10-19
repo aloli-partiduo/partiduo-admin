@@ -27,6 +27,10 @@ DOMAIN=partiduo.app
 # /var/db/acme/certs/<hôte>_ecc/ ; défi HTTP-01). ACME_EMAIL :
 # compte ACME avec adresse (vide : compte sans courriel) ; ACME_STAGING=1 :
 # autorité de test (n'entame pas le quota).
+# connect (ADR-012) : émetteur des clients des dossiers de ce serveur
+# (https://connect.<domaine>), le même que --connect-url de l'exécutant ;
+# vide : dossiers sans connect (connexion locale seule).
+#CONNECT_URL=
 ACME_EMAIL=
 #ACME_WEBROOT=/usr/local/www/letsencrypt
 #ACME_STAGING=0

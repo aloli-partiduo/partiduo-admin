@@ -400,6 +400,7 @@ nl:
       before_confirm: "Meld u eerst opnieuw aan: anders wordt de bevestiging geweigerd."
       done: "Identiteit bevestigd."
     tasks:
+      signup_code: "Code voor het aanmaken van het Partiduo-account van de dossierbeheerder: geef het mondeling of telefonisch door, nooit per e-mail (de link wordt per e-mail verstuurd)."
       title: "Taken"
       recent: "Laatste taken"
       task: "Taak"

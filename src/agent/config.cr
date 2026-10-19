@@ -83,6 +83,12 @@ module PartiduoAgent
     # lien est rendu à l'administration, qui l'envoie (D-ADM-009).
     property smtp_url_file : String = ""
     property mail_from : String = ""
+    # connect (ADR-012) : émetteur et fichier du jeton de registraire de ce
+    # serveur (posé par beryl depuis le coffre). Réglés, chaque dossier créé
+    # reçoit son client connect ; vides, les dossiers gardent la connexion
+    # locale seule.
+    property connect_url : String = ""
+    property connect_token_file : String = ""
     # Nom de ce serveur (celui de l'administration) : répertoire des
     # sauvegardes qu'il prend dans le stockage, signataire de leurs
     # manifestes (D-CHF-018, D-CHF-024). Vide : nom court de la machine.
@@ -134,6 +140,10 @@ module PartiduoAgent
           config.smtp_url_file = value
         end
         parser.on("--mail-from ADRESSE", "expéditeur des invitations remises par le serveur") { |value| config.mail_from = value }
+        parser.on("--connect-url URL", "connect (ADR-012) : émetteur, https://connect.<domaine>") { |value| config.connect_url = value }
+        parser.on("--connect-token-file FICHIER", "connect : fichier du jeton de registraire de ce serveur") do |value|
+          config.connect_token_file = value
+        end
         parser.on("--server-name NOM", "nom de ce serveur dans l'administration (défaut : nom court de la machine)") do |value|
           config.server_name = value
         end
@@ -182,6 +192,7 @@ module PartiduoAgent
       validate_fail_on!
       validate_mail!
       validate_store!
+      validate_connect!
     end
 
     # Stockage : un serveur de sauvegarde (D-CHF-024) ou un répertoire de ce
@@ -232,6 +243,31 @@ module PartiduoAgent
       rescue ex : ArgumentError | URI::Error
         raise ArgumentError.new("--smtp-url-file : URL SMTP invalide (#{ex.message})")
       end
+    end
+
+    # connect : les deux réglages ensemble, en HTTPS (sauf vers la machine
+    # elle-même), jeton lisible.
+    private def validate_connect! : Nil
+      return if connect_url.empty? && connect_token_file.empty?
+      raise ArgumentError.new("--connect-url et --connect-token-file vont ensemble") if connect_url.empty? || connect_token_file.empty?
+      uri = URI.parse(connect_url)
+      host = uri.host.to_s
+      local = host == "127.0.0.1" || host == "localhost" || host.ends_with?(".localhost")
+      allowed = uri.scheme == "https" || (local && !mode.production?)
+      raise ArgumentError.new("connect doit être joint en HTTPS : #{connect_url}") unless allowed
+      raise ArgumentError.new("--connect-token-file : jeton vide") if connect_token.empty?
+    rescue ex : File::Error
+      raise ArgumentError.new("--connect-token-file illisible : #{connect_token_file} (#{ex.message})")
+    end
+
+    def connect? : Bool
+      !connect_url.empty?
+    end
+
+    # Jeton de registraire, relu à chaque usage (changé par beryl sans
+    # redémarrage).
+    def connect_token : String
+      connect_token_file.empty? ? "" : File.read(connect_token_file).strip
     end
 
     # Échec simulé : jamais sur un vrai système.

@@ -63,6 +63,8 @@ DATA_DIR=/var/db/partiduo
 SYSTEM_USER=partiduo
 PG_SOCKET=/tmp
 STAGE_DIR=/var/db/partiduo-stage
+# connect (ADR-012) : émetteur des clients des dossiers ; vide sans connect.
+CONNECT_URL=""
 ACME_EMAIL=""
 ACME_WEBROOT=/usr/local/www/letsencrypt
 ACME_STAGING=0
@@ -121,7 +123,7 @@ shell_quote() {
 
 check_slug() {
   printf '%s' "$1" | grep -Eq '^[a-z][a-z0-9-]{0,39}$' || die "sous-domaine invalide"
-  case "$1" in *-) die "sous-domaine invalide" ;; admin | www | rt-*) die "sous-domaine réservé" ;; esac
+  case "$1" in *-) die "sous-domaine invalide" ;; admin | connect | www | rt-*) die "sous-domaine réservé" ;; esac
 }
 
 # Hôte d'un dossier : exactement `<sous-domaine>.<DOMAIN>`.
@@ -231,6 +233,12 @@ validate_env() {
         ;;
       PARTIDUO_MODULES) printf '%s' "$value" | grep -Eq '^[a-z][a-z0-9_]*(,[a-z][a-z0-9_]*)*$' || die "PARTIDUO_MODULES refusé" ;;
       PARTIDUO_TIME_ZONE) printf '%s' "$value" | grep -Eq '^[A-Za-z_]+(/[A-Za-z_+-]+)*$' || die "PARTIDUO_TIME_ZONE refusé" ;;
+      # connect (ADR-012) : émetteur de cette configuration, client au nom de
+      # l'instance (déclaré par l'exécutant), secret base64url ; vides sans
+      # connect.
+      PARTIDUO_CONNECT_URL) [ -z "$value" ] || [ "$value" = "$CONNECT_URL" ] || die "PARTIDUO_CONNECT_URL refusée" ;;
+      PARTIDUO_CONNECT_CLIENT_ID) [ -z "$value" ] || [ "$value" = "$host" ] || die "PARTIDUO_CONNECT_CLIENT_ID refusé" ;;
+      PARTIDUO_CONNECT_CLIENT_SECRET) printf '%s' "$value" | grep -Eq '^[A-Za-z0-9_-]{0,128}$' || die "PARTIDUO_CONNECT_CLIENT_SECRET refusé" ;;
       PORT)
         printf '%s' "$value" | grep -Eq '^[0-9]{4,5}$' || die "PORT refusé"
         [ "$value" -ge 1024 ] && [ "$value" -le 65535 ] || die "PORT refusé"
