@@ -119,6 +119,8 @@ module PartiduoAdmin
         dossier.state = "deleted"
         dossier.deleted_at = now
         dossier.save!
+        # Le dossier d'abord, le nom ensuite (ADR-013 D6).
+        Dns.request(dossier, nil, now)
       end
 
       def self.invited(task : Task, dossier : Dossier, ok : Bool, result : JSON::Any) : Nil
@@ -203,6 +205,9 @@ module PartiduoAdmin
           dossier.state = "active"
           dossier.version = result["version"]?.try(&.as_s?) || dossier.version
           dossier.save!
+          # Déplacement : instance installée sur le nouveau serveur, son
+          # certificat compté dans le quota (ADR-013 D7).
+          record_certificate(dossier, result, now) if task.params_json["target"]?.try(&.as_s?) == "move"
         end
       end
 

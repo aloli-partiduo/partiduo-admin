@@ -123,7 +123,17 @@ module PartiduoAdmin
         "approval_mode"    => ApprovalMode.mode_for(dossier),
         "confirms_alone"   => Access.can?(user, :approve, dossier),
         "today"            => Config.now.to_s("%F"),
+        "move_servers"     => move_servers(dossier),
       })
+    end
+
+    # Serveurs vers lesquels un super-admin peut déplacer ce dossier
+    # suspendu (ADR-013 D7).
+    private def move_servers(dossier : Dossier)
+      return [] of Hash(String, String) unless user.super_admin? && dossier.state == "suspended"
+      Server.filter(active: true).exclude(id: dossier.server_id).order("name").map do |server|
+        {"id" => server.pk.to_s, "name" => server.name.to_s, "hostname" => server.hostname.to_s}
+      end
     end
 
     # Chiffrement des sauvegardes du dossier réglable par cet utilisateur.
@@ -148,6 +158,7 @@ module PartiduoAdmin
         "archive"         => Access.can?(user, :archive, dossier) && %w[active suspended].includes?(dossier.state),
         "restore_archive" => Access.can?(user, :restore_archive, dossier) && dossier.state == "archived",
         "restore"         => Access.can?(user, :restore, dossier) && %w[active suspended].includes?(dossier.state),
+        "move"            => user.super_admin? && dossier.state == "suspended",
         "delete"          => Access.can?(user, :request_delete, dossier) && dossier.delete_state?,
         "access"          => Access.can?(user, :request_admin_invite, dossier) && dossier.state == "active",
         "assign"          => !user.file_manager?,
@@ -230,6 +241,22 @@ module PartiduoAdmin
                 end
       if outcome.ok?
         flash["success"] = I18n.t("admin.tasks.enqueued")
+      else
+        flash["danger"] = outcome.errors.values.flatten.map { |key| I18n.t(key) }.join(" ")
+      end
+      go("/dossiers/#{dossier.pk}")
+    end
+  end
+
+  # Déplacement vers un autre serveur (ADR-013 D7) : super-admin, dossier
+  # suspendu ; le nom bascule aussitôt.
+  class DossierMoveHandler < ScreenHandler
+    def post
+      dossier = dossier!
+      outcome = Fleet.move(user, dossier, field("server_id").to_i64?, field("reason"))
+      if outcome.ok?
+        flash[dossier.dns_state == "error" ? "warning" : "success"] =
+          I18n.t(dossier.dns_state == "error" ? "admin.move.done_dns_error" : "admin.move.done")
       else
         flash["danger"] = outcome.errors.values.flatten.map { |key| I18n.t(key) }.join(" ")
       end

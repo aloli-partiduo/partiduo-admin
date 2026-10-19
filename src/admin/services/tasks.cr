@@ -58,6 +58,9 @@ module PartiduoAdmin
         # Langue du courriel d'invitation quand le serveur le remet lui-même
         # (D-CRA-003).
         "locale" => any(dossier.locale.to_s),
+        # Nom du serveur que le nom du dossier doit désigner avant le
+        # certificat (ADR-013 D5) ; vide hors zone gérée.
+        "dns_target" => any(Dns.wait_target(dossier) || ""),
       }
     end
 

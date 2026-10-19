@@ -169,6 +169,7 @@ fr:
         extensions: "Extensions"
         admin_email: "Administrateur du dossier"
         server: "Serveur"
+        dns: "Nom DNS"
         firm: "Structure gestionnaire"
         payer: "Donneur d'ordre"
         package: "Paquet"
@@ -230,8 +231,23 @@ fr:
       target: "Destination"
       new: "Instance neuve"
       replace: "En remplacement"
+      move: "Déplacement (installée sur le serveur du dossier)"
       new_slug: "Sous-domaine de l'instance neuve"
       help: "La dernière sauvegarde prise à cette date ou avant est restaurée ; un remplacement est précédé d'une sauvegarde de sûreté."
+    move:
+      title: "Déplacer vers un autre serveur"
+      help: "Dossier suspendu, utilisateurs prévenus. Le nom du dossier bascule aussitôt vers le serveur choisi ; restaurez ensuite la dernière sauvegarde avec la destination « Déplacement » (le dossier redevient actif), puis retirez l'ancienne instance (fiche d'exploitation dns.adoc)."
+      server: "Nouveau serveur"
+      submit: "Déplacer et basculer le nom"
+      no_server: "Aucun autre serveur actif."
+      done: "Dossier rattaché au nouveau serveur, nom basculé. Attendez cinq minutes avant la restauration « Déplacement »."
+      done_dns_error: "Dossier rattaché au nouveau serveur, mais le nom n'a pas pu basculer : la planification réessaie (voir les alertes)."
+    dns:
+      states:
+        error: "en erreur (repris par la planification)"
+        ok: "à jour"
+        pending: "en attente"
+        removed: "effacé"
     backups:
       title: "Sauvegardes"
       none: "Aucune sauvegarde."
@@ -503,6 +519,7 @@ fr:
         agent_silent: "exécutant silencieux"
         test_restore_failed: "restauration test échouée"
         mail_failed: "courriel d'invitation non envoyé"
+        dns: "nom DNS du dossier"
     quota:
       title: "Quota Let's Encrypt"
       help: "50 certificats par semaine pour le domaine ; au-delà, aucun dossier ne peut être créé."
@@ -671,6 +688,8 @@ fr:
         state: "Action impossible dans l'état actuel du dossier."
         no_change: "Aucun changement."
         retention_running: "La durée légale de conservation (dix ans) n'est pas écoulée."
+        busy: "Une tâche du dossier est en attente ou en cours : attendez sa fin."
+        move_server: "Choisissez un autre serveur actif."
       approval:
         already_pending: "Une demande identique attend déjà sa validation."
         same_person: "La validation doit venir d'une autre personne que le demandeur."

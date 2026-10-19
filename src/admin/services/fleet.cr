@@ -62,6 +62,10 @@ module PartiduoAdmin
         package: input.package, state: "creating", backup_schedule: input.backup_schedule,
         backup_retention_days: input.backup_retention_days,
       )
+      # Le nom d'abord (ADR-013 D5) : l'exécutant attend qu'il désigne son
+      # serveur avant le certificat ; un échec est repris par la
+      # planification.
+      Dns.request(dossier, user, now)
       params = Tasks.dossier_params(dossier)
       {"name" => dossier.label, "regime" => dossier.regime, "locale" => dossier.locale, "siren" => dossier.siren,
        "vat" => dossier.vat_number, "admin_email" => dossier.admin_email}.each { |key, value| params[key] = any(value.to_s) }
@@ -256,7 +260,8 @@ module PartiduoAdmin
 
     # Restauration à une date : la dernière sauvegarde prise à cette date ou
     # avant, dans une instance neuve (`new`, sous-domaine `new_slug`) ou en
-    # remplacement (`replace`, après une sauvegarde de sûreté).
+    # remplacement (`replace`, après une sauvegarde de sûreté), ou sur le
+    # nouveau serveur d'un dossier déplacé (`move`, ADR-013 D7).
     #
     # Sauvegarde chiffrée (D-CHF-005, D-CHF-016) : `data_key` est sa clé de
     # sauvegarde, sortie de la capsule sur le poste de l'exploitant ou dans
@@ -267,8 +272,14 @@ module PartiduoAdmin
     def self.restore(user : User, dossier : Dossier, date : Time, target : String, new_slug : String = "",
                      backup_id : Int64? = nil, data_key : String = "") : Outcome(Task)
       return Outcome(Task).failure("base", "admin.errors.forbidden") unless Access.can?(user, :restore, dossier)
-      return Outcome(Task).failure("target", "admin.errors.invalid") unless %w[new replace].includes?(target)
+      return Outcome(Task).failure("target", "admin.errors.invalid") unless %w[move new replace].includes?(target)
       return Outcome(Task).failure("base", "admin.errors.dossier.state") unless %w[active suspended].includes?(dossier.state)
+      # Déplacement (ADR-013 D7) : instance installée sur le serveur du
+      # dossier, qui ne l'a pas encore ; dossier suspendu, super-admin.
+      if target == "move"
+        return Outcome(Task).failure("base", "admin.errors.forbidden") unless user.super_admin?
+        return Outcome(Task).failure("base", "admin.errors.dossier.state") unless dossier.state == "suspended"
+      end
       backup = restored_backup(dossier, date, backup_id)
       return Outcome(Task).failure("date", "admin.errors.backup.none_before") if backup.nil?
       keys, refusal = restore_keys(backup, data_key)
@@ -282,7 +293,7 @@ module PartiduoAdmin
         params["encryption"] = BackupEncryption.task_settings(dossier) || return Outcome(Task).failure("base", "admin.errors.encryption.no_key")
       end
       if target == "new"
-        field, refusal = restore_copy(dossier, backup, new_slug, params)
+        field, refusal = restore_copy(user, dossier, backup, new_slug, params)
         return Outcome(Task).failure(field, refusal) if refusal
       end
       task = Tasks.enqueue("backup.restore", dossier.server!, params, user, dossier, data_keys: keys)
@@ -292,9 +303,38 @@ module PartiduoAdmin
       Outcome(Task).new(task)
     end
 
+    # --- Déplacement (ADR-013 D7) : manuel, au cas par cas ------------------
+
+    # Un super-admin rattache un dossier suspendu à un autre serveur actif ;
+    # son nom bascule vers ce serveur. Viennent ensuite, par la procédure
+    # de la fiche d'exploitation, la restauration « déplacement » sur le
+    # nouveau serveur (instance et certificat), la reprise du dossier et le
+    # retrait de l'ancienne instance.
+    def self.move(user : User, dossier : Dossier, server_id : Int64?, reason : String,
+                  now : Time = Config.now) : Outcome(Dossier)
+      return Outcome(Dossier).failure("base", "admin.errors.forbidden") unless user.super_admin?
+      return Outcome(Dossier).failure("base", "admin.errors.dossier.state") unless dossier.state == "suspended"
+      target = server_id.try { |id| Server.filter(id: id, active: true).first }
+      if target.nil? || target.pk == dossier.server_id
+        return Outcome(Dossier).failure("server_id", "admin.errors.dossier.move_server")
+      end
+      return Outcome(Dossier).failure("reason", "admin.errors.required") if reason.strip.size < 5
+      if Task.filter(dossier_id: dossier.pk, state__in: %w[pending running]).exists?
+        return Outcome(Dossier).failure("base", "admin.errors.dossier.busy")
+      end
+      origin = dossier.server!
+      dossier.server = target
+      dossier.save!
+      Audit.log(user, "dossier.move", target: dossier,
+        detail: {"from" => origin.name.to_s, "to" => target.name.to_s, "reason" => reason.strip})
+      Dns.request(dossier, user, now)
+      Outcome(Dossier).new(dossier)
+    end
+
     # Instance neuve d'une restauration : dossier créé (état `creating`),
     # sous-domaine et hôte dans les paramètres ; ou champ et motif du refus.
-    private def self.restore_copy(dossier : Dossier, backup : Backup, new_slug : String, params : Tasks::Params) : {String, String?}
+    private def self.restore_copy(user : User, dossier : Dossier, backup : Backup, new_slug : String,
+                                  params : Tasks::Params) : {String, String?}
       slug = new_slug.strip.downcase
       return {"new_slug", "admin.errors.dossier.slug"} unless Protocol.valid_slug?(slug)
       return {"new_slug", "admin.errors.dossier.slug_taken"} if Dossier.filter(slug: slug).exists?
@@ -305,6 +345,8 @@ module PartiduoAdmin
         admin_email: dossier.admin_email, server: dossier.server!, firm: dossier.firm!, payer: dossier.payer!,
         package: dossier.package, version: backup.version.presence || dossier.version, state: "creating",
         backup_encryption: dossier.backup_encryption.to_s)
+      # Nom de l'instance neuve, avant son certificat (ADR-013 D5).
+      Dns.request(copy, user)
       params["new_slug"] = any(slug)
       params["new_host"] = any(copy.host)
       {"", nil}

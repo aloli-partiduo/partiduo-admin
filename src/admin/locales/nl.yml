@@ -169,6 +169,7 @@ nl:
         extensions: "Extensies"
         admin_email: "Beheerder van het dossier"
         server: "Server"
+        dns: "DNS-naam"
         firm: "Beherende structuur"
         payer: "Opdrachtgever"
         package: "Pakket"
@@ -230,8 +231,23 @@ nl:
       target: "Bestemming"
       new: "Nieuwe instantie"
       replace: "Ter vervanging"
+      move: "Verplaatsing (geïnstalleerd op de server van het dossier)"
       new_slug: "Subdomein van de nieuwe instantie"
       help: "De laatste back-up op of vóór deze datum wordt teruggezet; een vervanging gaat vooraf aan een veiligheidsback-up."
+    move:
+      title: "Naar een andere server verplaatsen"
+      help: "Dossier opgeschort, gebruikers verwittigd. De naam van het dossier schakelt meteen naar de gekozen server; zet daarna de laatste back-up terug met de bestemming „Verplaatsing” (het dossier wordt weer actief) en verwijder de oude instantie (exploitatiefiche dns.adoc)."
+      server: "Nieuwe server"
+      submit: "Verplaatsen en naam omschakelen"
+      no_server: "Geen andere actieve server."
+      done: "Dossier aan de nieuwe server gekoppeld, naam omgeschakeld. Wacht vijf minuten vóór de terugzetting „Verplaatsing”."
+      done_dns_error: "Dossier aan de nieuwe server gekoppeld, maar de naam kon niet omschakelen: de planning probeert opnieuw (zie de waarschuwingen)."
+    dns:
+      states:
+        error: "mislukt (opnieuw geprobeerd door de planning)"
+        ok: "bijgewerkt"
+        pending: "in afwachting"
+        removed: "verwijderd"
     backups:
       title: "Back-ups"
       none: "Geen back-up."
@@ -503,6 +519,7 @@ nl:
         agent_silent: "uitvoerder stil"
         test_restore_failed: "testherstel mislukt"
         mail_failed: "uitnodigingsmail niet verzonden"
+        dns: "DNS-naam van het dossier"
     quota:
       title: "Let's Encrypt-quotum"
       help: "50 certificaten per week voor het domein; daarboven kan geen dossier worden aangemaakt."
@@ -671,6 +688,8 @@ nl:
         state: "Actie onmogelijk in de huidige toestand van het dossier."
         no_change: "Geen wijziging."
         retention_running: "De wettelijke bewaartermijn (tien jaar) is niet verstreken."
+        busy: "Een taak van dit dossier wacht of loopt: wacht tot ze klaar is."
+        move_server: "Kies een andere actieve server."
       approval:
         already_pending: "Een gelijke aanvraag wacht al op goedkeuring."
         same_person: "De goedkeuring moet van een andere persoon dan de aanvrager komen."

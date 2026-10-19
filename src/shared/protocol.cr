@@ -110,8 +110,10 @@ module PartiduoAdmin
     end
 
     # Sous-domaines réservés : l'administration elle-même (`admin.<domaine>`,
-    # base `partiduo_admin`, ADR-008 D1) et le site public.
-    RESERVED_SLUGS = %w[admin www]
+    # base `partiduo_admin`, ADR-008 D1), le fournisseur d'identité
+    # (`connect.<domaine>`, ADR-012), le site public et les noms de
+    # messagerie de la zone (ADR-013 D4).
+    RESERVED_SLUGS = %w[admin autoconfig autodiscover connect mail www]
 
     # Préfixe réservé aux bases temporaires des restaurations test
     # (`partiduo_rt_<dossier>_<tâche>`, `partiduo_adm_rt_…` en mode local) :

@@ -169,6 +169,7 @@ en:
         extensions: "Extensions"
         admin_email: "File administrator"
         server: "Server"
+        dns: "DNS name"
         firm: "Managing organisation"
         payer: "Payer"
         package: "Package"
@@ -230,8 +231,23 @@ en:
       target: "Destination"
       new: "New instance"
       replace: "Replace"
+      move: "Move (installed on the file server)"
       new_slug: "Subdomain of the new instance"
       help: "The latest backup taken on or before this date is restored; a replacement is preceded by a safety backup."
+    move:
+      title: "Move to another server"
+      help: "File suspended, users informed. The file name switches to the chosen server at once; then restore the latest backup with the “Move” destination (the file becomes active again), then remove the former instance (operations sheet dns.adoc)."
+      server: "New server"
+      submit: "Move and switch the name"
+      no_server: "No other active server."
+      done: "File attached to the new server, name switched. Wait five minutes before the “Move” restore."
+      done_dns_error: "File attached to the new server, but the name could not be switched: the scheduler retries (see alerts)."
+    dns:
+      states:
+        error: "failed (retried by the scheduler)"
+        ok: "up to date"
+        pending: "pending"
+        removed: "removed"
     backups:
       title: "Backups"
       none: "No backup."
@@ -503,6 +519,7 @@ en:
         agent_silent: "agent silent"
         test_restore_failed: "test restore failed"
         mail_failed: "invitation email not sent"
+        dns: "file DNS name"
     quota:
       title: "Let's Encrypt quota"
       help: "50 certificates per week for the domain; beyond that, no company file can be created."
@@ -671,6 +688,8 @@ en:
         state: "Action impossible in the current state of the company file."
         no_change: "No change."
         retention_running: "The legal retention period (ten years) has not elapsed."
+        busy: "A task of this file is pending or running: wait until it ends."
+        move_server: "Choose another active server."
       approval:
         already_pending: "An identical request is already awaiting approval."
         same_person: "Approval must come from someone other than the requester."

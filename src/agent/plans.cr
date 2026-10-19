@@ -269,6 +269,7 @@ module PartiduoAgent
           end
         end
       end
+      wait_for_name(ctx, host)
       ctx.step("installation") do
         ctx.journal["certificate"] = system.install_instance(ctx.slug, host, package).to_s
       end
@@ -291,6 +292,15 @@ module PartiduoAgent
         ctx.set("signup_code", code)
       end
       ctx.set("certificate", {"issued" => ctx.journal["certificate"]? == "true", "staging" => system.config.acme_staging})
+    end
+
+    # Nom du dossier posé par l'administration (ADR-013 D5) : le certificat
+    # n'est demandé qu'une fois que `host` désigne ce serveur. Hors zone
+    # gérée (`dns_target` vide : joker de la zone de test), rien à attendre.
+    def self.wait_for_name(ctx : Context, host : String) : Nil
+      target = ctx.param("dns_target")
+      return if target.empty?
+      ctx.step("nom DNS") { ctx.system.wait_for_name(host, target) }
     end
 
     # --- Modules et extensions (ADR-006 D2 : désactiver conserve les données)
@@ -927,14 +937,17 @@ module PartiduoAgent
       end
     end
 
-    # Restauration à une date : dans une instance neuve (`new`) ou en
-    # remplacement (`replace`, après une sauvegarde de sûreté), sur ce
-    # serveur, quel que soit celui qui a pris la sauvegarde (D-CHF-016).
+    # Restauration à une date : dans une instance neuve (`new`), en
+    # remplacement (`replace`, après une sauvegarde de sûreté) ou sous le
+    # même sous-domaine sur ce nouveau serveur d'un dossier déplacé
+    # (`move`, ADR-013 D7), sur ce serveur, quel que soit celui qui a pris
+    # la sauvegarde (D-CHF-016).
     # Chiffrée, la sauvegarde est d'abord authentifiée en entier : rien
     # n'est remplacé par un fichier altéré ou avec une mauvaise clé.
     def self.restore(ctx : Context) : Nil
       # Instance neuve : sous-domaine et hôte vérifiés avant tout geste.
       new_target(ctx) if ctx.param("target") == "new"
+      move_target!(ctx) if ctx.param("target") == "move" && !ctx.journal.done?("base")
       source = source(ctx)
       identity = source_identity!(ctx, source)
       if identity
@@ -943,8 +956,11 @@ module PartiduoAgent
           ctx.system.verify_sealed(source.media, identity) unless source.media.empty?
         end
       end
-      if ctx.param("target") == "new"
+      case ctx.param("target")
+      when "new"
         restore_new(ctx, source.dump, source.media, identity)
+      when "move"
+        restore_move(ctx, source.dump, source.media, identity)
       else
         restore_replace(ctx, source.dump, source.media, identity)
       end
@@ -974,6 +990,7 @@ module PartiduoAgent
       ctx.step("fichiers de service") do
         system.provision_files(new_slug, ctx.domain, ctx.params, database, connect: system.connect_client(host))
       end
+      wait_for_name(ctx, host)
       ctx.step("installation") do
         ctx.journal["certificate"] = system.install_instance(new_slug, host, ctx.package.presence || "app").to_s
       end
@@ -981,6 +998,39 @@ module PartiduoAgent
       ctx.set("database", database)
       status = ctx.instance!("status", package: ctx.package.presence || "app", database: database, slug_override: new_slug)
       ctx.set("version", status["version"]? || "")
+      ctx.set("certificate", {"issued" => ctx.journal["certificate"]? == "true", "staging" => system.config.acme_staging})
+    end
+
+    # Déplacement : ce serveur n'a pas encore le dossier ; une base
+    # présente refuse tout geste (rien n'est écrasé), sauf à la reprise
+    # d'une tâche dont l'étape « base » est faite.
+    def self.move_target!(ctx : Context) : Nil
+      if ctx.system.database_exists?(ctx.database)
+        raise StepError.new("déplacement refusé : la base #{ctx.database} existe déjà sur ce serveur", "refused")
+      end
+    end
+
+    # Déplacement (ADR-013 D7) : instance installée comme une instance
+    # neuve, sous le même sous-domaine, une fois son nom basculé vers ce
+    # serveur (certificat HTTP-01).
+    def self.restore_move(ctx : Context, path : String, media : String, identity : String?) : Nil
+      system = ctx.system
+      host = ctx.host
+      package = ctx.package.presence || "app"
+      ctx.step("base") do
+        system.createdb(ctx.database)
+        system.restore_database(ctx.database, path, identity)
+      end
+      ctx.step("fichiers de service") do
+        system.provision_files(ctx.slug, ctx.domain, ctx.params, ctx.database, connect: system.connect_client(host))
+      end
+      wait_for_name(ctx, host)
+      ctx.step("installation") do
+        ctx.journal["certificate"] = system.install_instance(ctx.slug, host, package).to_s
+      end
+      ctx.step("pièces jointes") { system.restore_media(ctx.slug, media, identity) unless media.empty? }
+      ctx.set("database", ctx.database)
+      ctx.set("version", ctx.instance!("status")["version"]? || "")
       ctx.set("certificate", {"issued" => ctx.journal["certificate"]? == "true", "staging" => system.config.acme_staging})
     end
 

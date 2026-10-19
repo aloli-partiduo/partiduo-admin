@@ -1,5 +1,5 @@
 name: partiduo-admin
-version: 0.1.39
+version: 0.1.40
 
 description: |
   Administration du parc de dossiers Partiduo (ADR-008) : cabinets,
@@ -55,6 +55,11 @@ dependencies:
   jose:
     github: aloli-crystal/jose
     version: "~> 0.2.1"
+  # DNS des dossiers (ADR-013) : enregistrements de la zone chez OVH, posés
+  # par l'administration seule.
+  api-ovh:
+    github: aloli-crystal/api-ovh
+    version: "~> 0.7.4"
   # Format des sauvegardes (chiffrement, capsules, manifeste signé,
   # stockage), partagé avec la commande partiduo de partiduo-dist.
   partiduo-backup:

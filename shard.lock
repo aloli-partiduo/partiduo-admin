@@ -4,6 +4,10 @@ shards:
     git: https://github.com/crystal-ameba/ameba.git
     version: 1.7.0
 
+  api-ovh:
+    git: https://github.com/aloli-crystal/api-ovh.git
+    version: 0.7.4
+
   authn:
     git: https://github.com/aloli-crystal/authn.git
     version: 0.3.0+git.commit.be98021bf0da7c8fd8306b3d715e425aec5e7aa3

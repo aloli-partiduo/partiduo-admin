@@ -33,6 +33,7 @@ Marten.routes.draw do
   path "/dossiers/<id:int>/modules", PartiduoAdmin::DossierModulesHandler, name: "dossier_modules"
   path "/dossiers/<id:int>/actions/<action:str>", PartiduoAdmin::DossierActionHandler, name: "dossier_action"
   path "/dossiers/<id:int>/restore", PartiduoAdmin::DossierRestoreHandler, name: "dossier_restore"
+  path "/dossiers/<id:int>/move", PartiduoAdmin::DossierMoveHandler, name: "dossier_move"
   path "/dossiers/<id:int>/requests/<kind:str>", PartiduoAdmin::DossierApprovalRequestHandler, name: "dossier_request"
   path "/dossiers/<id:int>/assign", PartiduoAdmin::DossierAssignHandler, name: "dossier_assign"
   path "/dossiers/<id:int>/encryption", PartiduoAdmin::DossierEncryptionHandler, name: "dossier_encryption"

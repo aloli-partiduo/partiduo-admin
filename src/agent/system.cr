@@ -3,6 +3,7 @@
 require "json"
 require "digest/sha256"
 require "file_utils"
+require "socket"
 
 module PartiduoAgent
   # Échec d'une opération : `code` reprend, pour l'interface d'instance, la
@@ -138,6 +139,9 @@ module PartiduoAgent
     # lui-même et jamais pris des paramètres d'une tâche. Ses dossiers sont
     # des dossiers d'essai, supprimables sans archive ni durée légale.
     abstract def test_server? : Bool
+    # Attend que `host` désigne `target` (le serveur, ADR-013 D5) avant le
+    # certificat ; sinon échec, sans appeler Let's Encrypt.
+    abstract def wait_for_name(host : String, target : String) : Nil
 
     # --- Sauvegardes chiffrées (D-CHF-013) : le clair passe par un tube
     # entre l'outil (`pg_dump`, `tar`, `pg_restore`) et `age`, jamais par le
@@ -576,6 +580,14 @@ module PartiduoAgent
 
     def test_server? : Bool
       test_server
+    end
+
+    # Nom du dossier simulé : résolu (vrai par défaut) ou jamais.
+    property name_resolves = true
+
+    def wait_for_name(host : String, target : String) : Nil
+      op("dns", "#{host} -> #{target}")
+      raise StepError.new("#{host} ne désigne pas #{target} : certificat non demandé") unless name_resolves
     end
   end
 
@@ -1154,6 +1166,10 @@ module PartiduoAgent
     def test_server? : Bool
       true
     end
+
+    # Mode local : ni vhost ni certificat, rien à attendre.
+    def wait_for_name(host : String, target : String) : Nil
+    end
   end
 
   # Production (serveur FreeBSD) : tout geste privilégié passe par deux
@@ -1352,6 +1368,39 @@ module PartiduoAgent
     def remove_instance(slug : String, host : String) : Nil
       guard_slug!(slug)
       run!(as_root(["remove", slug]))
+    end
+
+    # Attente du nom (ADR-013 D5) : posé par l'administration juste avant la
+    # tâche, il se propage en quelques secondes à quelques minutes (TTL de
+    # 300 s, cache négatif du résolveur). Prêt quand le nom du dossier
+    # rend les mêmes adresses que le serveur ; au-delà de `NAME_WAIT`,
+    # échec : la tâche se relance depuis l'administration, sans qu'un
+    # défi Let's Encrypt n'ait échoué.
+    NAME_WAIT = 6.minutes
+    NAME_POLL = 15.seconds
+
+    def wait_for_name(host : String, target : String) : Nil
+      expected = addresses(target)
+      raise StepError.new("nom du serveur introuvable : #{target}") if expected.empty?
+      deadline = Time.instant + NAME_WAIT
+      loop do
+        found = addresses(host)
+        if found == expected
+          log("#{host} désigne #{target}")
+          return
+        end
+        if Time.instant >= deadline
+          raise StepError.new("#{host} ne désigne pas encore #{target} (#{found.empty? ? "introuvable" : found.join(", ")}) : " \
+                              "certificat non demandé, relancez la tâche dans quelques minutes")
+        end
+        sleep NAME_POLL
+      end
+    end
+
+    private def addresses(name : String) : Array(String)
+      Socket::Addrinfo.resolve(name, 443, type: Socket::Type::STREAM).map(&.ip_address.address).uniq!.sort!
+    rescue Socket::Addrinfo::Error
+      [] of String
     end
 
     # `partiduo-app-devel` installé (les deux paquets s'excluent, comme dans

@@ -82,7 +82,7 @@ module PartiduoAdmin
       def run
         summary = Scheduler.run
         print("sauvegardes : #{summary.backups}, élagages : #{summary.prunes}, " \
-              "restaurations test : #{summary.test_restores}, supervisions : #{summary.checks}")
+              "restaurations test : #{summary.test_restores}, supervisions : #{summary.checks}, noms DNS : #{summary.dns}")
       end
     end
   end

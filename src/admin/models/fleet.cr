@@ -96,8 +96,17 @@ module PartiduoAdmin
     field :archived_at, :date_time, null: true, blank: true
     field :retention_until, :date_time, null: true, blank: true
     field :deleted_at, :date_time, null: true, blank: true
+    # DNS (ADR-013) : enregistrement posé par l'administration chez OVH et
+    # état de sa synchronisation (`Dns::STATES`) ; vide hors zone gérée.
+    field :dns_record_id, :big_int, null: true, blank: true
+    field :dns_state, :string, max_size: 16, blank: true, default: ""
     field :created_at, :date_time, auto_now_add: true
     field :updated_at, :date_time, auto_now: true
+
+    # Zone DNS du dossier : le domaine de son serveur.
+    def zone : String
+      server.try(&.domain.to_s.presence) || Config.domain
+    end
 
     def host : String
       "#{slug}.#{server.try(&.domain) || Config.domain}"
@@ -121,6 +130,10 @@ module PartiduoAdmin
 
     def package_key : String
       "admin.packages.#{package}"
+    end
+
+    def dns_state_key : String
+      "admin.dns.states.#{dns_state}"
     end
 
     # Nom du paquet FreeBSD : `partiduo-app` ou `partiduo-app-devel`.

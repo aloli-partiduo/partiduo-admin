@@ -23,6 +23,7 @@
       <dt>{% translate "admin.dossiers.fields.package" %}</dt><dd>{% translate dossier.package_key %}</dd>
       <dt>{% translate "admin.dossiers.fields.version" %}</dt><dd class="pd-mono">{{ dossier.version|default:"—" }}</dd>
       <dt>{% translate "admin.dossiers.fields.server" %}</dt><dd>{{ dossier.server_name }}</dd>
+      {% if dossier.dns_state %}<dt>{% translate "admin.dossiers.fields.dns" %}</dt><dd>{% translate dossier.dns_state_key %}</dd>{% endif %}
       <dt>{% translate "admin.dossiers.fields.database" %}</dt><dd class="pd-mono">{{ dossier.database|default:"—" }}</dd>
       <dt>{% translate "admin.dossiers.fields.firm" %}</dt><dd>{{ dossier.firm_name }}</dd>
       <dt>{% translate "admin.dossiers.fields.payer" %}</dt><dd>{{ dossier.payer_name }}</dd>
@@ -50,11 +51,26 @@
   <form method="post" action="{% url 'dossier_restore' id: dossier.id %}" class="pd-inline">
     {% csrf_input %}
     <div class="field"><label class="label" for="pd-restore-date">{% translate "admin.restore.date" %}</label><div class="control"><input class="input" id="pd-restore-date" name="date" type="date" max="{{ today }}" required></div></div>
-    <div class="field"><label class="label" for="pd-restore-target">{% translate "admin.restore.target" %}</label><div class="select"><select id="pd-restore-target" name="target"><option value="new">{% translate "admin.restore.new" %}</option><option value="replace">{% translate "admin.restore.replace" %}</option></select></div></div>
+    <div class="field"><label class="label" for="pd-restore-target">{% translate "admin.restore.target" %}</label><div class="select"><select id="pd-restore-target" name="target"><option value="new">{% translate "admin.restore.new" %}</option><option value="replace">{% translate "admin.restore.replace" %}</option>{% if can.move %}<option value="move">{% translate "admin.restore.move" %}</option>{% endif %}</select></div></div>
     <div class="field"><label class="label" for="pd-restore-slug">{% translate "admin.restore.new_slug" %}</label><div class="control"><input class="input pd-mono" id="pd-restore-slug" name="new_slug" type="text"></div></div>
     <button class="button" type="submit">{% translate "admin.actions.restore" %}</button>
   </form>
   <p class="help">{% translate "admin.restore.help" %}</p>
+</section>
+{% endif %}
+
+{% if can.move %}
+<section class="pd-panel" aria-labelledby="pd-move-title">
+  <h2 id="pd-move-title">{% translate "admin.move.title" %}</h2>
+  <p class="mb-2">{% translate "admin.move.help" %}</p>
+  {% if move_servers %}
+  <form method="post" action="{% url 'dossier_move' id: dossier.id %}" class="pd-inline">
+    {% csrf_input %}
+    <div class="field"><label class="label" for="pd-move-server">{% translate "admin.move.server" %}</label><div class="select"><select id="pd-move-server" name="server_id" required>{% for server in move_servers %}<option value="{{ server.id }}">{{ server.name }} ({{ server.hostname }})</option>{% endfor %}</select></div></div>
+    <div class="field"><label class="label" for="pd-move-reason">{% translate "admin.reason" %}</label><div class="control"><input class="input" id="pd-move-reason" name="reason" required minlength="5"></div></div>
+    <button class="button is-warning" type="submit">{% translate "admin.move.submit" %}</button>
+  </form>
+  {% else %}<p class="pd-muted">{% translate "admin.move.no_server" %}</p>{% endif %}
 </section>
 {% endif %}
 

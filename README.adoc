@@ -635,6 +635,39 @@ Clé de signature pour le coffre (une ligne, rien sur le disque) :
 *seconde* position du fichier (publiée), puis en première une heure plus
 tard au moins (les clients relisent `/jwks.json` toutes les heures).
 
+== DNS des dossiers (ADR-013)
+
+L'administration seule tient le nom de chaque dossier :
+`<sous-domaine>.<domaine>. CNAME <hostname du serveur>.`, TTL 300 s. Aucun
+exécutant n'a de clé DNS ; les adresses des serveurs restent dans les
+enregistrements que beryl tient pour eux.
+
+* *Réglage* : `PARTIDUO_ADMIN_DNS_CREDENTIALS_FILE` (clé OVH propre à
+  l'administration, JSON `application_key`, `application_secret`,
+  `consumer_key`, `endpoint` facultatif), `PARTIDUO_ADMIN_DNS_ZONES` (zones
+  gérées, séparées par des virgules). Sans fichier de clé, ou pour une zone
+  absente de la liste (joker `*.partiduo.dev` de la zone de test), rien
+  n'est modifié et `dns_state` reste vide.
+* *Création* : le nom est posé avant la tâche ; la tâche porte
+  `dns_target` (le serveur), et l'exécutant attend jusqu'à six minutes que
+  le nom désigne les mêmes adresses avant de demander le certificat ;
+  au-delà, la tâche échoue sans appel à Let's Encrypt et se relance.
+* *Suppression* : le nom est effacé quand `instance.delete` a réussi.
+* *Garde-fous* : seul l'enregistrement créé par l'administration
+  (`dns_record_id`) est modifié ou effacé ; un autre enregistrement pour ce
+  nom bloque (état `error`, alerte `dns`), rien n'est écrasé ; la cible est
+  un serveur actif. Journal d'audit : `dns.create`, `dns.update`,
+  `dns.delete`. Les noms en attente ou en erreur sont repris par
+  `manage schedule`.
+* *Noms réservés* (`Protocol::RESERVED_SLUGS`) : `admin`, `autoconfig`,
+  `autodiscover`, `connect`, `mail`, `www`.
+* *Déplacement* (manuel, au cas par cas) : un super-admin rattache le
+  dossier *suspendu* à un autre serveur (le nom bascule aussitôt), puis
+  lance la restauration « Déplacement » sur le nouveau serveur (instance
+  installée sous le même sous-domaine, refusée si la base y existe déjà) ;
+  le dossier redevient actif. L'ancienne instance se retire à la main.
+  Procédure : `partiduo-docs/exploitation/dns.adoc`.
+
 == Provenance du code (AGPL-3.0, article 13)
 
 L'administration et connect affichent en pied de page leur version, la

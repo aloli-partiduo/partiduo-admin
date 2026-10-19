@@ -679,3 +679,66 @@ describe "partiduo-agent : scripts enveloppes de sudo (D-AFN-002)" do
     FileUtils.rm_rf(dir) if dir
   end
 end
+
+# DNS des dossiers (ADR-013) : l'exécutant n'a aucune clé DNS ; il attend
+# que le nom posé par l'administration désigne son serveur avant le
+# certificat, et installe un dossier déplacé sans rien écraser.
+private def run_named(admin : AdminSpec::FakeAdmin, id : Int64, kind : String, task_params : Hash,
+                      resolves : Bool = true, databases = [] of String, seed : Bool = false) : {JSON::Any, PartiduoAgent::DrySystem}
+  runner = PartiduoAgent::Runner.new(admin.config)
+  dry = runner.build_system(->(_line : String) { nil }).as(PartiduoAgent::DrySystem)
+  dry.name_resolves = resolves
+  task_params = AdminSpec.seed_dry_backup(dry).merge(task_params) if seed
+  databases.each { |database| dry.databases << database; dry.provisioned << database }
+  admin.push(id, kind, task_params)
+  runner.run_once.should be_true
+  {admin.finished[id], dry}
+end
+
+describe "partiduo-agent : nom DNS des dossiers (ADR-013)" do
+  it "attend le nom avant le certificat, et ne demande rien tant qu'il ne désigne pas le serveur" do
+    with_admin do |admin|
+      create = params("nomme", name: "Nommé", regime: "fr", locale: "fr", admin_email: "patron@demo.fr",
+        siren: "", vat: "", dns_target: "srv-a.example.net")
+      report, dry = run_named(admin, 80_i64, "instance.create", create, resolves: false)
+      report["ok"].as_bool.should be_false
+      report["error"].as_s.should contain("certificat non demandé")
+      dry.calls.none?(&.starts_with?("install")).should be_true
+
+      report, dry = run_named(admin, 81_i64, "instance.create", create.merge({"slug" => JSON::Any.new("nomme2"),
+                                                                              "host" => JSON::Any.new("nomme2.partiduo.localhost")}))
+      report["ok"].as_bool.should be_true
+      dns = dry.calls.index!(&.== "dns nomme2.partiduo.localhost -> srv-a.example.net")
+      dns.should be < dry.calls.index!(&.starts_with?("install"))
+
+      # Zone à joker (dns_target vide) : rien à attendre.
+      report, dry = run_named(admin, 82_i64, "instance.create", create.merge({"slug" => JSON::Any.new("joker"),
+                                                                              "host" => JSON::Any.new("joker.partiduo.localhost"), "dns_target" => JSON::Any.new("")}), resolves: false)
+      report["ok"].as_bool.should be_true
+      dry.calls.none?(&.starts_with?("dns")).should be_true
+    end
+  end
+
+  it "installe un dossier déplacé sous le même sous-domaine, jamais par-dessus une base présente" do
+    with_admin do |admin|
+      move = params(target: "move", dns_target: "srv-f.example.net")
+      report, dry = run_named(admin, 83_i64, "backup.restore", move, databases: ["partiduo_adm_garde"], seed: true)
+      report["ok"].as_bool.should be_false
+      report["error"].as_s.should contain("existe déjà")
+      dry.calls.none? { |call| call.starts_with?("createdb") || call.starts_with?("install") }.should be_true
+
+      report, dry = run_named(admin, 84_i64, "backup.restore", move, seed: true)
+      report["ok"].as_bool.should be_true, report.to_json
+      dry.calls.should contain("partiduo-provision --files-only garde partiduo_adm_garde app")
+      dry.calls.index!(&.starts_with?("dns garde")).should be < dry.calls.index!(&.== "install garde.partiduo.localhost")
+      report["result"]["database"].should eq("partiduo_adm_garde")
+    end
+  end
+end
+
+describe "partiduo-agent : nom DNS en production (ADR-013)" do
+  it "compare les adresses du nom du dossier à celles du serveur" do
+    production.wait_for_name("localhost", "localhost")
+    production.test_server?.should be_true
+  end
+end

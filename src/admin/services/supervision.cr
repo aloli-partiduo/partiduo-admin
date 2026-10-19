@@ -158,9 +158,10 @@ module PartiduoAdmin
   # Planification (commande `manage schedule`, lancée toutes les quinze
   # minutes par cron, /usr/local/etc/cron.d/partiduo-admin) : sauvegardes
   # planifiées, élagage selon la rétention,
-  # restaurations test périodiques, supervision, alertes.
+  # restaurations test périodiques, supervision, alertes, reprise des noms
+  # DNS des dossiers (ADR-013).
   module Scheduler
-    record Summary, backups : Int32, prunes : Int32, test_restores : Int32, checks : Int32
+    record Summary, backups : Int32, prunes : Int32, test_restores : Int32, checks : Int32, dns : Int32 = 0
 
     def self.run(now : Time = Config.now) : Summary
       backups = prunes = tests = checks = 0
@@ -201,7 +202,9 @@ module PartiduoAdmin
       Approval.filter(state: "pending", expires_at__lte: now).update(state: "expired")
       # Validation à deux d'une équipe retombée à une personne (D-VAL2-003).
       ApprovalMode.reconcile_all(now)
-      Summary.new(backups, prunes, tests, checks)
+      # Noms des dossiers en attente ou en erreur (ADR-013 D4).
+      dns = Dns.resync(now)
+      Summary.new(backups, prunes, tests, checks, dns)
     end
   end
 end
