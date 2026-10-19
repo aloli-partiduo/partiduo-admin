@@ -221,6 +221,7 @@ fr:
       restore: "Restaurer à une date"
       delete: "Suppression définitive"
       delete_help: "Possible seulement après la durée légale de conservation, validée par une ou deux personnes selon le réglage de la structure."
+      delete_help_test: "Dossier d'essai (serveur de test) : supprimable tout de suite, sans archive ni durée légale, validée par une ou deux personnes selon le réglage de la structure."
       access: "Recours d'accès"
       access_help: "Réémet l'invitation d'un administrateur existant du dossier si la société a perdu tout accès (adresse d'un compte administrateur de l'instance ; aucun compte n'est créé). Validé par une ou deux personnes selon le réglage de la structure."
       test_restore: "Restauration test"
@@ -380,7 +381,7 @@ fr:
       protections:
         reauth: "Ré-authentification forte récente (clé d'accès, ou code à usage unique au niveau exigé), moins de cinq minutes avant la confirmation."
         confirm: "Confirmation explicite : le sous-domaine du dossier retapé pour une suppression définitive, une case cochée pour un recours d'accès."
-        retention: "Contrôles du serveur inchangés : suppression définitive seulement d'un dossier archivé depuis la durée légale (dix ans), revérifiée par l'exécutant."
+        retention: "Contrôles du serveur inchangés : suppression définitive seulement d'un dossier archivé depuis la durée légale (dix ans), revérifiée par l'exécutant (sauf dossier d'essai sur un serveur de test)."
         cancel: "Tâche annulable tant que l'exécutant ne l'a pas prise."
         audit: "Journal d'audit nominatif, et mode transmis à l'exécutant et au journal du dossier."
         other_person: "Une autre personne habilitée (admin de la structure ou super-admin) valide la demande."

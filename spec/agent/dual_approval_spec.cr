@@ -120,6 +120,39 @@ describe "partiduo-agent : mode de validation des opérations sensibles (D-VAL2-
     end
   end
 
+  it "serveur de test : suppression sans archive ni durée légale, archive récente laissée au stockage" do
+    with_admin do |admin|
+      config = admin.config
+      young = File.join(config.backup_dir, "garde", "archive-#{Time.utc.to_s("%Y%m%dT%H%M%SZ")}.dump")
+      daily = File.join(config.backup_dir, "garde", "backup-#{Time.utc.to_s("%Y%m%dT%H%M%SZ")}.dump")
+      admin.push(940_i64, "instance.delete",
+        params(package: "devel", approval_ref: "DV-7", approval_mode: "single", approvers: ["seule@cabinet.fr"],
+          backups: [young, daily]))
+      runner = PartiduoAgent::Runner.new(config)
+      dry = runner.build_system(->(_line : String) { nil }).as(PartiduoAgent::DrySystem)
+      dry.test_server = true
+      dry.databases << "partiduo_adm_garde"
+      dry.files[young] = 1_i64
+      dry.files[daily] = 1_i64
+      runner.run_once.should be_true
+      report = admin.finished[940_i64]
+      report["ok"].as_bool.should be_true
+      dry.calls.should contain("dropdb partiduo_adm_garde")
+      dry.calls.count(&.starts_with?("stockage del")).should eq(1)
+      report["result"]["kept"].as_a.map(&.as_s).should eq(["#{config.server}/garde/#{File.basename(young)}"])
+      admin.logs[940_i64].join('\n').should contain("serveur de test")
+
+      # Le paquet annoncé par la tâche ne suffit pas : serveur de production,
+      # durée légale exigée.
+      refused, dry = run_dry(admin, 941_i64, "instance.delete",
+        params(package: "devel", approval_ref: "DV-8", approval_mode: "single", approvers: ["seule@cabinet.fr"],
+          backups: [young]), young, config)
+      refused["ok"].as_bool.should be_false
+      refused["error"].as_s.should contain("durée légale")
+      dry.calls.none?(&.starts_with?("dropdb")).should be_true
+    end
+  end
+
   it "suppression définitive : refusée avant tout geste si les personnes ne concordent pas avec le mode" do
     with_admin do |admin|
       config = admin.config

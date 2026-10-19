@@ -19,12 +19,12 @@ module PartiduoAdmin
     alias Outcome = Fleet::Outcome
 
     # Suppression définitive : seulement un dossier archivé dont la durée de
-    # conservation légale (dix ans) est écoulée.
+    # conservation légale (dix ans) est écoulée — ou un dossier d'essai
+    # (paquet `devel`), sans archive ni durée légale.
     def self.request_delete(user : User, dossier : Dossier, reason : String, now : Time = Config.now) : Outcome(Approval)
       return Outcome(Approval).failure("base", "admin.errors.forbidden") unless Access.can?(user, :request_delete, dossier)
-      return Outcome(Approval).failure("base", "admin.errors.dossier.state") unless dossier.state == "archived"
-      retention = dossier.retention_until
-      if retention.nil? || retention > now
+      return Outcome(Approval).failure("base", "admin.errors.dossier.state") unless dossier.delete_state?
+      unless dossier.retention_elapsed?(now)
         return Outcome(Approval).failure("base", "admin.errors.dossier.retention_running")
       end
       create(user, dossier, "delete", reason, {} of String => String, now)
@@ -141,7 +141,7 @@ module PartiduoAdmin
       kind = case approval.kind
              when "delete"
                # Recontrôle : l'état a pu changer depuis la demande.
-               unless dossier.state == "archived" && (dossier.retention_until.try { |until_time| until_time <= now } || false)
+               unless dossier.delete_state? && dossier.retention_elapsed?(now)
                  return Outcome(Task).failure("base", "admin.errors.dossier.retention_running")
                end
                params["backups"] = Tasks.any(Backup.filter(dossier_id: dossier.pk).exclude(state: "pruned")

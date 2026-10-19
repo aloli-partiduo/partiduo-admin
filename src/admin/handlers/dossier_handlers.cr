@@ -148,7 +148,7 @@ module PartiduoAdmin
         "archive"         => Access.can?(user, :archive, dossier) && %w[active suspended].includes?(dossier.state),
         "restore_archive" => Access.can?(user, :restore_archive, dossier) && dossier.state == "archived",
         "restore"         => Access.can?(user, :restore, dossier) && %w[active suspended].includes?(dossier.state),
-        "delete"          => Access.can?(user, :request_delete, dossier) && dossier.state == "archived",
+        "delete"          => Access.can?(user, :request_delete, dossier) && dossier.delete_state?,
         "access"          => Access.can?(user, :request_admin_invite, dossier) && dossier.state == "active",
         "assign"          => !user.file_manager?,
         "encryption"      => encryption?(dossier),

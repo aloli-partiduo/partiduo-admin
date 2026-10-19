@@ -221,6 +221,7 @@ en:
       restore: "Restore to a date"
       delete: "Permanent deletion"
       delete_help: "Only after the legal retention period, decided by one or two people depending on the organisation's setting."
+      delete_help_test: "Test file (test server): can be deleted right away, without archive or legal retention, decided by one or two people depending on the organisation's setting."
       access: "Access recovery"
       access_help: "Reissues the invitation of an existing administrator of the file when the company has lost all access (address of an administrator account of the instance; no account is created). Decided by one or two people depending on the organisation's setting."
       test_restore: "Test restore"
@@ -380,7 +381,7 @@ en:
       protections:
         reauth: "Recent strong re-authentication (passkey, or one-time code at the required level), less than five minutes before confirming."
         confirm: "Explicit confirmation: the file's subdomain typed again for a permanent deletion, a ticked box for an access recovery."
-        retention: "Server checks unchanged: permanent deletion only of a file archived for the legal period (ten years), checked again by the agent."
+        retention: "Server checks unchanged: permanent deletion only of a file archived for the legal period (ten years), checked again by the agent (except a test file on a test server)."
         cancel: "Task can be cancelled until the agent picks it up."
         audit: "Named audit log; the mode is passed to the agent and to the file's own log."
         other_person: "Another entitled person (organisation admin or super admin) approves the request."

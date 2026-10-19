@@ -134,6 +134,10 @@ module PartiduoAgent
     abstract def disk(path : String) : {Int64, Int64}
     abstract def cert_expiry(host : String) : Time?
     abstract def remove_instance(slug : String, host : String) : Nil
+    # Serveur de test : il sert `partiduo-app-devel`, constaté sur le serveur
+    # lui-même et jamais pris des paramètres d'une tâche. Ses dossiers sont
+    # des dossiers d'essai, supprimables sans archive ni durée légale.
+    abstract def test_server? : Bool
 
     # --- Sauvegardes chiffrées (D-CHF-013) : le clair passe par un tube
     # entre l'outil (`pg_dump`, `tar`, `pg_restore`) et `age`, jamais par le
@@ -229,10 +233,15 @@ module PartiduoAgent
     # Une archive encore dans sa durée légale n'est jamais effacée
     # (`backup.prune`, D-CRA-007) ; le stockage le refuse aussi.
     def guard_archive_removal!(path : String, now : Time = Time.utc) : Nil
-      taken = PartiduoAdmin::Protocol.archive_taken_at(path) || return
-      if taken.shift(years: PartiduoAdmin::Protocol::ARCHIVE_RETENTION_YEARS) > now
+      if retained_archive?(path, now)
         raise StepError.new("archive dans sa durée légale de conservation : #{File.basename(path)}", "refused")
       end
+    end
+
+    # Archive (`archive-<horodatage>…`) prise depuis moins de dix ans.
+    def retained_archive?(path : String, now : Time = Time.utc) : Bool
+      taken = PartiduoAdmin::Protocol.archive_taken_at(path) || return false
+      taken.shift(years: PartiduoAdmin::Protocol::ARCHIVE_RETENTION_YEARS) > now
     end
 
     # Courriel remis par le serveur (`--smtp-url-file`, D-CRA-003).
@@ -560,6 +569,13 @@ module PartiduoAgent
     def remove_instance(slug : String, host : String) : Nil
       op("retrait", host)
       stopped << slug
+    end
+
+    # Serveur de test simulé (`partiduo-app-devel` installé) ; non par défaut.
+    property test_server = false
+
+    def test_server? : Bool
+      test_server
     end
   end
 
@@ -1133,6 +1149,11 @@ module PartiduoAgent
       log("mode local : fichiers de #{slug} retirés de #{instance_dir(slug)}")
       FileUtils.rm_rf(instance_dir(slug))
     end
+
+    # Poste de développement : aucune donnée réelle, aucune durée légale.
+    def test_server? : Bool
+      true
+    end
   end
 
   # Production (serveur FreeBSD) : tout geste privilégié passe par deux
@@ -1155,6 +1176,9 @@ module PartiduoAgent
     # sudo du paquet security/sudo, par son chemin : l'exécutant ne dépend
     # pas de son PATH.
     SUDO = "/usr/local/bin/sudo"
+
+    # pkg du système de base.
+    PKG = "/usr/sbin/pkg"
 
     def root_helper : String
       File.join(config.helpers_dir, "partiduo-agent-root")
@@ -1328,6 +1352,13 @@ module PartiduoAgent
     def remove_instance(slug : String, host : String) : Nil
       guard_slug!(slug)
       run!(as_root(["remove", slug]))
+    end
+
+    # `partiduo-app-devel` installé (les deux paquets s'excluent, comme dans
+    # les enveloppes) : `pkg info` se lit sans privilège.
+    def test_server? : Bool
+      code, _, _ = run([PKG, "info", "-q", "-e", "partiduo-app-devel"], quiet: true)
+      code == 0
     end
   end
 end

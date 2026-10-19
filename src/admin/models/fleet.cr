@@ -128,6 +128,30 @@ module PartiduoAdmin
       package == "devel" ? "partiduo-app-devel" : "partiduo-app"
     end
 
+    # Dossier d'essai : servi par `partiduo-app-devel`, sur un serveur de
+    # test. Il se supprime sans archive ni durée légale (l'exécutant le
+    # revérifie sur le serveur).
+    def test? : Bool
+      package == "devel"
+    end
+
+    # États dont un dossier d'essai se supprime : tous sauf en création ou
+    # déjà supprimé.
+    TEST_DELETABLE_STATES = %w[active suspended archived error]
+
+    # Suppression définitive demandable dans l'état actuel ? Dossier d'essai
+    # dans un état permis ; sinon archivé (la durée légale se contrôle à
+    # part, `retention_elapsed?`).
+    def delete_state? : Bool
+      test? ? TEST_DELETABLE_STATES.includes?(state) : state == "archived"
+    end
+
+    # Durée légale (dix ans) écoulée, ou sans objet pour un dossier d'essai.
+    def retention_elapsed?(now : Time) : Bool
+      return true if test?
+      retention_until.try { |until_time| until_time <= now } || false
+    end
+
     # Chiffrement effectif des prochaines sauvegardes : celui du dossier,
     # sinon celui du cabinet.
     def effective_encryption : String

@@ -163,6 +163,39 @@ describe PartiduoAdmin::Approvals do
     PartiduoAdmin::Backup.filter(dossier_id: dossier.pk, state: "pruned").count.should eq(1)
   end
 
+  it "supprime un dossier d'essai (paquet devel) sans archive ni durée légale, jamais un dossier app" do
+    firm = AdminSpec.firm
+    server, _ = AdminSpec.server
+    requester = AdminSpec.user(PartiduoAdmin::Config::FIRM_ADMIN, firm)
+    second = AdminSpec.user(PartiduoAdmin::Config::FIRM_ADMIN, firm)
+
+    # Dossier app actif : archive puis dix ans exigés, comme avant.
+    production = AdminSpec.dossier(firm, server)
+    production.delete_state?.should be_false
+    PartiduoAdmin::Approvals.request_delete(requester, production, "plus utile").errors["base"]
+      .should eq(["admin.errors.dossier.state"])
+
+    trial = AdminSpec.dossier(firm, server, package: "devel")
+    trial.delete_state?.should be_true
+    trial.retention_elapsed?(SPEC_NOW).should be_true
+    AdminSpec.backup(trial)
+    retained = AdminSpec.backup(trial, taken_at: SPEC_NOW - 2.days, kind: "archive")
+    approval = PartiduoAdmin::Approvals.request_delete(requester, trial, "dossier d'essai").value!
+    task = PartiduoAdmin::Approvals.approve(second, approval).value!
+    task.kind.should eq("instance.delete")
+    task.params_json["package"].should eq("devel")
+    # Archive gardée par le stockage (durée légale) : pas marquée élaguée.
+    finish(task, result: {"kept" => [retained.path.to_s]})
+    trial.reload.state.should eq("deleted")
+    PartiduoAdmin::Backup.filter(dossier_id: trial.pk, state: "pruned").count.should eq(1)
+    retained.reload.state.should eq("done")
+
+    # En création ou déjà supprimé : jamais.
+    %w[creating deleted].each do |state|
+      AdminSpec.dossier(firm, server, state: state, package: "devel").delete_state?.should be_false
+    end
+  end
+
   it "réémet l'invitation d'administrateur après double validation, trace comprise" do
     firm = AdminSpec.firm
     server, _ = AdminSpec.server

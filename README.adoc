@@ -319,6 +319,15 @@ Il n'efface que sous `loulou/` ; une archive dans sa durée légale n'est
 jamais effacée (D-CRA-007). L'élagage, par un autre serveur, des
 sauvegardes d'un dossier déplacé les garde (`kept`).
 
+*Dossier d'essai* (paquet `devel`, serveur de test) : sa suppression
+définitive se demande dans tout état sauf « en création » et
+« supprimé », sans archive ni durée légale, avec la même validation à une
+ou deux personnes. L'exécutant ne s'en remet pas au paquet annoncé par la
+tâche : il saute le contrôle de la durée légale seulement si
+`partiduo-app-devel` est installé sur son serveur (`pkg info`). Le
+stockage, lui, garde toujours une archive dans sa durée légale : elle est
+laissée, dite au journal et rendue (`kept`).
+
 === Format des fichiers (format 2)
 
 * Base et pièces jointes : fichiers `age` (C2SP `age-encryption.org/v1`),

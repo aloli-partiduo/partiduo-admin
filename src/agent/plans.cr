@@ -410,8 +410,9 @@ module PartiduoAgent
     end
 
     # Suppression définitive (après la durée légale et la validation, à une
-    # ou deux personnes, vérifiées par l'admin) : service et fichiers
-    # retirés, base supprimée, sauvegardes effacées du stockage.
+    # ou deux personnes, vérifiées par l'admin ; sans durée légale sur un
+    # serveur de test) : service et fichiers retirés, base supprimée,
+    # sauvegardes effacées du stockage.
     def self.delete(ctx : Context) : Nil
       # Emplacements vérifiés avant tout geste : une liste qui vise un autre
       # dossier n'a rien retiré (D-CRA-001).
@@ -423,13 +424,32 @@ module PartiduoAgent
         raise StepError.new("sauvegardes prises par #{others.join(", ")} : à effacer depuis ce serveur ou sur le " \
                             "stockage avant la suppression définitive", "refused")
       end
-      ctx.system.guard_retention!(ctx.slug)
+      # Serveur de test (constaté sur le serveur, jamais pris de la tâche) :
+      # dossier d'essai, supprimé sans archive ni durée légale.
+      test_server = ctx.system.test_server?
+      if test_server
+        ctx.log("serveur de test (partiduo-app-devel) : suppression sans archive ni durée légale")
+      else
+        ctx.system.guard_retention!(ctx.slug)
+      end
       ctx.log("suppression définitive — #{approval_line(ctx)}")
       ctx.step("retrait du service") { ctx.system.remove_instance(ctx.slug, ctx.host) }
       ctx.step("client connect") { ctx.system.disable_connect_client(ctx.host) }
       ctx.step("suppression de la base") { ctx.system.dropdb(ctx.database) }
       ctx.step("suppression des sauvegardes") do
-        backup_files(ctx, backups).each { |locator| ctx.system.store.delete(locator) }
+        # Le stockage garde toute archive dans sa durée légale, même d'un
+        # serveur de test (D-CRA-007) : laissée, dite au journal et rendue
+        # (`kept`) pour que l'administration ne la marque pas élaguée.
+        kept = [] of String
+        backup_files(ctx, backups).each do |locator|
+          if test_server && ctx.system.retained_archive?(locator.name)
+            ctx.log("archive gardée par le stockage (durée légale) : #{locator}")
+            kept << locator.to_s
+            next
+          end
+          ctx.system.store.delete(locator)
+        end
+        ctx.set("kept", kept) unless kept.empty?
       end
       ctx.set("deleted", true)
     end

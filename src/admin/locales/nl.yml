@@ -221,6 +221,7 @@ nl:
       restore: "Terugzetten naar een datum"
       delete: "Definitieve verwijdering"
       delete_help: "Alleen na de wettelijke bewaartermijn, beslist door één of twee personen volgens de instelling van de structuur."
+      delete_help_test: "Testdossier (testserver): meteen te verwijderen, zonder archief of wettelijke bewaartermijn, beslist door één of twee personen volgens de instelling van de structuur."
       access: "Toegangsherstel"
       access_help: "Verstuurt opnieuw de uitnodiging van een bestaande beheerder van het dossier als de onderneming alle toegang kwijt is (adres van een beheerdersaccount van de instantie; er wordt geen account aangemaakt). Beslist door één of twee personen volgens de instelling van de structuur."
       test_restore: "Testherstel"
@@ -380,7 +381,7 @@ nl:
       protections:
         reauth: "Recente sterke herauthenticatie (toegangssleutel, of eenmalige code op het vereiste niveau), minder dan vijf minuten voor de bevestiging."
         confirm: "Uitdrukkelijke bevestiging: het subdomein van het dossier opnieuw typen voor een definitieve verwijdering, een aangevinkt vakje voor een toegangsherstel."
-        retention: "Controles van de server ongewijzigd: definitieve verwijdering alleen van een dossier dat de wettelijke termijn (tien jaar) gearchiveerd is, opnieuw nagegaan door de uitvoerder."
+        retention: "Controles van de server ongewijzigd: definitieve verwijdering alleen van een dossier dat de wettelijke termijn (tien jaar) gearchiveerd is, opnieuw nagegaan door de uitvoerder (behalve een testdossier op een testserver)."
         cancel: "Taak te annuleren zolang de uitvoerder ze niet heeft opgenomen."
         audit: "Nominatief auditlogboek; de modus gaat mee naar de uitvoerder en naar het logboek van het dossier."
         other_person: "Een andere bevoegde persoon (beheerder van de structuur of superbeheerder) keurt de aanvraag goed."

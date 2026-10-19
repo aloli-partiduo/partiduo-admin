@@ -41,7 +41,7 @@ module PartiduoAdmin
         "instance.resume"          => Handler.new { |_, dossier, success, _, now| state(dossier, success, "active", now) },
         "instance.restore_archive" => Handler.new { |_, dossier, success, _, now| state(dossier, success, "active", now) },
         "instance.archive"         => Handler.new { |task, dossier, success, result, now| archived(task, dossier, success, result, now) },
-        "instance.delete"          => Handler.new { |_, dossier, success, _, now| deleted(dossier, success, now) },
+        "instance.delete"          => Handler.new { |task, dossier, success, _, now| deleted(task, dossier, success, now) },
         "instance.admin_invite"    => Handler.new { |task, dossier, success, result, _| invited(task, dossier, success, result) },
         "backup.run"               => Handler.new { |task, dossier, success, result, now| backed_up(task, dossier, success, result, now) },
         "backup.prune"             => Handler.new { |task, _, success, _, now| pruned(task, success, now) },
@@ -108,9 +108,14 @@ module PartiduoAdmin
         dossier.save!
       end
 
-      def self.deleted(dossier : Dossier, ok : Bool, now : Time) : Nil
+      def self.deleted(task : Task, dossier : Dossier, ok : Bool, now : Time) : Nil
         return unless ok
-        Backup.filter(dossier_id: dossier.pk).exclude(state: "pruned").update(state: "pruned", pruned_at: now)
+        # Archives d'un dossier d'essai encore dans leur durée légale : gardées
+        # par le stockage (D-CRA-007), pas marquées élaguées.
+        kept = task.result_json["kept"]?.try(&.as_a?).try(&.compact_map(&.as_s?)) || [] of String
+        scope = Backup.filter(dossier_id: dossier.pk).exclude(state: "pruned")
+        scope = scope.exclude(path__in: kept) unless kept.empty?
+        scope.update(state: "pruned", pruned_at: now)
         dossier.state = "deleted"
         dossier.deleted_at = now
         dossier.save!

@@ -101,7 +101,7 @@
   {% if can.delete %}
   <section class="pd-panel" aria-labelledby="pd-delete-title">
     <h2 id="pd-delete-title">{% translate "admin.actions.delete" %}</h2>
-    <p class="mb-2">{% translate "admin.actions.delete_help" %}</p>
+    <p class="mb-2">{% if dossier.package == "devel" %}{% translate "admin.actions.delete_help_test" %}{% else %}{% translate "admin.actions.delete_help" %}{% endif %}</p>
     {% include "admin/_approval_mode_note.html" %}
     <form method="post" action="{% url 'dossier_request' id: dossier.id, kind: 'delete' %}">
       {% csrf_input %}
