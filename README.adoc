@@ -580,6 +580,25 @@ partiduo-connect-manage client add --client-id=admin --name="Partiduo administra
   --backchannel-uri=https://admin.partiduo.dev/login/connect/backchannel-logout
 ----
 
+*Duplication (ADR-012 D5).* connect ne garde rien sur la machine : sessions,
+comptes, défis et codes sont en base ; les clés de signature et
+`MARTEN_SECRET_KEY` viennent du coffre et sont les mêmes partout. Plusieurs
+serveurs connect servent donc le même nom, sur une base commune :
+
+. serveur A : recettes `postgresql-primary` (réplication en flux vers B,
+  par le réseau privé) et `partiduo-connect` ;
+. serveur B, dans un autre centre de données : `postgresql-standby` (copie
+  à chaud, lecture seule) et `partiduo-connect` *service arrêté* (une base
+  en lecture seule refuse les sessions) ;
+. bascule : promotion de la base de B (`pg_ctl promote`), démarrage de
+  connect sur B, `connect.<domaine>` pointé vers B (DNS à durée de vie
+  courte, ou mandataire). L'ancien primaire revient en secours, jamais en
+  primaire. Bascule à exercer, et à chronométrer, avant la mise en
+  production.
+
+Les sessions ouvertes restent valables après la bascule (même base, mêmes
+clés) ; seules les connexions en cours au moment de la panne sont à refaire.
+
 Clé de signature pour le coffre (une ligne, rien sur le disque) :
 `partiduo-connect-manage signing-key generate`. Rotation : nouvelle clé en
 *seconde* position du fichier (publiée), puis en première une heure plus
