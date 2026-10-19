@@ -177,8 +177,11 @@ module PartiduoConnect
       return json({"ok" => true, "redirect" => back}.to_json) if codes.empty?
       # Premiers codes de récupération : montrés tout de suite, une seule
       # fois ; `passkey.js` remplace le contenu de la page.
-      html = Marten.templates.get_template("connect/_recovery_codes.html")
-        .render({"codes" => codes, "host" => Config.host, "next" => continue_target})
+      # Rendu avec le gestionnaire : `{% csrf_input %}` du bouton
+      # « Continuer » a besoin de lui (sans, jeton absent, refus CSRF).
+      context = Marten::Template::Context.from({"codes" => codes, "host" => Config.host, "next" => continue_target}, request)
+      context.handler = self
+      html = Marten.templates.get_template("connect/_recovery_codes.html").render(context)
       json({"ok" => true, "html" => html}.to_json)
     rescue error : Auth::Passkeys::Error
       json({"ok" => false, "error" => I18n.t(error.key)}.to_json, status: 422)

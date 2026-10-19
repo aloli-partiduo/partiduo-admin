@@ -29,6 +29,8 @@ describe "connect : comptes" do
     answer = JSON.parse(browser.post("/account/passkey", authenticator.register(options)).content)
     answer["ok"].as_bool.should be_true
     answer["html"].as_s.should contain(I18n.t("connect.account.continue"))
+    # Jeton CSRF dans le formulaire « Continuer » (rendu hors de la page).
+    answer["html"].as_s.should match(/name="csrftoken" value="[^"]+"/)
     PartiduoConnect::Auth::RecoveryCodes.remaining(account).should eq(PartiduoConnect::Config::RECOVERY_CODES)
 
     back = browser.post("/account/continue")
