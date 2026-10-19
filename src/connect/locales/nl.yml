@@ -79,6 +79,15 @@ nl:
         subject: "Partiduo: activiteit op uw account"
         when: "Datum: %{at}"
     errors:
+      sso:
+        denied: "De aanmeldservice van uw kantoor heeft de aanmelding geweigerd."
+        domain: "Dit adres hoort niet bij de aanmeldservice van dit kantoor."
+        invalid: "Het antwoord van de aanmeldservice van uw kantoor is ongeldig."
+        no_mfa: "Uw kantoor heeft geen meerfactorauthenticatie bevestigd: schakel die in bij zijn aanmeldservice."
+        none: "Voor dit adres is geen aanmeldservice van een kantoor aangegeven: meld u aan met uw toegangssleutel of wachtwoord."
+        not_invited: "Nog geen Partiduo-account voor dit adres: het wordt aangemaakt via een uitnodiging."
+        other_upstream: "Dit account is al gekoppeld aan de aanmeldservice van een ander kantoor."
+        unreachable: "De aanmeldservice van uw kantoor antwoordt niet; probeer later opnieuw."
       email:
         invalid: "Ongeldig e-mailadres."
         link: "Bevestigingslink onbekend, verlopen of al gebruikt."
@@ -95,6 +104,7 @@ nl:
         invalid: "Onjuist e-mailadres of wachtwoord."
         locked: "Account geblokkeerd na te veel mislukte pogingen: neem contact op met de Partiduo-support."
         wait: "Te veel pogingen: probeer opnieuw over %{seconds} seconden."
+        use_sso: "Dit adres meldt zich aan via de service van uw kantoor: gebruik „Doorgaan bij mijn kantoor”."
       oidc:
         invalid_client: "Onbekende of uitgeschakelde toepassing."
         invalid_redirect_uri: "Terugkeeradres niet toegestaan voor deze toepassing."
@@ -127,6 +137,9 @@ nl:
         invalid: "Uitnodiging onbekend, verlopen of al gebruikt."
         return_to: "Terugkeeradres niet toegestaan."
     login:
+      sso_help: "Heeft uw kantoor een eigen aanmeldservice? Voer uw werkadres in: u wordt ernaartoe gestuurd."
+      sso_submit: "Doorgaan bij mijn kantoor"
+      sso_title: "Met het account van uw kantoor"
       code: "Code"
       code_help: "Zescijferige code uit uw app, of een herstelcode."
       email: "E-mailadres"

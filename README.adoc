@@ -580,6 +580,24 @@ partiduo-connect-manage client add --client-id=admin --name="Partiduo administra
   --backchannel-uri=https://admin.partiduo.dev/login/connect/backchannel-logout
 ----
 
+*Relais de l'authentification d'un cabinet (ADR-012 D9).* Un cabinet qui a son
+fournisseur OpenID Connect est déclaré par l'exploitation :
+
+[source,sh]
+----
+partiduo-connect-manage upstream add --code=cabinet-x --name="Cabinet X" \
+  --issuer=https://login.cabinet-x.example --client-id=partiduo-connect \
+  --client-secret-file=secret.txt --domains=cabinet-x.example --ceiling=2
+----
+
+Les adresses de ses domaines se connectent alors chez lui (« Continuer chez
+mon cabinet »), jamais par un mot de passe connect. Le compte connect reste
+(même `sub`) ; le niveau est 2 si le cabinet atteste une authentification à
+plusieurs facteurs (`amr`), plafonné à `--ceiling` ; sans elle, la connexion
+est refusée. Un compte n'est créé que pour une adresse invitée. Le cabinet
+peut annoncer la fin d'une session (`/login/sso/<code>/backchannel-logout`) :
+connect ferme celles de la personne et avise les dossiers.
+
 *Duplication (ADR-012 D5).* connect ne garde rien sur la machine : sessions,
 comptes, défis et codes sont en base ; les clés de signature et
 `MARTEN_SECRET_KEY` viennent du coffre et sont les mêmes partout. Plusieurs

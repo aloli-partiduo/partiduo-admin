@@ -79,6 +79,15 @@ en:
         subject: "Partiduo: activity on your account"
         when: "Date: %{at}"
     errors:
+      sso:
+        denied: "Your firm sign-in service refused the sign-in."
+        domain: "This address does not belong to the sign-in service of this firm."
+        invalid: "The response of your firm sign-in service is invalid."
+        no_mfa: "Your firm did not attest a multi-factor authentication: enable it in its sign-in service."
+        none: "No firm sign-in service is declared for this address: sign in with your passkey or your password."
+        not_invited: "No Partiduo account yet for this address: it is created from an invitation."
+        other_upstream: "This account is already linked to the sign-in service of another firm."
+        unreachable: "Your firm sign-in service does not answer; try again later."
       email:
         invalid: "Invalid email address."
         link: "Confirmation link unknown, expired or already used."
@@ -95,6 +104,7 @@ en:
         invalid: "Wrong email or password."
         locked: "Account locked after too many failures: contact Partiduo support."
         wait: "Too many attempts: try again in %{seconds} seconds."
+        use_sso: "This address signs in through your firm service: use “Continue with my firm”."
       oidc:
         invalid_client: "Unknown or disabled application."
         invalid_redirect_uri: "Return address not allowed for this application."
@@ -127,6 +137,9 @@ en:
         invalid: "Invitation unknown, expired or already used."
         return_to: "Return address not allowed."
     login:
+      sso_help: "Does your firm have its own sign-in service? Enter your work address: you will be sent there."
+      sso_submit: "Continue with my firm"
+      sso_title: "With your firm account"
       code: "Code"
       code_help: "Six-digit code from your app, or a recovery code."
       email: "Email address"

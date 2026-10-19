@@ -19,6 +19,11 @@ Marten.routes.draw do
   path "/login/passkey", PartiduoConnect::PasskeyLoginHandler, name: "login_passkey"
   path "/language", PartiduoConnect::LanguageHandler, name: "language"
 
+  # Relais de l'authentification d'un cabinet (ADR-012 D9).
+  path "/login/sso", PartiduoConnect::SsoStartHandler, name: "login_sso"
+  path "/login/sso/<code:str>/callback", PartiduoConnect::SsoCallbackHandler, name: "login_sso_callback"
+  path "/login/sso/<code:str>/backchannel-logout", PartiduoConnect::SsoBackchannelHandler, name: "login_sso_logout"
+
   # Création d'un compte (ADR-012 D6).
   path "/signup/<token:str>", PartiduoConnect::SignupHandler, name: "signup"
   path "/api/v1/signup-tickets", PartiduoConnect::SignupTicketHandler, name: "api_signup_tickets"

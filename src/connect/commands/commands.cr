@@ -216,5 +216,86 @@ module PartiduoConnect
         end
       end
     end
+
+    # `partiduo-connect-manage upstream <add|list|disable|enable> --code=…`
+    #
+    # Fournisseur d'identité d'un cabinet (ADR-012 D9) : connect s'appuie sur
+    # lui pour les adresses de ses domaines. Adresses lues par sa découverte
+    # OpenID Connect ; secret du client lu dans un fichier (jamais en
+    # argument). Le cabinet déclare chez lui le retour
+    # `https://connect.<domaine>/login/sso/<code>/callback` et, s'il sait
+    # le faire, la déconnexion `…/login/sso/<code>/backchannel-logout`.
+    class UpstreamCommand < Marten::CLI::Manage::Command::Base
+      command_name :upstream
+      help "Déclare le fournisseur d'identité d'un cabinet (ADR-012 D9)."
+
+      @action = ""
+      @code = ""
+      @name = ""
+      @issuer = ""
+      @client_id = ""
+      @secret_file = ""
+      @domains = ""
+      @ceiling = 2
+
+      def setup
+        on_argument(:action, "add, list, disable ou enable") { |value| @action = value }
+        on_option_with_arg("code", "code", "identifiant du fournisseur (minuscules, chiffres, tirets)") { |value| @code = value }
+        on_option_with_arg("name", "nom", "nom affiché (cabinet)") { |value| @name = value }
+        on_option_with_arg("issuer", "url", "émetteur OpenID Connect du cabinet") { |value| @issuer = value }
+        on_option_with_arg("client-id", "id", "client de connect chez le cabinet") { |value| @client_id = value }
+        on_option_with_arg("client-secret-file", "fichier", "fichier qui contient le secret de ce client") { |value| @secret_file = value }
+        on_option_with_arg("domains", "liste", "domaines de courriel couverts, séparés par des virgules") { |value| @domains = value }
+        on_option_with_arg("ceiling", "niveau", "niveau le plus haut reconnu (1 ou 2 ; défaut 2)") { |value| @ceiling = value.to_i? || 0 }
+      end
+
+      def run
+        case @action
+        when "add"     then add
+        when "list"    then list
+        when "disable" then toggle(false)
+        when "enable"  then toggle(true)
+        else                print_error_and_exit("action inconnue : #{@action} (add, list, disable, enable)")
+        end
+      end
+
+      private def add
+        missing = !@code.matches?(/\A[a-z0-9][a-z0-9-]{0,63}\z/) || [@name, @client_id, @domains].any?(&.empty?)
+        if missing
+          return print_error_and_exit("--code, --name, --issuer, --client-id, --client-secret-file et --domains sont exigés")
+        end
+        return print_error_and_exit("--ceiling : 1 ou 2") unless @ceiling.in?(1, 2)
+        return print_error_and_exit("fournisseur déjà déclaré : #{@code}") if Upstream.filter(code: @code).exists?
+        secret = File.read(@secret_file).strip
+        return print_error_and_exit("secret vide : #{@secret_file}") if secret.empty?
+        endpoints = Sso.discover(@issuer)
+        upstream = Upstream.create!(code: @code, name: @name, issuer: @issuer, client_id: @client_id, client_secret: secret,
+          domains: @domains.downcase, ceiling: @ceiling, authorization_endpoint: endpoints["authorization_endpoint"],
+          token_endpoint: endpoints["token_endpoint"], jwks_uri: endpoints["jwks_uri"])
+        Audit.log(nil, "upstream.add", {"code" => @code, "domains" => @domains}, label: "exploitation")
+        print("#{upstream.code} : #{upstream.domain_list.join(", ")}")
+        print("Retour à déclarer chez le cabinet : #{upstream.callback_uri}")
+      rescue error : Sso::Error
+        print_error_and_exit("#{@issuer} : #{error.message}")
+      rescue error : File::Error
+        print_error_and_exit("--client-secret-file illisible : #{error.message}")
+      end
+
+      private def list
+        Upstream.all.order("code").each do |upstream|
+          print("#{upstream.code}  #{upstream.name}  #{upstream.active ? "actif" : "désactivé"}  niveau ≤ #{upstream.ceiling}  " \
+                "#{upstream.domain_list.join(", ")}")
+        end
+      end
+
+      private def toggle(active : Bool) : Nil
+        upstream = Upstream.filter(code: @code).first
+        return print_error_and_exit("fournisseur inconnu : #{@code}") if upstream.nil?
+        upstream.active = active
+        upstream.save!
+        Audit.log(nil, active ? "upstream.enable" : "upstream.disable", {"code" => @code}, label: "exploitation")
+        print("#{@code} : #{active ? "actif" : "désactivé"}")
+      end
+    end
   end
 end

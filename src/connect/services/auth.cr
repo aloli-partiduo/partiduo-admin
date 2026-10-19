@@ -21,6 +21,9 @@ module PartiduoConnect
     # Compte complet (ADR-002 D7) : une passkey, ou un mot de passe avec un
     # TOTP ; et des codes de récupération dès qu'un facteur existe.
     def self.complete?(account : Account) : Bool
+      # Compte authentifié par le fournisseur d'un cabinet (ADR-012 D9) : ses
+      # facteurs sont ceux du cabinet.
+      return true if account.upstream?
       has_passkey?(account) || (account.usable_password? && account.totp_enabled?)
     end
 
@@ -32,6 +35,7 @@ module PartiduoConnect
     # `recovery_codes`.
     def self.missing(account : Account) : Array(String)
       missing = [] of String
+      return missing if account.upstream?
       missing << "factor" unless complete?(account)
       if (has_passkey?(account) || account.totp_enabled?) && RecoveryCodes.remaining(account).zero?
         missing << "recovery_codes"
@@ -385,6 +389,9 @@ module PartiduoConnect
     def self.login_password(email : String, password : String, ip : String = "", user_agent : String = "",
                             now : Time = Time.utc) : LoginResult
       address = email.strip.downcase
+      # Adresse d'un cabinet qui a son fournisseur d'identité (ADR-012 D9) :
+      # la connexion passe par lui, jamais par un mot de passe ici.
+      return LoginResult.new(error: "connect.errors.login.use_sso") if Sso.for_email(address)
       account = Account.filter(email: address).first
       if account.nil? || !account.can_sign_in?
         Passwords.verify(nil, password)

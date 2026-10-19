@@ -22,8 +22,16 @@ module PartiduoConnect
     # Suspendu par l'exploitation : aucune connexion, sessions fermées.
     field :active, :bool, default: true
     field :last_login_at, :date_time, null: true, blank: true
+    # Fournisseur du cabinet qui authentifie cette personne (ADR-012 D9) et
+    # son identifiant chez lui ; vides pour un compte à facteurs connect.
+    field :upstream, :string, max_size: 64, blank: true, default: ""
+    field :upstream_subject, :string, max_size: 255, blank: true, default: ""
     field :created_at, :date_time, auto_now_add: true
     field :updated_at, :date_time, auto_now: true
+
+    def upstream? : Bool
+      !upstream.to_s.empty?
+    end
 
     def totp_enabled? : Bool
       !totp_secret.nil? && !totp_enabled_at.nil?

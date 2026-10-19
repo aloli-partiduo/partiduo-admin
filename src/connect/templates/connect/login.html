@@ -26,5 +26,17 @@
   </div>
   <button class="button is-link" type="submit">{% translate "connect.login.submit" %}</button>
 </form>
+<p class="pd-or">{% translate "connect.login.or" %}</p>
+<form method="post" action="{% url 'login_sso' %}" novalidate aria-labelledby="pd-sso-title">
+  {% csrf_input %}
+  <input type="hidden" name="next" value="{{ next }}">
+  <h2 id="pd-sso-title" class="title is-6">{% translate "connect.login.sso_title" %}</h2>
+  <p class="pd-muted mb-2">{% translate "connect.login.sso_help" %}</p>
+  <div class="field">
+    <label class="label" for="pd-sso-email">{% translate "connect.login.email" %}</label>
+    <div class="control"><input class="input" id="pd-sso-email" name="email" type="email" value="{{ email }}" autocomplete="username" required></div>
+  </div>
+  <button class="button" type="submit">{% translate "connect.login.sso_submit" %}</button>
+</form>
 <p class="help mt-4">{% translate "connect.login.no_account" %}</p>
 {% endblock content %}

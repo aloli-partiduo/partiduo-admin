@@ -79,6 +79,15 @@ fr:
         subject: "Partiduo : activité sur votre compte"
         when: "Date : %{at}"
     errors:
+      sso:
+        denied: "Le service de connexion de votre cabinet a refusé la connexion."
+        domain: "Cette adresse ne relève pas du service de connexion de ce cabinet."
+        invalid: "La réponse du service de connexion de votre cabinet est invalide."
+        no_mfa: "Votre cabinet n'a pas attesté d'authentification à plusieurs facteurs : activez-la dans son service de connexion."
+        none: "Aucun service de connexion de cabinet n'est déclaré pour cette adresse : connectez-vous avec votre clé d'accès ou votre mot de passe."
+        not_invited: "Pas encore de compte Partiduo pour cette adresse : il se crée depuis une invitation."
+        other_upstream: "Ce compte est déjà lié au service de connexion d'un autre cabinet."
+        unreachable: "Le service de connexion de votre cabinet ne répond pas ; réessayez plus tard."
       email:
         invalid: "Adresse électronique invalide."
         link: "Lien de confirmation inconnu, expiré ou déjà utilisé."
@@ -95,6 +104,7 @@ fr:
         invalid: "Adresse ou mot de passe incorrect."
         locked: "Compte bloqué après trop d'échecs : contactez le support Partiduo."
         wait: "Trop d'essais : réessayez dans %{seconds} secondes."
+        use_sso: "Cette adresse se connecte par le service de votre cabinet : utilisez « Continuer chez mon cabinet »."
       oidc:
         invalid_client: "Application inconnue ou désactivée."
         invalid_redirect_uri: "Adresse de retour non autorisée pour cette application."
@@ -127,6 +137,9 @@ fr:
         invalid: "Invitation inconnue, expirée ou déjà utilisée."
         return_to: "Adresse de retour non autorisée."
     login:
+      sso_help: "Votre cabinet a son propre service de connexion ? Saisissez votre adresse professionnelle : vous serez envoyé chez lui."
+      sso_submit: "Continuer chez mon cabinet"
+      sso_title: "Avec le compte de votre cabinet"
       code: "Code"
       code_help: "Code à six chiffres de votre application, ou code de récupération."
       email: "Adresse électronique"
