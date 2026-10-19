@@ -65,3 +65,20 @@ describe "Administration : connexion par connect (ADR-012 D4)" do
     end
   end
 end
+
+describe "Administration : liaison d'un utilisateur existant à connect (ADR-012 D4)" do
+  it "lie une fois, refuse de relier à une autre identité ou de partager une identité" do
+    user = AdminSpec.user
+    other = AdminSpec.user
+    run = ->(email : String, sub : String) do
+      stdout, stderr = IO::Memory.new, IO::Memory.new
+      PartiduoAdmin::Commands::ConnectLink.new(["--email=#{email}", "--sub=#{sub}"], stdout: stdout, stderr: stderr,
+        exit_raises: true).handle
+      stdout.to_s + stderr.to_s
+    end
+    run.call(user.email.to_s, "sub-1").should contain("lié")
+    PartiduoAdmin::User.get!(id: user.pk).connect_sub.should eq("sub-1")
+    run.call(user.email.to_s, "sub-2").should contain("déjà lié")
+    run.call(other.email.to_s, "sub-1").should contain("déjà liée")
+  end
+end
