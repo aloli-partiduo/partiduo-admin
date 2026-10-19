@@ -4,6 +4,12 @@ require "./spec_helper"
 
 # Fournisseur OpenID Connect (ADR-012 D3, D8).
 describe "connect : OpenID Connect" do
+  it "garde l'origine des formulaires (Referrer-Policy same-origin, jamais no-referrer : Origin null refusé par le CSRF)" do
+    html = ConnectSpec::Browser.new.get("/login").html
+    html.should contain(%(<meta name="referrer" content="same-origin">))
+    html.should_not contain("no-referrer")
+  end
+
   it "publie sa découverte et ses clés" do
     browser = ConnectSpec::Browser.new
     discovery = JSON.parse(browser.get("/.well-known/openid-configuration").content)
