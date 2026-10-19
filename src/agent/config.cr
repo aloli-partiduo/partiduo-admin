@@ -248,8 +248,10 @@ module PartiduoAgent
     # connect : les deux réglages ensemble, en HTTPS (sauf vers la machine
     # elle-même), jeton lisible.
     private def validate_connect! : Nil
-      return if connect_url.empty? && connect_token_file.empty?
-      raise ArgumentError.new("--connect-url et --connect-token-file vont ensemble") if connect_url.empty? || connect_token_file.empty?
+      # `--connect-url=` vide : connect désactivé (le fichier du jeton est
+      # alors ignoré ; la recette beryl passe toujours les deux options).
+      return if connect_url.empty?
+      raise ArgumentError.new("--connect-url exige --connect-token-file") if connect_token_file.empty?
       uri = URI.parse(connect_url)
       host = uri.host.to_s
       local = host == "127.0.0.1" || host == "localhost" || host.ends_with?(".localhost")
