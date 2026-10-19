@@ -4,7 +4,13 @@
 {% block heading %}{% translate "admin.users.title" %}{% endblock heading %}
 {% block actions %}<a class="button is-primary" href="{% url 'user_new' %}">{% translate "admin.users.new" %}</a>{% endblock actions %}
 {% block content %}
-<div class="table-container"><table class="table is-fullwidth is-striped">
+<form method="get" action="{% url 'users' %}" class="pd-inline mb-4" role="search">
+  <div class="field"><label class="label" for="pd-q">{% translate "admin.search" %}</label><div class="control"><input class="input" id="pd-q" name="q" type="search" value="{{ q }}" aria-describedby="pd-q-help"></div><p class="help" id="pd-q-help">{% translate "admin.users.search_help" %}</p></div>
+  <div class="field"><label class="label" for="pd-role">{% translate "admin.users.fields.role" %}</label><div class="select"><select id="pd-role" name="role"><option value="">{% translate "admin.all" %}</option>{% for option in roles %}<option value="{{ option.value }}"{% if option.selected %} selected{% endif %}>{% translate option.key %}</option>{% endfor %}</select></div></div>
+  <div class="field"><label class="label" for="pd-user-state">{% translate "admin.users.fields.state" %}</label><div class="select"><select id="pd-user-state" name="state"><option value="">{% translate "admin.all" %}</option><option value="active"{% if state == "active" %} selected{% endif %}>{% translate "admin.users.active" %}</option><option value="inactive"{% if state == "inactive" %} selected{% endif %}>{% translate "admin.users.inactive" %}</option></select></div></div>
+  <button class="button" type="submit">{% translate "admin.filter" %}</button>
+</form>
+{% if rows %}<div class="table-container"><table class="table is-fullwidth is-striped">
   <caption class="is-sr-only">{% translate "admin.users.title" %}</caption>
   <thead><tr><th scope="col">{% translate "admin.users.fields.email" %}</th><th scope="col">{% translate "admin.users.fields.name" %}</th><th scope="col">{% translate "admin.users.fields.role" %}</th><th scope="col">{% translate "admin.users.fields.firm" %}</th><th scope="col">{% translate "admin.users.fields.state" %}</th><th scope="col"><span class="is-sr-only">{% translate "admin.actions.title" %}</span></th></tr></thead>
   <tbody>{% if rows %}{% for row in rows %}<tr>
@@ -17,4 +23,6 @@
     {% endif %}</td>
   </tr>{% endfor %}{% endif %}</tbody>
 </table></div>
+{% include "admin/_pagination.html" %}
+{% else %}<p class="pd-muted">{% translate "admin.users.none" %}</p>{% endif %}
 {% endblock content %}

@@ -29,6 +29,11 @@ nl:
     edit: "Wijzigen"
     filter: "Filteren"
     search: "Zoeken"
+    pager:
+      label: "Pagina’s"
+      next: "Volgende"
+      position: "Pagina %{number} van %{pages} (%{total} in totaal)"
+      previous: "Vorige"
     reason: "Reden"
     shell:
       aloli_line_1: "Bedrijfsinformatica"
@@ -558,6 +563,8 @@ nl:
       kind: "Soort"
       kind_help: "Kantoor: meerdere medewerkers. Zelfstandige dossierbeheerder: één persoon die al zijn dossiers beheert. Park zonder kantoor: dossiers rechtstreeks beheerd door de superbeheerder (slechts één)."
       team_note: "Tussen haakjes: personen die mogen goedkeuren (beheerders van de structuur; superbeheerders voor het park zonder kantoor)."
+      none: "Geen structuur gevonden."
+      search_help: "Naam, SIREN of e-mailadres."
       kinds:
         cabinet: "Kantoor"
         independent: "Zelfstandige dossierbeheerder"
@@ -565,6 +572,8 @@ nl:
     users:
       signup_code: "Code voor het aanmaken van het Partiduo-account: %{code} — mondeling of telefonisch doorgeven, nooit per e-mail."
       title: "Gebruikers"
+      none: "Geen gebruiker gevonden."
+      search_help: "E-mailadres, voornaam of naam."
       new: "Een gebruiker uitnodigen"
       invite: "Uitnodiging versturen"
       invited: "Uitnodiging verstuurd naar %{email}."

@@ -131,6 +131,30 @@ module PartiduoAdmin
       request.query_params.fetch(name, nil).try(&.to_s) || ""
     end
 
+    # Lignes par page des listes (utilisateurs, structures).
+    PAGE_SIZE = 25
+
+    # Page demandée (`page`) d'une liste, et de quoi la parcourir
+    # (`_pagination.html`) : liens précédent et suivant qui gardent les
+    # autres paramètres de la recherche (`kept`).
+    def paginate(scope : Marten::DB::Query::Set(M), kept : Hash(String, String)) forall M
+      page = scope.paginator(PAGE_SIZE).page(query("page").to_i? || 1)
+      link = ->(number : Int32) do
+        params = kept.reject { |_, value| value.empty? }
+        params["page"] = number.to_s unless number == 1
+        params.empty? ? request.path : "#{request.path}?#{URI::Params.encode(params)}"
+      end
+      pager = {
+        "number"   => page.number.to_s,
+        "pages"    => page.pages_count.to_s,
+        "total"    => page.total_count.to_s,
+        "previous" => page.previous_page? ? link.call(page.number - 1) : "",
+        "next"     => page.next_page? ? link.call(page.number + 1) : "",
+        "several"  => page.pages_count > 1,
+      }
+      {page.to_a, pager}
+    end
+
     def id_param(name : String = "id") : Int64
       params[name].to_s.to_i64
     end

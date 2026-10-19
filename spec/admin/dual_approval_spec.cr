@@ -406,7 +406,9 @@ describe "Écrans de la validation à deux" do
     html.should contain("Gestionnaire indépendant")
     html.should contain("Parc sans cabinet")
     html.should contain("une personne")
-    html.should_not contain(%(<option value="fleet"))
+    # Plus proposé à la création (le filtre de la liste, lui, le garde).
+    creation = html[html.index!(%(id="pd-firm-kind"))..]
+    creation[..creation.index!("</select>")].should_not contain(%(<option value="fleet"))
     fleet = PartiduoAdmin::Firm.filter(kind: "fleet").first!
     browser.get("/").html.should contain("/firms/#{fleet.pk}/approval-mode")
   end

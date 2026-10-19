@@ -1,0 +1,6 @@
+{# SPDX-License-Identifier: AGPL-3.0-or-later. Pagination d'une liste (`pager` de `paginate`) : précédente, position, suivante ; les filtres de la recherche suivent. #}{% if pager.several %}
+<nav class="pd-inline mt-3" aria-label="{% translate 'admin.pager.label' %}">
+  {% if pager.previous %}<a class="button is-small" href="{{ pager.previous }}" rel="prev">{% translate "admin.pager.previous" %}</a>{% endif %}
+  <span class="pd-muted" aria-current="page">{% translate "admin.pager.position" number: pager.number, pages: pager.pages, total: pager.total %}</span>
+  {% if pager.next %}<a class="button is-small" href="{{ pager.next }}" rel="next">{% translate "admin.pager.next" %}</a>{% endif %}
+</nav>{% endif %}

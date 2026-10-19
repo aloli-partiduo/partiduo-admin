@@ -3,6 +3,11 @@
 {% block crumbs %}<li>{% translate "admin.firms.title" %}</li>{% endblock crumbs %}
 {% block heading %}{% translate "admin.firms.title" %}{% endblock heading %}
 {% block content %}
+<form method="get" action="{% url 'firms' %}" class="pd-inline mb-4" role="search">
+  <div class="field"><label class="label" for="pd-q">{% translate "admin.search" %}</label><div class="control"><input class="input" id="pd-q" name="q" type="search" value="{{ q }}" aria-describedby="pd-q-help"></div><p class="help" id="pd-q-help">{% translate "admin.firms.search_help" %}</p></div>
+  <div class="field"><label class="label" for="pd-kind-filter">{% translate "admin.firms.kind" %}</label><div class="select"><select id="pd-kind-filter" name="kind"><option value="">{% translate "admin.all" %}</option>{% for option in kind_options %}<option value="{{ option.value }}"{% if option.selected %} selected{% endif %}>{% translate option.key %}</option>{% endfor %}</select></div></div>
+  <button class="button" type="submit">{% translate "admin.filter" %}</button>
+</form>
 {% if firms %}<div class="table-container mb-2" tabindex="0" role="region" aria-labelledby="pd-firms-caption"><table class="table is-fullwidth is-striped">
   <caption id="pd-firms-caption" class="is-sr-only">{% translate "admin.firms.title" %}</caption>
   <thead><tr><th scope="col">{% translate "admin.firms.name" %}</th><th scope="col">{% translate "admin.firms.kind" %}</th><th scope="col" class="pd-hide-s">{% translate "admin.payers.fields.siren" %}</th><th scope="col">{% translate "admin.dual_approval.title" %}</th><th scope="col">{% translate "admin.encryption.title" %}</th></tr></thead>
@@ -14,7 +19,8 @@
     <td><a href="{% url 'firm_backups' id: row.firm.id %}">{% translate row.firm.backup_encryption_key %}<span class="is-sr-only"> — {{ row.firm.name }}</span></a></td>
   </tr>{% endfor %}</tbody>
 </table></div>
-<p class="help mb-4">{% translate "admin.firms.team_note" %}</p>{% endif %}
+{% include "admin/_pagination.html" %}
+<p class="help mb-4">{% translate "admin.firms.team_note" %}</p>{% else %}<p class="pd-muted mb-4">{% translate "admin.firms.none" %}</p>{% endif %}
 <form method="post" action="{% url 'firms' %}" class="pd-panel" novalidate>
   <h2 class="title is-6">{% translate "admin.firms.new" %}</h2>
   {% csrf_input %}

@@ -7,7 +7,9 @@ module PartiduoAdmin
   class FirmsHandler < ScreenHandler
     def get
       require_fleet!
-      page("admin/firms.html", {"firms" => firms, "kinds" => kinds("cabinet"), "fleet_exists" => fleet_exists?})
+      rows, pager = listing
+      page("admin/firms.html", {"firms" => rows, "pager" => pager, "q" => query("q").strip, "kind_options" => kind_options,
+                                "kinds" => kinds("cabinet"), "fleet_exists" => fleet_exists?})
     end
 
     def post
@@ -18,16 +20,36 @@ module PartiduoAdmin
         flash["success"] = I18n.t("admin.saved")
         return redirect("/firms")
       end
-      page("admin/firms.html", {"firms" => firms, "errors" => translate(outcome.errors), "kinds" => kinds(kind),
+      rows, pager = listing
+      page("admin/firms.html", {"firms" => rows, "pager" => pager, "q" => query("q").strip, "kind_options" => kind_options,
+                                "errors" => translate(outcome.errors), "kinds" => kinds(kind),
                                 "fleet_exists" => fleet_exists?, "name" => field("name"), "siren" => field("siren"),
                                 "email" => field("email")}, status: 422)
     end
 
-    private def firms
-      Firm.all.order("name").to_a.map do |firm|
+    # Structures cherchées (nom, SIREN, adresse) et filtrées par nature,
+    # page par page.
+    private def listing
+      search = query("q").strip
+      kind = query("kind")
+      scope = Firm.all.order("name")
+      scope = scope.filter(kind: kind) if Firm::KINDS.includes?(kind)
+      unless search.empty?
+        siren = search.gsub(/\s/, "")
+        scope = scope.filter { q(name__icontains: search) | q(siren__icontains: siren) | q(email__icontains: search) }
+      end
+      firms, pager = paginate(scope, {"q" => search, "kind" => kind})
+      rows = firms.map do |firm|
         {"firm" => firm, "mode_key" => "admin.dual_approval.modes.#{ApprovalMode.mode(firm)}",
          "team" => ApprovalMode.team_size(firm)}
       end
+      {rows, pager}
+    end
+
+    # Filtre par nature (liste).
+    private def kind_options
+      kind = query("kind")
+      Firm::KINDS.map { |code| {"value" => code, "key" => "admin.firms.kinds.#{code}", "selected" => code == kind} }
     end
 
     private def kinds(selected : String)
@@ -39,12 +61,24 @@ module PartiduoAdmin
     end
   end
 
+  # Utilisateurs de la portée, cherchés (adresse, prénom, nom) et filtrés
+  # par rôle et par état, page par page.
   class UsersHandler < ScreenHandler
     def get
       require_admin!
-      users = Access.users(user).order("email").to_a
+      search = query("q").strip
+      role = query("role")
+      state = query("state")
+      scope = Access.users(user).order("email")
+      scope = scope.filter(role: role) if Config::ROLES.includes?(role)
+      scope = scope.filter(active: state == "active") if %w[active inactive].includes?(state)
+      unless search.empty?
+        scope = scope.filter { q(email__icontains: search) | q(first_name__icontains: search) | q(last_name__icontains: search) }
+      end
+      users, pager = paginate(scope, {"q" => search, "role" => role, "state" => state})
       rows = users.map { |target| {"user" => target, "manage" => Access.can_manage_user?(user, target) && target.pk != user.pk} }
-      page("admin/users.html", {"rows" => rows})
+      roles = Config::ROLES.map { |code| {"value" => code, "key" => "admin.roles.#{code}", "selected" => code == role} }
+      page("admin/users.html", {"rows" => rows, "pager" => pager, "q" => search, "state" => state, "roles" => roles})
     end
   end
 

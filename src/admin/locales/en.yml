@@ -29,6 +29,11 @@ en:
     edit: "Edit"
     filter: "Filter"
     search: "Search"
+    pager:
+      label: "Pages"
+      next: "Next"
+      position: "Page %{number} of %{pages} (%{total} in total)"
+      previous: "Previous"
     reason: "Reason"
     shell:
       aloli_line_1: "Business IT"
@@ -558,6 +563,8 @@ en:
       kind: "Type"
       kind_help: "Firm: several team members. Independent manager: a single person managing all their files. Fleet without a firm: files managed directly by the super admin (only one)."
       team_note: "In brackets: people entitled to approve (the organisation's admins; super admins for the fleet without a firm)."
+      none: "No organisation matches."
+      search_help: "Name, SIREN or email address."
       kinds:
         cabinet: "Firm"
         independent: "Independent manager"
@@ -565,6 +572,8 @@ en:
     users:
       signup_code: "Partiduo account creation code: %{code} — give it in person or by phone, never by email."
       title: "Users"
+      none: "No user matches."
+      search_help: "Email address, first name or last name."
       new: "Invite a user"
       invite: "Send the invitation"
       invited: "Invitation sent to %{email}."

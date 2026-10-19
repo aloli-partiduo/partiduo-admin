@@ -29,6 +29,11 @@ fr:
     edit: "Modifier"
     filter: "Filtrer"
     search: "Rechercher"
+    pager:
+      label: "Pages"
+      next: "Suivante"
+      position: "Page %{number} sur %{pages} (%{total} au total)"
+      previous: "Précédente"
     reason: "Motif"
     shell:
       aloli_line_1: "L'informatique d'entreprise"
@@ -558,6 +563,8 @@ fr:
       kind: "Nature"
       kind_help: "Cabinet : plusieurs collaborateurs. Gestionnaire indépendant : une seule personne qui gère tous ses dossiers. Parc sans cabinet : dossiers gérés directement par le super-admin (un seul)."
       team_note: "Entre parenthèses : personnes habilitées à valider (admins de la structure ; super-admins pour le parc sans cabinet)."
+      none: "Aucune structure ne correspond."
+      search_help: "Nom, SIREN ou adresse."
       kinds:
         cabinet: "Cabinet"
         independent: "Gestionnaire indépendant"
@@ -565,6 +572,8 @@ fr:
     users:
       signup_code: "Code de création du compte Partiduo : %{code} — à transmettre de vive voix ou par téléphone, jamais par courriel."
       title: "Utilisateurs"
+      none: "Aucun utilisateur ne correspond."
+      search_help: "Adresse, prénom ou nom."
       new: "Inviter un utilisateur"
       invite: "Envoyer l'invitation"
       invited: "Invitation envoyée à %{email}."
