@@ -268,4 +268,15 @@ module PartiduoConnect
       true
     end
   end
+
+  module Clients
+    # Applications où ce compte s'est déjà connecté par connect
+    # (administration, dossiers), pour la page du compte. connect ne connaît
+    # pas les droits (ADR-012 D1) : seulement l'usage passé.
+    def self.used_by(account : Account) : Array(Client)
+      ids = AuthorizationCode.filter(account_id: account.pk).pluck(:client_id).flatten.compact.uniq!
+      return [] of Client if ids.empty?
+      Client.filter(id__in: ids, active: true).order(:name).to_a
+    end
+  end
 end

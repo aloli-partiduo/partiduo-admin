@@ -6,6 +6,14 @@
 {% if missing %}<div class="notification is-warning is-light" role="status"><p>{% translate "connect.account.missing" %}</p><ul class="pd-list">{% for item in missing %}<li>{% translate item %}</li>{% endfor %}</ul></div>{% endif %}
 {% if next %}<form method="post" action="{% url 'account_continue' %}" class="mb-4">{% csrf_input %}<input type="hidden" name="next" value="{{ next_field }}"><button class="button is-primary is-fullwidth" type="submit">{% translate "connect.account.continue" %}</button></form>{% endif %}
 
+{% if apps %}
+<section class="pd-panel" aria-labelledby="pd-apps-title">
+  <h2 id="pd-apps-title">{% translate "connect.account.apps_title" %}</h2>
+  <ul class="pd-apps">{% for app in apps %}<li><a class="button is-link is-light" href="{{ app.url }}">{{ app.name }}</a></li>{% endfor %}</ul>
+  <p class="help mt-2">{% translate "connect.account.apps_help" %}</p>
+</section>
+{% endif %}
+
 <section class="pd-panel" aria-labelledby="pd-identity-title">
   <h2 id="pd-identity-title">{% translate "connect.account.identity" %}</h2>
   <dl class="pd-dl">

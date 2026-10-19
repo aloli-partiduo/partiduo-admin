@@ -47,6 +47,16 @@ module PartiduoConnect
       false
     end
 
+    # Page d'accueil de l'application : l'origine de sa première adresse de
+    # retour (`https://pipo.partiduo.dev/`).
+    def home_url : String?
+      uri = URI.parse(redirect_uri_list.first? || return)
+      port = uri.port.try { |value| ":#{value}" }
+      "#{uri.scheme}://#{uri.host}#{port}/"
+    rescue URI::Error
+      nil
+    end
+
     private def split(value : String) : Array(String)
       value.split(/[\s,]+/).map(&.strip).reject(&.empty?)
     end

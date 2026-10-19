@@ -162,3 +162,4 @@ fieldset.pd-fieldset legend { font-weight: 600; margin-block-end: .35rem; }
    ouverte), langue. */
 .pd-auth-tools { display: flex; flex-wrap: wrap; gap: .6rem; align-items: center; justify-content: flex-end; align-self: flex-end; }
 .pd-auth-tools form { align-self: auto; }
+.pd-apps { display: flex; flex-wrap: wrap; gap: .5rem; }

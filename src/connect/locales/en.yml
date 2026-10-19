@@ -13,6 +13,8 @@ en:
       intro: "This software is free, under the GNU AGPL-3.0 or later. Its source code is published here:"
       title: "Components and licenses"
     account:
+      apps_help: "The applications you have already signed in to with this account. A file you have just been invited to appears after your first sign-in, from the invitation link."
+      apps_title: "My applications"
       added: "added on"
       confirmation: "Confirmation"
       continue: "Continue"

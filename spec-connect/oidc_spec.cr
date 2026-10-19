@@ -4,6 +4,17 @@ require "./spec_helper"
 
 # Fournisseur OpenID Connect (ADR-012 D3, D8).
 describe "connect : OpenID Connect" do
+  it "liste sur la page du compte les applications où il s'est déjà connecté, avec leur lien" do
+    account = ConnectSpec.account
+    registered = ConnectSpec.client
+    browser = ConnectSpec.signed_in(account)
+    browser.get("/account").html.should_not contain("Mes applications")
+    browser.get(ConnectSpec.authorize_path(registered.client, ConnectSpec.verifier))
+    html = browser.get("/account").html
+    html.should contain("Mes applications")
+    html.should contain(%(href="#{registered.client.redirect_uri_list.first.sub("/auth/callback", "/")}"))
+  end
+
   it "propose « Se déconnecter » en haut des pages quand une session est ouverte" do
     ConnectSpec::Browser.new.get("/login").html.should_not contain(%(action="/logout"))
     browser = ConnectSpec.signed_in(ConnectSpec.account)

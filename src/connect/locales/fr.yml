@@ -13,6 +13,8 @@ fr:
       intro: "Ce logiciel est libre, sous licence GNU AGPL-3.0 ou ultérieure. Son code source est publié ici :"
       title: "Composants et licences"
     account:
+      apps_help: "Les applications où vous vous êtes déjà connecté avec ce compte. Un dossier auquel vous venez d'être invité apparaît après votre première connexion, depuis le lien de l'invitation."
+      apps_title: "Mes applications"
       added: "ajoutée le"
       confirmation: "Confirmation"
       continue: "Continuer"

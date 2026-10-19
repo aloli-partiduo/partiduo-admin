@@ -13,6 +13,8 @@ nl:
       intro: "Deze software is vrij, onder de GNU AGPL-3.0 of later. De broncode staat hier:"
       title: "Componenten en licenties"
     account:
+      apps_help: "De toepassingen waarbij u zich al met dit account hebt aangemeld. Een dossier waarvoor u net bent uitgenodigd, verschijnt na uw eerste aanmelding via de uitnodigingslink."
+      apps_title: "Mijn toepassingen"
       added: "toegevoegd op"
       confirmation: "Bevestiging"
       continue: "Doorgaan"

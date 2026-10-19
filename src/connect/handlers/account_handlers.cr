@@ -40,6 +40,11 @@ module PartiduoConnect
     end
   end
 
+  # Application où le compte s'est déjà connecté (lien de la page du compte).
+  record AppLink, name : String, url : String do
+    include Marten::Template::Object::Auto
+  end
+
   class AccountHandler < AccountScreenHandler
     def get
       current = account
@@ -59,6 +64,7 @@ module PartiduoConnect
         "journal"     => elevated? ? Audit.for(current) : nil,
         "next"        => complete && elevated? ? continue_target : nil,
         "next_field"  => query("next").presence,
+        "apps"        => Clients.used_by(current).compact_map { |client| client.home_url.try { |url| AppLink.new(client.name.to_s, url) } },
         "next_query"  => query("next").presence.try { |value| "?next=#{URI.encode_www_form(value)}" },
       })
     end
