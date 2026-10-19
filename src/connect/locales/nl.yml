@@ -187,7 +187,7 @@ nl:
       code_help: "Een van de codes die bij het aanmaken van uw account werden getoond (elk één keer bruikbaar)."
       done: "U bent aangemeld met een herstelcode: registreer nu een nieuwe toegangssleutel en genereer uw codes opnieuw."
       intro: "Voer uw e-mailadres en een van uw herstelcodes in: u kunt dan een nieuwe toegangssleutel registreren."
-      no_codes: "Ook geen codes meer? Vraag de Partiduo-support om uw account te herstellen: u krijgt een link per e-mail en een code via een ander kanaal."
+      no_codes: "Geen toegangssleutel en geen herstelcode meer? Online herstel is niet mogelijk: neem contact op met uw beheerder (van uw kantoor of uw dossier). Alleen die kan uw uitnodiging opnieuw laten versturen, nadat is nagegaan dat u het werkelijk bent."
       submit: "Toegang herstellen"
       title: "Toegangssleutel kwijt"
     save: "Opslaan"

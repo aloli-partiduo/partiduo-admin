@@ -187,7 +187,7 @@ fr:
       code_help: "L'un des codes affichés à la création de votre compte (une seule fois chacun)."
       done: "Vous êtes connecté avec un code de récupération : enregistrez maintenant une nouvelle clé d'accès, et régénérez vos codes."
       intro: "Saisissez votre adresse et l'un de vos codes de récupération : vous pourrez enregistrer une nouvelle clé d'accès."
-      no_codes: "Plus de codes non plus ? Demandez la récupération de votre compte au support Partiduo : vous recevrez un lien par courriel et un code par un autre canal."
+      no_codes: "Plus de clé d'accès ni de code de récupération ? Aucune récupération n'est possible en ligne : contactez votre administrateur (celui de votre cabinet ou de votre dossier). Lui seul peut faire relancer votre invitation, après avoir vérifié qu'il s'agit bien de vous."
       submit: "Récupérer l'accès"
       title: "Clé d'accès perdue"
     save: "Enregistrer"

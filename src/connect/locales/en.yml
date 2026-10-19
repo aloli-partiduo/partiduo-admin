@@ -187,7 +187,7 @@ en:
       code_help: "One of the codes shown when your account was created (each works once)."
       done: "You signed in with a recovery code: register a new passkey now, and regenerate your codes."
       intro: "Enter your email address and one of your recovery codes: you will be able to register a new passkey."
-      no_codes: "No codes left either? Ask Partiduo support to recover your account: you will receive a link by email and a code through another channel."
+      no_codes: "No passkey and no recovery code left? No recovery is possible online: contact your administrator (of your firm or of your file). Only they can have your invitation sent again, after checking that it is really you."
       submit: "Recover access"
       title: "Lost passkey"
     save: "Save"
