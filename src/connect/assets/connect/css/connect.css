@@ -143,7 +143,10 @@ fieldset.pd-fieldset legend { font-weight: 600; margin-block-end: .35rem; }
 .pd-auth-credit { font-size: 1.6rem; font-weight: 600; font-style: italic; color: var(--pd-muted); white-space: nowrap; }
 .pd-auth-aloli { justify-self: end; display: flex; align-items: center; gap: .6rem; color: var(--pd-muted); font-size: .85rem; line-height: 1.3; text-decoration: none; }
 .pd-auth-aloli:hover, .pd-auth-aloli:focus-visible { color: var(--pd-ink); text-decoration: underline; }
-.pd-auth-aloli img { width: auto; height: 3.5rem; }
+/* Logo d'ALOLI (mot « ALoli » d'aloli.fr, police Explora convertie en
+   tracés : rien à charger) à la hauteur du logo de Partiduo ; proportions
+   178 × 66. */
+.pd-auth-aloli img { width: 9.45rem; height: 3.5rem; flex: none; }
 @media (max-width: 720px) {
   .pd-auth-banner { grid-template-columns: 1fr; justify-items: center; text-align: center; gap: .5rem; }
   .pd-auth-banner .pd-auth-brand, .pd-auth-aloli { justify-self: center; }
