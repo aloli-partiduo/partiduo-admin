@@ -46,7 +46,7 @@ shards:
 
   marten-mail:
     git: https://github.com/aloli-crystal/marten-mail.git
-    version: 0.1.1+git.commit.cbd71332d87c756722678d23e91c3308604575a5
+    version: 0.1.3+git.commit.f6e84454995d1b47e4557f9cbcc1c9790806f8e2
 
   msgpack:
     git: https://github.com/crystal-community/msgpack-crystal.git
