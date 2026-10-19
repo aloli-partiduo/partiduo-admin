@@ -7,6 +7,9 @@
   <body class="pd-auth-body">
     <a class="pd-skip" href="#pd-main">{% translate "connect.shell.skip" %}</a>
     <header class="pd-auth-top">
+      <div class="pd-auth-tools">
+      {% if current_account %}<span class="pd-muted is-size-7">{{ current_account.email }}</span>
+      <form method="post" action="{% url 'logout' %}">{% csrf_input %}<button class="button is-small" type="submit">{% translate "connect.logout.submit" %}</button></form>{% endif %}
       <form method="post" action="{% url 'language' %}">
         {% csrf_input %}
         <input type="hidden" name="next" value="{{ current_path }}">
@@ -14,6 +17,7 @@
         <div class="select is-small"><select id="pd-lang" name="locale">{% for code in locales %}<option value="{{ code }}" lang="{{ code }}"{% if code == locale %} selected{% endif %}>{{ code|upcase }}</option>{% endfor %}</select></div>
         <button class="button is-small" type="submit">{% translate "connect.shell.apply" %}</button>
       </form>
+      </div>
       <div class="pd-auth-banner">
         <div class="pd-auth-brand"><img class="pd-logo" src="{% asset 'connect/brand/logo.svg' %}" alt="" width="56" height="56"><span><b class="pd-name">Parti<span>duo</span></b><small>{% translate "connect.shell.tagline" %}</small></span></div>
         <p class="pd-auth-credit">{% translate "connect.shell.credit" %}</p>

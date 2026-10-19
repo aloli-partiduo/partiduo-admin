@@ -4,6 +4,13 @@ require "./spec_helper"
 
 # Fournisseur OpenID Connect (ADR-012 D3, D8).
 describe "connect : OpenID Connect" do
+  it "propose « Se déconnecter » en haut des pages quand une session est ouverte" do
+    ConnectSpec::Browser.new.get("/login").html.should_not contain(%(action="/logout"))
+    browser = ConnectSpec.signed_in(ConnectSpec.account)
+    html = browser.get("/account").html
+    html.index!(%(action="/logout")).should be < html.index!("pd-auth-banner")
+  end
+
   it "garde l'origine des formulaires (Referrer-Policy same-origin, jamais no-referrer : Origin null refusé par le CSRF)" do
     html = ConnectSpec::Browser.new.get("/login").html
     html.should contain(%(<meta name="referrer" content="same-origin">))

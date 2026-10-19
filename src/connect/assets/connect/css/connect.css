@@ -157,3 +157,8 @@ fieldset.pd-fieldset legend { font-weight: 600; margin-block-end: .35rem; }
 .pd-foot { padding: 1rem; text-align: center; font-size: .85rem; color: var(--pd-muted); }
 .pd-foot a { color: inherit; text-decoration: underline; }
 .pd-licences { max-height: 60vh; overflow: auto; font-size: .75rem; white-space: pre-wrap; }
+
+/* Barre d'outils en haut à droite : adresse et déconnexion (session
+   ouverte), langue. */
+.pd-auth-tools { display: flex; flex-wrap: wrap; gap: .6rem; align-items: center; justify-content: flex-end; align-self: flex-end; }
+.pd-auth-tools form { align-self: auto; }
