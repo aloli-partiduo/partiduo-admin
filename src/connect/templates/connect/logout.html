@@ -1,0 +1,11 @@
+{# SPDX-License-Identifier: AGPL-3.0-or-later. Déconnexion unique (ADR-012 D8) : ferme la session et celles des dossiers ouverts par elle. #}{% extend "connect/base.html" %}
+{% block title %}{% translate "connect.logout.title" %}{% endblock title %}
+{% block content %}
+<h1 class="pd-auth-title">{% translate "connect.logout.title" %}</h1>
+<p class="mb-3">{% translate "connect.logout.intro" %}</p>
+<form method="post" action="{% url 'logout' %}">
+  {% csrf_input %}
+  {% for key, value in params %}<input type="hidden" name="{{ key }}" value="{{ value }}">{% endfor %}
+  <button class="button is-primary" type="submit">{% translate "connect.logout.submit" %}</button>
+</form>
+{% endblock content %}

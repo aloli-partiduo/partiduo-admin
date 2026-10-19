@@ -1,0 +1,6 @@
+{# SPDX-License-Identifier: AGPL-3.0-or-later. Après la déconnexion, sans adresse de retour. #}{% extend "connect/base.html" %}
+{% block title %}{% translate "connect.logout.done" %}{% endblock title %}
+{% block content %}
+<h1 class="pd-auth-title">{% translate "connect.logout.done" %}</h1>
+<a class="button" href="{% url 'login' %}">{% translate "connect.login.title" %}</a>
+{% endblock content %}

@@ -1,0 +1,14 @@
+{# SPDX-License-Identifier: AGPL-3.0-or-later. Élévation exigée par un client (acr 3) : passkey. #}{% extend "connect/base.html" %}
+{% block title %}{% translate "connect.step_up.title" %}{% endblock title %}
+{% block content %}
+<h1 class="pd-auth-title">{% translate "connect.step_up.title" %}</h1>
+{% if client %}<p class="pd-client">{% translate "connect.login.for_client" name: client.name %}</p>{% endif %}
+{% if has_passkey %}
+<p class="mb-3">{% translate "connect.step_up.intro" %}</p>
+<button type="button" class="button is-primary is-fullwidth" data-passkey="elevate" data-options-url="{% url 'elevate_options' %}" data-submit-url="{% url 'elevate' %}" data-next="{{ next }}" data-status="pd-step-status">{% translate "connect.login.passkey_button" %}</button>
+<p class="help" id="pd-step-status" role="status" aria-live="polite" data-unsupported="{% translate 'connect.passkey.unsupported' %}" data-failed="{% translate 'connect.passkey.failed' %}" data-waiting="{% translate 'connect.passkey.waiting' %}"></p>
+{% else %}
+<p class="mb-3">{% translate "connect.step_up.no_passkey" %}</p>
+<a class="button is-primary" href="{{ account_url }}">{% translate "connect.account.title" %}</a>
+{% endif %}
+{% endblock content %}

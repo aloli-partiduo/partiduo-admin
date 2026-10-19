@@ -1,7 +1,8 @@
 # SPDX-License-Identifier: AGPL-3.0-or-later
 #
-# CI de partiduo-admin : format, Ameba, compilation des trois binaires
-# (administration, ligne de commande, exécutant), specs sur PostgreSQL.
+# CI de partiduo-admin : format, Ameba, compilation des cinq binaires
+# (administration et sa ligne de commande, exécutant, connect et sa ligne de
+# commande), specs sur PostgreSQL (administration, puis connect à part).
 name: CI
 
 on:
@@ -23,7 +24,7 @@ jobs:
       - name: Verrou sans dépendance « path » (exigé par les ports FreeBSD)
         run: "! grep -q 'path:' shard.lock"
       - name: Format
-        run: crystal tool format --check src spec config scripts manage.cr
+        run: crystal tool format --check src spec spec-connect config scripts manage.cr connect_manage.cr
       - name: Aucune mention du logiciel d'origine hors documentation
         run: |
           git config --global --add safe.directory "$GITHUB_WORKSPACE"
@@ -86,7 +87,13 @@ jobs:
           age --version
       - name: Shards
         run: shards install
-      - name: Compilation (partiduo-admin, partiduo-admin-manage, partiduo-agent)
+      - name: Compilation (partiduo-admin, partiduo-admin-manage, partiduo-agent, partiduo-connect, partiduo-connect-manage)
         run: shards build --no-debug --link-flags=-fuse-ld=lld
-      - name: Specs
+      - name: Specs de l'administration
         run: crystal spec --order random --no-debug --threads 1 --link-flags=-fuse-ld=lld
+      - name: Specs de connect (ADR-012), sur leur propre base
+        env:
+          DATABASE_URL: postgres://partiduo:partiduo@localhost:5432/partiduo_connect_test
+        run: |
+          createdb partiduo_connect_test
+          crystal spec spec-connect --order random --no-debug --threads 1 --link-flags=-fuse-ld=lld

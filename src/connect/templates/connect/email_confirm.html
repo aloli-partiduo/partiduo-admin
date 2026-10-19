@@ -1,0 +1,7 @@
+{# SPDX-License-Identifier: AGPL-3.0-or-later. Confirmation d'un changement d'adresse (ADR-012 D8). #}{% extend "connect/base.html" %}
+{% block title %}{% translate "connect.account.email_title" %}{% endblock title %}
+{% block content %}
+<h1 class="pd-auth-title">{% translate "connect.account.email_title" %}</h1>
+<p class="mb-3">{% translate "connect.account.email_confirm_intro" %}</p>
+<form method="post" action="{% url 'account_email_confirm' token: token %}">{% csrf_input %}<button class="button is-primary" type="submit">{% translate "connect.account.email_confirm" %}</button></form>
+{% endblock content %}

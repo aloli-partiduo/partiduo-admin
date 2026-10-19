@@ -1,0 +1,7 @@
+{# SPDX-License-Identifier: AGPL-3.0-or-later. Page d'erreur. #}{% extend "connect/base.html" %}
+{% block title %}{% translate title_key %}{% endblock title %}
+{% block content %}
+<h1 class="pd-auth-title">{% translate title_key %}</h1>
+<p class="mb-3">{% translate message_key %}</p>
+<a class="button" href="{% url 'account' %}">{% translate "connect.account.title" %}</a>
+{% endblock content %}

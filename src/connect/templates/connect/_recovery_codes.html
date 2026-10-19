@@ -1,0 +1,9 @@
+{# SPDX-License-Identifier: AGPL-3.0-or-later. Codes de récupération, affichés une seule fois (ADR-002 D7) : un seul jeu pour tous les dossiers (ADR-012 D1). #}
+<h1 class="pd-auth-title" tabindex="-1">{% translate "connect.account.recovery_title" %}</h1>
+<p class="mb-3" role="status">{% translate "connect.account.recovery_once" host: host %}</p>
+<ul class="pd-codes mb-3" id="pd-codes">{% for code in codes %}<li>{{ code }}</li>{% endfor %}</ul>
+<div class="buttons">
+  <button type="button" class="button" data-copy-target="pd-codes" data-copied-label="{% translate 'connect.copy.done' %}" data-failed-label="{% translate 'connect.copy.failed' %}">{% translate "connect.copy.label" %}</button>
+  {% if next %}<form method="post" action="{% url 'account_continue' %}">{% csrf_input %}<input type="hidden" name="next" value="{{ next }}"><button class="button is-primary" type="submit">{% translate "connect.account.continue" %}</button></form>
+  {% else %}<a class="button is-primary" href="{% url 'account' %}">{% translate "connect.account.done" %}</a>{% endif %}
+</div>

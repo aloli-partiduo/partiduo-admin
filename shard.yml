@@ -1,5 +1,5 @@
 name: partiduo-admin
-version: 0.1.21
+version: 0.1.22
 
 description: |
   Administration du parc de dossiers Partiduo (ADR-008) : cabinets,
@@ -9,7 +9,7 @@ description: |
   accès aux données comptables des dossiers (ADR-008 D3).
 
 authors:
-  - Philippe Nénert <it+claude.ai@aloli.fr>
+  - Philippe Nénert <philippe@aloli.fr>
 
 crystal: ">= 1.19.1"
 
@@ -22,6 +22,11 @@ targets:
     main: manage.cr
   partiduo-agent:
     main: src/agent.cr
+  # Fournisseur d'identité commun aux dossiers (ADR-012), déployé à part.
+  partiduo-connect:
+    main: src/connect.cr
+  partiduo-connect-manage:
+    main: connect_manage.cr
 
 dependencies:
   marten:

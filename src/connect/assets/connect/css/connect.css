@@ -1,0 +1,135 @@
+/* SPDX-License-Identifier: AGPL-3.0-or-later
+   Mise en page de connect (ADR-012), reprise de partiduo-admin : pages
+   d'accès centrées, panneaux du compte. Couleurs et polices : theme.css. */
+
+html { background: var(--pd-ground); }
+body { color: var(--pd-ink); font-family: var(--bulma-family-primary); }
+:focus-visible { outline: 2px solid var(--pd-focus); outline-offset: 2px; }
+.pd-side :focus-visible { outline-color: var(--pd-focus-on-dark); }
+.pd-mono { font-family: var(--bulma-family-code); font-variant-numeric: tabular-nums; }
+.pd-muted { color: var(--pd-muted); }
+
+.pd-skip { position: absolute; inset-inline-start: .5rem; inset-block-start: -3rem; z-index: 100; background: var(--pd-surface);
+  padding: .5rem 1rem; border-radius: var(--bulma-radius); }
+.pd-skip:focus { inset-block-start: .5rem; }
+
+.pd-app { display: grid; grid-template-columns: 15rem minmax(0, 1fr); grid-template-rows: auto 1fr; min-height: 100vh; }
+.pd-top { grid-column: 1 / -1; display: flex; align-items: center; gap: .75rem 1rem; flex-wrap: wrap;
+  background: var(--pd-surface); border-block-end: 1px solid var(--pd-rule); padding: .6rem 1rem; }
+/* Marque : symbole (dessiné sur la grille de 32 px, net à cette taille) et
+   nom en texte, « Parti » et « duo » aux couleurs de l'identité. Le symbole
+   est décoratif (alt="") : le nom suffit aux lecteurs d'écran. */
+.pd-brand { display: flex; align-items: center; gap: .5rem; color: var(--pd-ink); letter-spacing: -.01em; }
+.pd-brand:hover { color: var(--pd-ink); }
+.pd-logo { display: block; flex: none; width: 2rem; height: 2rem; }
+.pd-name { font-weight: 600; font-size: 1.2rem; line-height: 1; color: var(--pd-brand-parti); letter-spacing: -.02em; }
+.pd-name span { color: var(--pd-brand-duo); }
+.pd-brand small { font-weight: 400; color: var(--pd-muted); font-size: .8rem; align-self: flex-end; padding-block-end: .15rem; }
+.pd-grow { flex: 1; }
+.pd-top form { display: flex; gap: .4rem; align-items: center; }
+.pd-user { display: flex; gap: .5rem; align-items: center; font-size: .9rem; }
+
+.pd-side { background: var(--pd-sidebar); color: var(--pd-sidebar-text); padding: 1rem .75rem; }
+.pd-side .menu-label { color: var(--pd-sidebar-text); opacity: .85; font-size: .68rem; letter-spacing: .08em; margin-block-start: 1.1rem; }
+.pd-side .menu-list a { background: transparent; color: var(--pd-sidebar-text); border-radius: var(--bulma-radius); display: flex; justify-content: space-between;
+  gap: .5rem; min-height: 40px; align-items: center; }
+.pd-side .menu-list a:hover { background: var(--pd-sidebar-active-bg); color: var(--pd-sidebar-active); }
+.pd-side .menu-list a.is-active { background: var(--pd-sidebar-active-bg); color: var(--pd-sidebar-active); font-weight: 600;
+  box-shadow: inset 3px 0 0 #7fd0e2; }
+.pd-count { background: #7fd0e2; color: #0b2a32; border-radius: 999px; padding: 0 .5rem; font-size: .75rem; font-weight: 600; }
+
+.pd-main { padding: 1.25rem 1.5rem 3rem; min-width: 0; }
+.pd-main:focus { outline: none; }
+.pd-head { display: flex; justify-content: space-between; align-items: flex-end; gap: 1rem; flex-wrap: wrap; margin-block-end: 1.25rem; }
+.pd-head h1 { font-size: 1.5rem; font-weight: 600; color: var(--pd-ink); }
+.pd-crumb { font-size: .8rem; color: var(--pd-muted); margin-block-end: .2rem; }
+.pd-crumb ol { display: flex; flex-wrap: wrap; list-style: none; margin: 0; padding: 0; }
+.pd-crumb li + li::before { content: "/"; margin-inline: .4rem; }
+.pd-crumb a { color: var(--pd-muted); text-decoration: underline; text-underline-offset: 2px; }
+
+.pd-panel { background: var(--pd-surface); border: 1px solid var(--pd-rule); border-radius: var(--bulma-radius); padding: 1rem 1.25rem;
+  margin-block-end: 1.25rem; }
+.pd-panel > h2 { font-size: 1.05rem; font-weight: 600; margin-block-end: .75rem; }
+.pd-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(18rem, 1fr)); gap: 1.25rem; }
+.pd-kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr)); gap: .75rem; }
+.pd-kpi { background: var(--pd-surface); border: 1px solid var(--pd-rule); border-radius: var(--bulma-radius); padding: .75rem 1rem; }
+.pd-kpi strong { display: block; font-size: 1.6rem; font-variant-numeric: tabular-nums; }
+.pd-dl { display: grid; grid-template-columns: max-content 1fr; gap: .35rem 1rem; }
+.pd-dl dt { color: var(--pd-muted); }
+.pd-dl dd { margin: 0; overflow-wrap: anywhere; }
+.table { background: var(--pd-surface); }
+.table-container { position: relative; border: 1px solid var(--pd-rule); border-radius: var(--bulma-radius); }
+.table th { white-space: nowrap; }
+.pd-log { background: #0b2a32; color: #e3eced; font-family: var(--bulma-family-code); font-size: .8rem; padding: .75rem;
+  border-radius: var(--bulma-radius); max-height: 32rem; overflow: auto; white-space: pre-wrap; }
+.pd-actions form { display: inline; }
+.pd-inline { display: flex; gap: .5rem; flex-wrap: wrap; align-items: flex-end; }
+.pd-inline .field { margin-block-end: 0; }
+.pd-token { font-family: var(--bulma-family-code); font-size: 1rem; padding: .75rem; background: var(--pd-warn-bg); color: var(--pd-ink);
+  border-radius: var(--bulma-radius); overflow-wrap: anywhere; }
+.pd-required { color: var(--pd-gap); }
+.pd-state { display: inline-block; padding: 0 .5rem; border-radius: 999px; font-size: .8rem; font-weight: 600; background: var(--pd-row-alt); }
+.pd-state-active, .pd-state-succeeded, .pd-state-done, .pd-state-verified, .pd-state-approved, .pd-state-running.pd-service { background: var(--pd-ok-bg); color: var(--pd-ok); }
+.pd-state-error, .pd-state-failed, .pd-state-rejected, .pd-state-danger { background: var(--pd-gap-bg); color: var(--pd-gap); }
+.pd-state-suspended, .pd-state-pending, .pd-state-creating, .pd-state-warning { background: var(--pd-warn-bg); color: var(--pd-warn); }
+fieldset.pd-fieldset { border: 0; padding: 0; margin: 0 0 .75rem; }
+fieldset.pd-fieldset legend { font-weight: 600; margin-block-end: .35rem; }
+.pd-checks { display: flex; flex-wrap: wrap; gap: .25rem 1.25rem; }
+.pd-checks label { min-height: 32px; display: inline-flex; align-items: center; gap: .35rem; }
+
+/* Chiffrement des sauvegardes : choix du mode, empreintes, messages des scripts. */
+.pd-choices { display: grid; gap: .5rem; margin-block-end: .5rem; }
+.pd-choice { display: flex; gap: .6rem; align-items: flex-start; min-height: 44px; padding: .5rem .75rem;
+  border: 1px solid var(--pd-rule); border-radius: var(--bulma-radius); cursor: pointer; }
+.pd-choice input { margin-block-start: .3rem; }
+.pd-choice:has(input:checked) { border-color: var(--pd-focus); background: var(--pd-row-alt); }
+.pd-choice.is-disabled { cursor: not-allowed; opacity: .75; }
+.pd-choice-help { display: block; color: var(--pd-muted); font-size: .88rem; }
+.pd-fingerprint { overflow-wrap: anywhere; letter-spacing: .02em; }
+.pd-status:empty { display: none; }
+.pd-status.is-error { color: var(--pd-gap); }
+.pd-row-actions { display: flex; flex-wrap: wrap; gap: .35rem; }
+.pd-row-actions form { display: inline; }
+
+/* Validation à deux au choix (D-VAL2-001) : pastille du mode, listes des protections. */
+.pd-mode { display: inline-block; padding: 0 .5rem; border-radius: 999px; font-size: .8rem; font-weight: 600;
+  background: var(--pd-row-alt); color: var(--pd-ink); border: 1px solid var(--pd-rule); }
+.pd-mode-dual { background: var(--pd-ok-bg); color: var(--pd-ok); border-color: transparent; }
+.pd-mode-single { background: var(--pd-warn-bg); color: var(--pd-warn); border-color: transparent; }
+.pd-subtitle { font-size: .95rem; font-weight: 600; margin-block-end: .35rem; }
+.pd-list { list-style: disc; padding-inline-start: 1.25rem; }
+.pd-list li + li { margin-block-start: .2rem; }
+.pd-ok-text { color: var(--pd-ok); font-weight: 600; }
+
+.pd-auth-body { display: flex; flex-direction: column; min-height: 100vh; }
+/* En-tête des pages d'accès : langue en haut à droite, puis le logo, le nom
+   et la mention de l'administration centrés. */
+.pd-auth-top { display: flex; flex-direction: column; align-items: center; gap: .5rem; padding: .6rem 1rem 0; }
+.pd-auth-top form { display: flex; gap: .4rem; align-items: center; align-self: flex-end; }
+.pd-auth-brand { display: flex; flex-direction: column; align-items: center; gap: .5rem; margin-block-start: .5rem; text-align: center; }
+.pd-auth-brand .pd-logo { width: 3.5rem; height: 3.5rem; }
+.pd-auth-brand .pd-name { font-size: 2rem; }
+.pd-auth-brand small { color: var(--pd-muted); font-size: .9rem; }
+.pd-auth { flex: 1; display: flex; justify-content: center; align-items: flex-start; padding: 1.5rem 1rem 3rem; }
+.pd-auth:focus { outline: none; }
+.pd-auth-card { width: 100%; max-width: 30rem; background: var(--pd-surface); border: 1px solid var(--pd-rule); border-radius: var(--bulma-radius); padding: 1.5rem; }
+.pd-auth-title { font-size: 1.4rem; font-weight: 600; margin-block-end: .5rem; }
+.pd-or { text-align: center; color: var(--pd-muted); margin-block: 1rem; }
+.pd-codes { columns: 2; font-family: var(--bulma-family-code); }
+
+@media (max-width: 768px) {
+  .pd-app { grid-template-columns: 1fr; }
+  .pd-hide-s { display: none; }
+  .pd-side { order: 3; }
+  .pd-main { padding: 1rem; }
+}
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+
+/* connect : page du compte plus large que les pages d'accès, codes de
+   récupération sur une ligne chacun, journal compact. */
+.pd-auth-card.is-wide { max-width: 46rem; }
+.pd-auth-card .pd-panel { margin-block-end: 1rem; }
+.pd-codes li { white-space: nowrap; }
+.pd-journal { font-size: .9rem; }
+.pd-journal td { padding: .25rem .5rem; }
+.pd-client { text-align: center; margin-block-end: 1rem; }

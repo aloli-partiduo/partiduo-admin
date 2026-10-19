@@ -30,6 +30,15 @@ par invitation), `schedule` (planification, toutes les 15 minutes).
 fermée de types traduits en appels à `partiduo-provision` et à
 `partiduo-manage instance` (contrat `doc/api/instance-cli.adoc` de
 partiduo-app), tâches idempotentes et reprenables, journal renvoyé.
+
+|`partiduo-connect` (`src/connect.cr`)
+|Fournisseur d'identité commun aux dossiers et à l'administration
+(ADR-012), servi sur `connect.<domaine>` avec sa propre base : un compte,
+une passkey, un jeu de codes de récupération par personne ; OpenID Connect.
+
+|`partiduo-connect-manage` (`connect_manage.cr`)
+|Ligne de commande de `connect` : `migrate`, `client` (déclarer un dossier
+ou l'administration), `invite`, `signing-key`, `account`.
 |===
 
 == Modèle
@@ -473,9 +482,73 @@ du stockage tournent seules, sans base ni réseau
 ----
 createdb --encoding=UTF8 partiduo_admin_test
 DATABASE_URL='postgres:///partiduo_admin_test?host=/tmp' crystal spec --order random
-crystal tool format --check src spec config scripts manage.cr
+crystal tool format --check src spec spec-connect config scripts manage.cr connect_manage.cr
 crystal build lib/ameba/bin/ameba.cr -o bin/ameba && bin/ameba
 ----
+
+== connect (ADR-012)
+
+`connect` est un troisième programme du dépôt, *déployé à part* : son
+sous-domaine (`connect.<domaine>`), sa base (`partiduo_connect`), sa
+configuration Marten (`config/connect/`), son application (`src/connect/`,
+tables `connect_…`). Il ne charge rien de l'administration et n'a aucun
+pouvoir sur le parc. Il dit *qui* est la personne ; chaque dossier décide
+seul si elle entre (ADR-002 D3).
+
+[cols="2,3",options="header"]
+|===
+|Adresse |Rôle
+
+|`/.well-known/openid-configuration`, `/jwks.json`
+|Découverte et clés publiques (ES256).
+
+|`/authorize`, `/token`, `/userinfo`
+|Flux « code d'autorisation » ; PKCE S256 obligatoire, clients
+confidentiels (`client_secret_basic` ou `_post`), `acr` 1 à 3
+(ADR-002 D2), `acr_values=3` fait passer par la passkey.
+
+|`/logout`
+|Déconnexion unique : la session fermée avise par canal arrière chaque
+client qu'elle avait ouvert (ADR-012 D8) ; idem à la suspension d'un
+compte et à l'usage d'un code de récupération.
+
+|`/api/v1/signup-tickets`
+|Invitation à créer un compte, demandée par un client : rend un lien (à
+envoyer par courriel) et un code (à transmettre par un autre canal) ;
+`{"account": true}` si l'adresse a déjà un compte (ADR-012 D6).
+
+|`/signup/<jeton>`, `/account`
+|Création du compte (lien + code), enrôlement, facteurs, codes,
+changement d'adresse, journal personnel.
+|===
+
+Réglages (environnement) : `PARTIDUO_DOMAIN`, `PARTIDUO_CONNECT_HOST`
+(défaut `connect.<domaine>`), `PARTIDUO_CONNECT_URL` (émetteur),
+`PORT` (8300), `DATABASE_URL`, `MARTEN_SECRET_KEY`,
+`PARTIDUO_CONNECT_SMTP_URL` (avis, marten-mail), `PARTIDUO_CONNECT_MAIL_FROM`,
+`PARTIDUO_CONNECT_SIGNING_KEYS` (fichier des JWK privées, la première signe,
+toutes sont publiées ; exigé en production). La passkey a pour RP ID le
+domaine commun (ADR-002 D5).
+
+[source,sh]
+----
+createdb --encoding=UTF8 partiduo_connect
+crystal run connect_manage.cr -- migrate
+crystal run connect_manage.cr -- client add --client-id=pipo --name=pipo.partiduo.localhost \
+  --redirect-uri=http://pipo.partiduo.localhost:3000/auth/callback \
+  --post-logout-uri=http://pipo.partiduo.localhost:3000/ \
+  --backchannel-uri=http://pipo.partiduo.localhost:3000/auth/backchannel-logout
+crystal run connect_manage.cr -- invite --email=vous@exemple.fr   # lien + code
+MARTEN_ENV=development crystal run src/connect.cr                  # http://connect.partiduo.localhost:8300
+
+createdb --encoding=UTF8 partiduo_connect_test
+DATABASE_URL='postgres:///partiduo_connect_test?host=/tmp' crystal spec spec-connect --order random
+----
+
+Clé de signature pour le coffre (une ligne, rien sur le disque) :
+`partiduo-connect-manage signing-key generate`. Rotation : nouvelle clé en
+*seconde* position du fichier (publiée), puis en première une heure plus
+tard au moins (les clients relisent `/jwks.json` toutes les heures).
 
 == Développement local
 

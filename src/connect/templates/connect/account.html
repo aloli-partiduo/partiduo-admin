@@ -1,0 +1,106 @@
+{# SPDX-License-Identifier: AGPL-3.0-or-later. Compte (ADR-012 D1) : moyens d'authentification, codes de récupération, adresse, journal. Sert aussi à l'enrôlement. #}{% extend "connect/base.html" %}
+{% block title %}{% translate "connect.account.title" %}{% endblock title %}
+{% block card_class %} is-wide{% endblock card_class %}
+{% block content %}
+<h1 class="pd-auth-title">{% translate "connect.account.title" %}</h1>
+{% if missing %}<div class="notification is-warning is-light" role="status"><p>{% translate "connect.account.missing" %}</p><ul class="pd-list">{% for item in missing %}<li>{% translate item %}</li>{% endfor %}</ul></div>{% endif %}
+{% if next %}<form method="post" action="{% url 'account_continue' %}" class="mb-4">{% csrf_input %}<input type="hidden" name="next" value="{{ next_field }}"><button class="button is-primary is-fullwidth" type="submit">{% translate "connect.account.continue" %}</button></form>{% endif %}
+
+<section class="pd-panel" aria-labelledby="pd-identity-title">
+  <h2 id="pd-identity-title">{% translate "connect.account.identity" %}</h2>
+  <dl class="pd-dl">
+    <dt>{% translate "connect.account.email" %}</dt><dd>{{ account.email }}</dd>
+    <dt>{% translate "connect.account.name" %}</dt><dd>{{ account.display_name|default:"—" }}</dd>
+    <dt>{% translate "connect.account.level" %}</dt><dd>{{ level }} / 3</dd>
+  </dl>
+  {% if elevated %}
+  <form method="post" action="{% url 'account_profile' %}" class="pd-inline mt-3">
+    {% csrf_input %}
+    <div class="field"><label class="label" for="pd-display-name">{% translate "connect.account.name" %}</label><div class="control"><input class="input" id="pd-display-name" name="display_name" value="{{ account.display_name }}" maxlength="200" autocomplete="name"></div></div>
+    <button class="button" type="submit">{% translate "connect.save" %}</button>
+  </form>
+  {% endif %}
+</section>
+
+<section class="pd-panel" aria-labelledby="pd-passkeys-title">
+  <h2 id="pd-passkeys-title">{% translate "connect.account.passkeys" %}</h2>
+  <p class="pd-muted mb-2">{% translate "connect.account.passkeys_help" %}</p>
+  {% if passkeys %}<ul class="mb-3">{% for key in passkeys %}<li class="pd-inline">{{ key.name|default:"—" }} · {% translate "connect.account.added" %} {{ key.created_at|time:"%Y-%m-%d" }}{% if elevated %} <form method="post" action="{% url 'passkey_delete' id: key.id %}">{% csrf_input %}<button class="button is-small is-danger is-light" type="submit">{% translate "connect.account.passkey_remove" %}</button></form>{% endif %}</li>{% endfor %}</ul>{% endif %}
+  {% if can_enroll %}
+  <div class="field">
+    <label class="label" for="pd-passkey-name">{% translate "connect.account.passkey_name" %}</label>
+    <div class="control"><input class="input" id="pd-passkey-name" type="text" maxlength="100"></div>
+  </div>
+  <div class="buttons">
+    <button type="button" class="button is-primary" data-passkey="register" data-options-url="{% url 'passkey_register_options' %}" data-submit-url="{% url 'passkey_register' %}{{ next_query }}" data-name-input="pd-passkey-name" data-status="pd-register-status">{% translate "connect.account.passkey_add" %}</button>
+    {% if passkeys %}<button type="button" class="button is-link" data-passkey="elevate" data-options-url="{% url 'elevate_options' %}" data-submit-url="{% url 'elevate' %}" data-next="/account" data-status="pd-register-status">{% translate "connect.account.elevate" %}</button>{% endif %}
+  </div>
+  {% else %}
+  <div class="buttons">
+    {% if passkeys %}<button type="button" class="button is-link" data-passkey="elevate" data-options-url="{% url 'elevate_options' %}" data-submit-url="{% url 'elevate' %}" data-next="/account" data-status="pd-register-status">{% translate "connect.account.elevate" %}</button>{% endif %}
+  </div>
+  {% endif %}
+  <p class="help" id="pd-register-status" role="status" aria-live="polite" data-unsupported="{% translate 'connect.passkey.unsupported' %}" data-failed="{% translate 'connect.passkey.failed' %}" data-waiting="{% translate 'connect.passkey.waiting' %}"></p>
+</section>
+
+{% if can_enroll %}
+<section class="pd-panel" aria-labelledby="password">
+  <h2 id="password">{% translate "connect.account.password_title" %}</h2>
+  <p class="pd-muted mb-2">{% translate "connect.account.password_intro" %}</p>
+  <form method="post" action="{% url 'account_password' %}" class="pd-inline">
+    {% csrf_input %}
+    <div class="field"><label class="label" for="pd-new-password">{% translate "connect.account.new_password" %}</label><div class="control"><input class="input" id="pd-new-password" name="password" type="password" autocomplete="new-password" required aria-describedby="pd-password-help"></div></div>
+    <div class="field"><label class="label" for="pd-confirmation">{% translate "connect.account.confirmation" %}</label><div class="control"><input class="input" id="pd-confirmation" name="confirmation" type="password" autocomplete="new-password" required></div></div>
+    <button class="button" type="submit">{% translate "connect.save" %}</button>
+  </form>
+  <p class="help" id="pd-password-help">{% translate "connect.account.password_help" %}</p>
+</section>
+
+<section class="pd-panel" aria-labelledby="totp">
+  <h2 id="totp">{% translate "connect.account.totp_title" %}</h2>
+  {% if account.totp_enabled %}<p>{% translate "connect.account.totp_on" %}</p>
+  {% elsif totp_secret %}
+  <p class="mb-2">{% translate "connect.account.totp_scan" %}</p>
+  <p class="pd-token mb-2">{{ totp_secret }}</p>
+  <p class="help mb-3 pd-mono">{{ totp_uri }}</p>
+  <form method="post" action="{% url 'account_totp' %}" class="pd-inline">
+    {% csrf_input %}
+    <div class="field"><label class="label" for="pd-totp-code">{% translate "connect.login.code" %}</label><div class="control"><input class="input pd-mono" id="pd-totp-code" name="code" inputmode="numeric" autocomplete="one-time-code" required></div></div>
+    <button class="button is-primary" type="submit">{% translate "connect.account.totp_confirm" %}</button>
+  </form>
+  {% else %}
+  <form method="post" action="{% url 'account_totp' %}">{% csrf_input %}<input type="hidden" name="command" value="begin"><button class="button" type="submit">{% translate "connect.account.totp_begin" %}</button></form>
+  {% endif %}
+</section>
+{% endif %}
+
+<section class="pd-panel" aria-labelledby="pd-recovery-title">
+  <h2 id="pd-recovery-title">{% translate "connect.account.recovery_title" %}</h2>
+  <p class="mb-2">{% translate "connect.account.recovery_left" count: recovery_left %}</p>
+  {% if elevated %}<form method="post" action="{% url 'account_recovery_codes' %}">{% csrf_input %}<button class="button" type="submit">{% translate "connect.account.recovery_regenerate" %}</button></form>{% endif %}
+</section>
+
+{% if elevated %}
+<section class="pd-panel" aria-labelledby="email">
+  <h2 id="email">{% translate "connect.account.email_title" %}</h2>
+  <p class="pd-muted mb-2">{% translate "connect.account.email_help" %}</p>
+  <form method="post" action="{% url 'account_email' %}" class="pd-inline">
+    {% csrf_input %}
+    <div class="field"><label class="label" for="pd-new-email">{% translate "connect.account.new_email" %}</label><div class="control"><input class="input" id="pd-new-email" name="email" type="email" autocomplete="email" required></div></div>
+    <button class="button" type="submit">{% translate "connect.account.email_send" %}</button>
+  </form>
+</section>
+
+<section class="pd-panel" aria-labelledby="pd-journal-title">
+  <h2 id="pd-journal-title">{% translate "connect.account.journal" %}</h2>
+  {% if journal %}
+  <div class="table-container"><table class="table is-fullwidth pd-journal">
+    <thead><tr><th scope="col">{% translate "connect.account.journal_when" %}</th><th scope="col">{% translate "connect.account.journal_what" %}</th><th scope="col">{% translate "connect.account.journal_where" %}</th></tr></thead>
+    <tbody>{% for entry in journal %}<tr><td class="pd-mono">{{ entry.created_at|time:"%Y-%m-%d %H:%M" }}</td><td>{{ entry.action }}{% if entry.outcome != "ok" %} ({{ entry.outcome }}){% endif %}{% if entry.client_id %} · {{ entry.client_id }}{% endif %}</td><td class="pd-mono">{{ entry.ip|default:"—" }}</td></tr>{% endfor %}</tbody>
+  </table></div>
+  {% else %}<p class="pd-muted">—</p>{% endif %}
+</section>
+{% endif %}
+
+<form method="post" action="{% url 'logout' %}">{% csrf_input %}<button class="button is-light" type="submit">{% translate "connect.logout.submit" %}</button></form>
+{% endblock content %}
