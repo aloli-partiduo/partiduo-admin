@@ -1,5 +1,6 @@
 # SPDX-License-Identifier: AGPL-3.0-or-later
 
+require "../shared/licences"
 require "./config"
 require "./models/client"
 require "./models/account"

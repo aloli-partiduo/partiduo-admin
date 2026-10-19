@@ -152,3 +152,8 @@ fieldset.pd-fieldset legend { font-weight: 600; margin-block-end: .35rem; }
   .pd-auth-banner .pd-auth-brand, .pd-auth-aloli { justify-self: center; }
   .pd-auth-credit { font-size: 1.2rem; }
 }
+
+/* Pied de page : provenance du code (AGPL-3.0, art. 13). */
+.pd-foot { padding: 1rem; text-align: center; font-size: .85rem; color: var(--pd-muted); }
+.pd-foot a { color: inherit; text-decoration: underline; }
+.pd-licences { max-height: 60vh; overflow: auto; font-size: .75rem; white-space: pre-wrap; }

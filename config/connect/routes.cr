@@ -18,6 +18,7 @@ Marten.routes.draw do
   path "/login/passkey/options", PartiduoConnect::PasskeyLoginOptionsHandler, name: "login_passkey_options"
   path "/login/passkey", PartiduoConnect::PasskeyLoginHandler, name: "login_passkey"
   path "/language", PartiduoConnect::LanguageHandler, name: "language"
+  path "/licences", PartiduoConnect::LicencesHandler, name: "licences"
 
   # Relais de l'authentification d'un cabinet (ADR-012 D9).
   path "/login/sso", PartiduoConnect::SsoStartHandler, name: "login_sso"

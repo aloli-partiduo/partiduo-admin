@@ -34,6 +34,8 @@ jobs:
           fi
       - name: Shards
         run: shards install
+      - name: Licences des composants tiers à jour (AGPL-3.0, art. 13)
+        run: scripts/third-party-licenses.sh && git diff --exit-code THIRD-PARTY-LICENSES.txt
       - name: Ameba
         run: mkdir -p bin && crystal build lib/ameba/bin/ameba.cr -o bin/ameba && bin/ameba
 

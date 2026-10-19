@@ -274,4 +274,12 @@ module PartiduoAdmin
       json({"ok" => false, "error" => I18n.t(error.key)}.to_json, status: 422)
     end
   end
+
+  # Composants tiers et leurs licences ; code source (AGPL-3.0, art. 13).
+  # Sans connexion : l'offre du code source vaut pour tout utilisateur.
+  class LicencesHandler < BaseHandler
+    def get
+      page("admin/licences.html", {"text" => PartiduoLicences::TEXT, "components" => PartiduoLicences.components})
+    end
+  end
 end

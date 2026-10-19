@@ -212,3 +212,13 @@ describe "Licence" do
     missing.should eq([] of String)
   end
 end
+
+describe "Administration : provenance du code (AGPL-3.0, art. 13)" do
+  it "offre le code source et les licences, sans connexion" do
+    browser = AdminSpec::Browser.new
+    browser.get("/login").html.should contain(PartiduoLicences::SOURCE_URL)
+    page = browser.get("/licences")
+    page.status.should eq(200)
+    page.html.should contain("https://github.com/bigskysoftware/htmx")
+  end
+end

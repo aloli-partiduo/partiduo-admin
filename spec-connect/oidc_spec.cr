@@ -10,6 +10,15 @@ describe "connect : OpenID Connect" do
     html.should_not contain("no-referrer")
   end
 
+  it "offre le code source et les licences des composants tiers (AGPL-3.0, art. 13)" do
+    browser = ConnectSpec::Browser.new
+    browser.get("/login").html.should contain(PartiduoLicences::SOURCE_URL)
+    page = browser.get("/licences")
+    page.status.should eq(200)
+    page.html.should contain("https://github.com/will/crystal-pg")
+    page.html.should contain("Apache License")
+  end
+
   it "publie sa découverte et ses clés" do
     browser = ConnectSpec::Browser.new
     discovery = JSON.parse(browser.get("/.well-known/openid-configuration").content)

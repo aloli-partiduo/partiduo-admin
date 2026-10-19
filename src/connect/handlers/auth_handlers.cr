@@ -174,4 +174,11 @@ module PartiduoConnect
         status: 422)
     end
   end
+
+  # Composants tiers et leurs licences ; code source (AGPL-3.0, art. 13).
+  class LicencesHandler < BaseHandler
+    def get
+      page("connect/licences.html", {"text" => PartiduoLicences::TEXT, "components" => PartiduoLicences.components})
+    end
+  end
 end

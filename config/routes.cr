@@ -16,6 +16,7 @@ Marten.routes.draw do
   path "/login/connect/callback", PartiduoAdmin::ConnectCallbackHandler, name: "login_connect_callback"
   path "/login/connect/backchannel-logout", PartiduoAdmin::ConnectBackchannelHandler, name: "login_connect_logout"
   path "/language", PartiduoAdmin::LanguageHandler, name: "language"
+  path "/licences", PartiduoAdmin::LicencesHandler, name: "licences"
   path "/account", PartiduoAdmin::AccountHandler, name: "account"
   path "/account/password", PartiduoAdmin::AccountPasswordHandler, name: "account_password"
   path "/account/totp", PartiduoAdmin::AccountTotpHandler, name: "account_totp"

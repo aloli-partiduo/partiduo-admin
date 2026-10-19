@@ -75,6 +75,9 @@ module PartiduoConnect
       context["locale"] = I18n.locale
       context["locales"] = Config::LOCALES
       context["current_path"] = request.full_path
+      # Provenance du code (AGPL-3.0, art. 13) : pied de page.
+      context["app_version"] = VERSION
+      context["source_url"] = PartiduoLicences::SOURCE_URL
       render(template, listed(values), status: status)
     end
 

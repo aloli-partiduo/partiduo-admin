@@ -2,6 +2,7 @@
 
 require "../shared/protocol"
 require "../shared/backup_crypto"
+require "../shared/licences"
 require "./config"
 require "./models/organization"
 require "./models/security"

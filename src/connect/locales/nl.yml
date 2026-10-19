@@ -1,5 +1,17 @@
 nl:
   connect:
+    footer:
+      free: "Partiduo %{version} — vrije software onder de AGPL-3.0-licentie"
+      licences: "Componenten en licenties"
+      source: "Broncode"
+    licences:
+      component: "Component"
+      licence: "Licentie"
+      source: "Herkomst"
+      texts: "Licentieteksten"
+      components: "Het steunt op de volgende componenten, elk onder zijn eigen licentie; hier hun herkomst en tekst:"
+      intro: "Deze software is vrij, onder de GNU AGPL-3.0 of later. De broncode staat hier:"
+      title: "Componenten en licenties"
     account:
       added: "toegevoegd op"
       confirmation: "Bevestiging"

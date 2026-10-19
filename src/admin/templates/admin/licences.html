@@ -1,0 +1,13 @@
+{# SPDX-License-Identifier: AGPL-3.0-or-later. Composants tiers et leurs licences ; code source (AGPL-3.0, article 13). #}{% extend "admin/auth_base.html" %}
+{% block title %}{% translate "admin.licences.title" %}{% endblock title %}
+{% block content %}
+<h1 class="pd-auth-title">{% translate "admin.licences.title" %}</h1>
+<p class="mb-3">{% translate "admin.licences.intro" %} <a href="{{ source_url }}" target="_blank" rel="noopener">{{ source_url }}</a></p>
+<p class="mb-3">{% translate "admin.licences.components" %}</p>
+<div class="table-container mb-4"><table class="table is-fullwidth is-narrow pd-journal">
+  <thead><tr><th scope="col">{% translate "admin.licences.component" %}</th><th scope="col">{% translate "admin.licences.licence" %}</th><th scope="col">{% translate "admin.licences.source" %}</th></tr></thead>
+  <tbody>{% for component in components %}<tr><td>{{ component.name }}</td><td class="pd-mono">{{ component.licence }}</td><td><a href="{{ component.url }}" target="_blank" rel="noopener">{{ component.source }}</a></td></tr>{% endfor %}</tbody>
+</table></div>
+<h2 class="title is-6">{% translate "admin.licences.texts" %}</h2>
+<pre class="pd-licences" tabindex="0">{{ text }}</pre>
+{% endblock content %}

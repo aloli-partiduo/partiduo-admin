@@ -622,6 +622,16 @@ Clé de signature pour le coffre (une ligne, rien sur le disque) :
 *seconde* position du fichier (publiée), puis en première une heure plus
 tard au moins (les clients relisent `/jwks.json` toutes les heures).
 
+== Provenance du code (AGPL-3.0, article 13)
+
+L'administration et connect affichent en pied de page leur version, la
+licence et un lien vers ce dépôt (`src/shared/licences.cr`), et offrent à
+`/licences` la liste des composants tiers avec leur licence, leur provenance
+et leur texte. Ce texte, `THIRD-PARTY-LICENSES.txt`, est assemblé par
+`scripts/third-party-licenses.sh` (Crystal, shards du verrou, Bulma, htmx,
+IBM Plex ; textes vendus dans `licenses/`) : à relancer après tout
+changement du verrou ; la CI le vérifie.
+
 == Développement local
 
 `shard.yml` et `shard.lock` référencent les shards maison sur GitHub

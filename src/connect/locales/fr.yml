@@ -1,5 +1,17 @@
 fr:
   connect:
+    footer:
+      free: "Partiduo %{version} — logiciel libre sous licence AGPL-3.0"
+      licences: "Composants et licences"
+      source: "Code source"
+    licences:
+      component: "Composant"
+      licence: "Licence"
+      source: "Provenance"
+      texts: "Textes des licences"
+      components: "Il s'appuie sur les composants suivants, chacun sous sa licence, dont voici la provenance et le texte :"
+      intro: "Ce logiciel est libre, sous licence GNU AGPL-3.0 ou ultérieure. Son code source est publié ici :"
+      title: "Composants et licences"
     account:
       added: "ajoutée le"
       confirmation: "Confirmation"

@@ -10,7 +10,7 @@ describe "Interface de l'administration : lien vers le dossier" do
     neuf = AdminSpec.dossier(firm, server, slug: "neuf", state: "creating")
     browser = AdminSpec::Browser.new(token: AdminSpec.session(AdminSpec.super_admin))
     browser.get("/dossiers/#{actif.pk}").html.should contain(%(href="https://#{actif.host}/" target="_blank" rel="noopener noreferrer"))
-    browser.get("/dossiers/#{neuf.pk}").html.should_not contain(%(target="_blank"))
+    browser.get("/dossiers/#{neuf.pk}").html.should_not contain(%(href="https://#{neuf.host}/" target="_blank"))
     browser.get("/dossiers").html.should contain(%(href="https://#{actif.host}/"))
   end
 end

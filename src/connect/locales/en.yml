@@ -1,5 +1,17 @@
 en:
   connect:
+    footer:
+      free: "Partiduo %{version} — free software under the AGPL-3.0 license"
+      licences: "Components and licenses"
+      source: "Source code"
+    licences:
+      component: "Component"
+      licence: "License"
+      source: "Origin"
+      texts: "License texts"
+      components: "It relies on the following components, each under its own license; here are their origin and text:"
+      intro: "This software is free, under the GNU AGPL-3.0 or later. Its source code is published here:"
+      title: "Components and licenses"
     account:
       added: "added on"
       confirmation: "Confirmation"
