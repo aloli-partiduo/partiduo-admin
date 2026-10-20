@@ -770,7 +770,16 @@ module PartiduoAgent
       if vat = params["vat"]?.try(&.as_s?).presence
         options += ["--vat", vat]
       end
-      options
+      options + kind_option(params)
+    end
+
+    # Type de dossier (A-PER-5, protocole 3.1.0) : `--kind household` pour un
+    # foyer ; rien pour une entreprise, défaut de `partiduo-provision` (un
+    # paquet antérieur au type reste servi). Toute autre valeur est refusée.
+    def kind_option(params : JSON::Any) : Array(String)
+      kind = params["kind"]?.try(&.as_s?).presence || "company"
+      raise StepError.new("type de dossier invalide", "usage") unless PartiduoAdmin::Protocol.valid_dossier_kind?(kind)
+      kind == "company" ? [] of String : ["--kind", kind]
     end
 
     def module_options(params : JSON::Any) : Array(String)

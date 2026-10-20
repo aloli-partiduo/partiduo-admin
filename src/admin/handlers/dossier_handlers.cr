@@ -49,7 +49,7 @@ module PartiduoAdmin
         admin_email: field("admin_email"), server_id: field("server_id").to_i64?,
         firm_id: user.firm_admin? ? PartiduoAdmin.id?(user.firm_id) : field("firm_id").to_i64?, payer_id: field("payer_id").to_i64?,
         package: Config.dossier_package, backup_schedule: field("backup_schedule").presence || "daily",
-        backup_retention_days: field("backup_retention_days").to_i? || 0)
+        backup_retention_days: field("backup_retention_days").to_i? || 0, kind: field("kind").presence || "company")
       outcome = Fleet.create_dossier(user, input)
       if outcome.ok?
         flash["success"] = I18n.t("admin.dossiers.created", slug: outcome.value!.slug.to_s)
@@ -69,6 +69,10 @@ module PartiduoAdmin
         FormField.new("slug", I18n.t("admin.dossiers.fields.slug"), input.slug, errors: errs(t, "slug"), required: true,
           help: I18n.t("admin.dossiers.help.slug", domain: Config.domain)),
         FormField.new("label", I18n.t("admin.dossiers.fields.label"), input.label, errors: errs(t, "label"), required: true),
+        # Type de dossier (A-PER-5) : entreprise ou foyer, jamais modifié.
+        FormField.new("kind", I18n.t("admin.dossiers.fields.kind"), input.kind, "select",
+          Protocol::DOSSIER_KINDS.map { |code| opt.call(code, I18n.t("admin.kinds.#{code}"), input.kind) },
+          errs(t, "kind"), required: true, help: I18n.t("admin.dossiers.help.kind")),
         FormField.new("regime", I18n.t("admin.dossiers.fields.regime"), input.regime, "select",
           [opt.call("fr", I18n.t("admin.regimes.fr"), input.regime), opt.call("be", I18n.t("admin.regimes.be"), input.regime)],
           errs(t, "regime"), required: true),
@@ -124,6 +128,7 @@ module PartiduoAdmin
         "confirms_alone"   => Access.can?(user, :approve, dossier),
         "today"            => Config.now.to_s("%F"),
         "move_servers"     => move_servers(dossier),
+        "kind_key"         => "admin.kinds.#{dossier.kind.presence || "company"}",
       })
     end
 

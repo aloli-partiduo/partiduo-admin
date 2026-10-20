@@ -59,6 +59,9 @@ en:
       fr: "French"
       en: "English"
       nl: "Dutch"
+    kinds:
+      company: "Business"
+      household: "Household"
     regimes:
       fr: "France"
       be: "Belgium"
@@ -171,6 +174,7 @@ en:
         slug: "Subdomain"
         label: "Company name"
         regime: "Tax regime"
+        kind: "File type"
         locale: "Language"
         siren: "SIREN"
         vat_number: "VAT number"
@@ -191,6 +195,7 @@ en:
         retention_until: "Kept until"
       help:
         slug: "Lower case letters, digits and hyphens; the file will be served at <subdomain>.%{domain}."
+        kind: "Business (including micro-enterprise and liberal profession) or household; cannot change after creation. A household has Accounting only, and neither SIREN nor VAT number."
         extensions: "Comma-separated codes (einvoicing, superpdp…)."
         admin_email: "Receives the file administrator invitation."
         payer: "Who orders and pays for the file: required."
@@ -688,6 +693,8 @@ en:
         slug: "Invalid subdomain: a lower case letter first, then lower case letters, digits, hyphens (40 characters at most)."
         slug_taken: "This subdomain is already taken."
         regime: "Unknown tax regime."
+        kind: "Unknown file type."
+        household_modules: "A household file has Accounting only among the modules."
         locale: "Unknown language."
         modules: "Choose at least one of the official modules."
         extensions: "Invalid extension code."

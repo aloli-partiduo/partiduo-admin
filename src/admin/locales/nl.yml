@@ -59,6 +59,9 @@ nl:
       fr: "Frans"
       en: "Engels"
       nl: "Nederlands"
+    kinds:
+      company: "Onderneming"
+      household: "Huishouden"
     regimes:
       fr: "Frankrijk"
       be: "België"
@@ -171,6 +174,7 @@ nl:
         slug: "Subdomein"
         label: "Firmanaam"
         regime: "Stelsel"
+        kind: "Soort dossier"
         locale: "Taal"
         siren: "SIREN"
         vat_number: "Btw-nummer"
@@ -191,6 +195,7 @@ nl:
         retention_until: "Bewaard tot"
       help:
         slug: "Kleine letters, cijfers en koppeltekens; het dossier komt op <subdomein>.%{domain}."
+        kind: "Onderneming (ook micro-onderneming en vrij beroep) of huishouden; wijzigt niet meer na de aanmaak. Een huishouden heeft enkel de Boekhouding, zonder SIREN of btw-nummer."
         extensions: "Codes gescheiden door komma's (einvoicing, superpdp…)."
         admin_email: "Ontvangt de uitnodiging als beheerder van het dossier."
         payer: "Wie het dossier bestelt en betaalt: verplicht."
@@ -688,6 +693,8 @@ nl:
         slug: "Ongeldig subdomein: eerst een kleine letter, daarna kleine letters, cijfers, koppeltekens (hoogstens 40 tekens)."
         slug_taken: "Dit subdomein is al in gebruik."
         regime: "Onbekend stelsel."
+        kind: "Onbekende soort dossier."
+        household_modules: "Een huishoudensdossier heeft enkel de Boekhouding als module."
         locale: "Onbekende taal."
         modules: "Kies minstens één van de officiële modules."
         extensions: "Ongeldige extensiecode."

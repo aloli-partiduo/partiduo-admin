@@ -102,6 +102,18 @@ describe "partiduo-agent : mode production (D-AFN-002, D-AFN-005)" do
     argv.should contain("Garde SAS")
     argv.each_cons_pair.to_a.should contain({"--package", "app"})
     argv.should_not contain("--release")
+    # Type de dossier (A-PER-5) : rien pour une entreprise ; `--kind` pour un
+    # foyer ; refus de tout autre type avant tout appel.
+    argv.should_not contain("--kind")
+    system.provision("garde", "partiduo.app", JSON.parse(params.merge({"name" => "Foyer Garde", "regime" => "fr",
+                                                                       "locale" => "fr", "admin_email" => "a@b.fr", "kind" => "household"}).to_json), "partiduo_garde", skip_createdb: false)
+    system.argvs.last.each_cons_pair.to_a.should contain({"--kind", "household"})
+    calls = system.argvs.size
+    expect_raises(PartiduoAgent::StepError, /type de dossier/) do
+      system.provision("garde", "partiduo.app", JSON.parse(params.merge({"name" => "X", "regime" => "fr",
+                                                                         "admin_email" => "a@b.fr", "kind" => "household;x"}).to_json), "partiduo_garde", skip_createdb: false)
+    end
+    system.argvs.size.should eq(calls)
 
     # connect (ADR-012) : identifiant en argument, secret sur l'entrée
     # standard seulement.
@@ -452,6 +464,8 @@ describe "partiduo-agent : scripts enveloppes de sudo (D-AFN-002)" do
       ["provision", "demo", "--package", "../x"],
       ["provision", "demo", "--regime", "fr"],
       ["provision", "demo", "--package", "devel", "--regime", "xx"],
+      ["provision", "demo", "--package", "devel", "--kind", "entreprise"],
+      ["provision", "demo", "--package", "devel", "--kind", "household;touch #{piege}"],
       ["dump", "partiduo_demo", "/etc/x.dump"],
       ["createdb", "partiduo_admin"],
       ["release", "demo", "1.0.0"],

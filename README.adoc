@@ -53,9 +53,11 @@ ou l'administration), `invite`, `signing-key`, `account`.
   elle-même, autre payeur) — identité, SIREN, adresse de facturation,
   contact. La facturation (tarifs, périodes, factures) est hors périmètre ;
   la vue « dossiers par donneur d'ordre » s'exporte en CSV.
-* *Dossiers* (inventaire) : sous-domaine, régime, modules, extensions,
-  serveur, paquet, version relevée sur l'instance, état, cabinet
-  gestionnaire, donneur d'ordre obligatoire.
+* *Dossiers* (inventaire) : sous-domaine, type (entreprise ou foyer,
+  choisi à la création et transmis à `partiduo-provision --kind`, A-PER-5 ;
+  un foyer n'a que la Comptabilité, ni SIREN ni TVA), régime, modules,
+  extensions, serveur, paquet, version relevée sur l'instance, état,
+  cabinet gestionnaire, donneur d'ordre obligatoire.
 * *Serveurs* (jeton d'exécutant en empreinte), *tâches*, *sauvegardes*
   (mode de chiffrement, empreinte de la clé), *demandes d'opérations
   sensibles* (mode à une ou deux personnes),

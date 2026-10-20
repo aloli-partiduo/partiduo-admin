@@ -59,6 +59,9 @@ fr:
       fr: "Français"
       en: "Anglais"
       nl: "Néerlandais"
+    kinds:
+      company: "Entreprise"
+      household: "Foyer"
     regimes:
       fr: "France"
       be: "Belgique"
@@ -171,6 +174,7 @@ fr:
         slug: "Sous-domaine"
         label: "Raison sociale"
         regime: "Régime"
+        kind: "Type de dossier"
         locale: "Langue"
         siren: "SIREN"
         vat_number: "Numéro de TVA"
@@ -191,6 +195,7 @@ fr:
         retention_until: "Conservation jusqu'au"
       help:
         slug: "Minuscules, chiffres et tirets ; le dossier sera servi en <sous-domaine>.%{domain}."
+        kind: "Entreprise (dont micro-entreprise et profession libérale) ou foyer ; ne change plus après la création. Un foyer n'a que la Comptabilité, ni SIREN ni numéro de TVA."
         extensions: "Codes séparés par des virgules (einvoicing, superpdp…)."
         admin_email: "Reçoit l'invitation d'administrateur du dossier."
         payer: "Celui qui commande et paie le dossier : obligatoire."
@@ -688,6 +693,8 @@ fr:
         slug: "Sous-domaine invalide : minuscule en tête, puis minuscules, chiffres, tirets (40 caractères au plus)."
         slug_taken: "Ce sous-domaine est déjà pris."
         regime: "Régime inconnu."
+        kind: "Type de dossier inconnu."
+        household_modules: "Un dossier foyer n'a que la Comptabilité parmi les modules."
         locale: "Langue inconnue."
         modules: "Choisissez au moins un module parmi les modules officiels."
         extensions: "Code d'extension invalide."

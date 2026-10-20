@@ -216,6 +216,11 @@ case "$command" in
           set -- "$@" "$option=$1"
           shift
           ;;
+        --kind)
+          case "$1" in company | household) ;; *) die "type de dossier refusé" ;; esac
+          set -- "$@" "$option=$1"
+          shift
+          ;;
         --locale)
           case "$1" in fr | en | nl) ;; *) die "langue refusée" ;; esac
           set -- "$@" "$option=$1"

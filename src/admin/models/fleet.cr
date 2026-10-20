@@ -69,6 +69,9 @@ module PartiduoAdmin
     field :slug, :string, max_size: 40, unique: true
     field :label, :string, max_size: 150
     field :regime, :string, max_size: 2
+    # Type de dossier (`Protocol::DOSSIER_KINDS`) : choisi à la création,
+    # transmis au provisionnement, jamais modifié (A-PER-5).
+    field :kind, :string, max_size: 16, default: "company"
     field :locale, :string, max_size: 8, default: "fr"
     field :siren, :string, max_size: 9, blank: true, default: ""
     field :vat_number, :string, max_size: 20, blank: true, default: ""

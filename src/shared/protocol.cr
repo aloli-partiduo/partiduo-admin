@@ -17,8 +17,25 @@ module PartiduoAdmin
     # 3.0.0 : mode de chiffrement `server` retiré, `exploitation` ajouté ;
     # `commitment` remplacé par `recipient` ; emplacements des sauvegardes
     # dans le stockage ; `signers` des paramètres, `server`, `manifest`,
-    # `signature`, `signing_key`, `capsule` et `kept` du résultat, D-CHF-021).
-    API_VERSION = "3.0.0"
+    # `signature`, `signing_key`, `capsule` et `kept` du résultat, D-CHF-021 ;
+    # 3.1.0 : type de dossier `kind` des paramètres de `instance.create`,
+    # A-PER-5, D-FOY-010).
+    API_VERSION = "3.1.0"
+
+    # Types de dossier (ADR-011 A3) : `company` (entreprise, micro-entreprise,
+    # profession libérale) ou `household` (foyer), transmis à
+    # `partiduo-provision --kind`. Paramètre absent (administration
+    # antérieure à 3.1.0) : `company`.
+    DOSSIER_KINDS = %w[company household]
+
+    # Modules officiels qu'un dossier foyer admet : la Comptabilité seule,
+    # requise (ADR-011 D2 ; les autres sont exclus par le cœur, qui refuse
+    # le provisionnement).
+    HOUSEHOLD_MODULES = %w[accounting]
+
+    def self.valid_dossier_kind?(kind : String) : Bool
+      DOSSIER_KINDS.includes?(kind)
+    end
 
     # Mode de validation d'une opération sensible (`instance.delete`,
     # `instance.admin_invite`) : `single`, une personne qui a confirmé seule

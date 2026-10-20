@@ -38,7 +38,8 @@ module PartiduoAdmin
       siren : String = "", vat_number : String = "",
       modules : Array(String) = ["accounting", "invoicing"], extensions : Array(String) = [] of String,
       admin_email : String = "", server_id : Int64? = nil, firm_id : Int64? = nil, payer_id : Int64? = nil,
-      package : String = "app", backup_schedule : String = "daily", backup_retention_days : Int32 = 30
+      package : String = "app", backup_schedule : String = "daily", backup_retention_days : Int32 = 30,
+      kind : String = "company"
 
     EMAIL = /\A[^@\s'"]+@[^@\s'"]+\.[^@\s'"]+\z/
 
@@ -54,9 +55,11 @@ module PartiduoAdmin
       server, firm, payer = references(user, input, now, errors)
       return Outcome(Dossier).new(nil, errors) unless errors.empty? && server && firm && payer
 
+      # Un foyer n'a ni SIREN ni numéro de TVA : ils ne sont pas retenus.
+      household = input.kind == "household"
       dossier = Dossier.create!(
-        slug: slug, label: input.label.strip, regime: input.regime, locale: input.locale,
-        siren: input.siren, vat_number: input.vat_number.strip.upcase,
+        slug: slug, label: input.label.strip, regime: input.regime, locale: input.locale, kind: input.kind,
+        siren: household ? "" : input.siren, vat_number: household ? "" : input.vat_number.strip.upcase,
         modules: input.modules.uniq.join(','), extensions: input.extensions.uniq.join(','),
         admin_email: input.admin_email.strip.downcase, server: server, firm: firm, payer: payer,
         package: input.package, state: "creating", backup_schedule: input.backup_schedule,
@@ -68,10 +71,11 @@ module PartiduoAdmin
       Dns.request(dossier, user, now)
       params = Tasks.dossier_params(dossier)
       {"name" => dossier.label, "regime" => dossier.regime, "locale" => dossier.locale, "siren" => dossier.siren,
-       "vat" => dossier.vat_number, "admin_email" => dossier.admin_email}.each { |key, value| params[key] = any(value.to_s) }
+       "vat" => dossier.vat_number, "admin_email" => dossier.admin_email, "kind" => dossier.kind}.each { |key, value| params[key] = any(value.to_s) }
       Tasks.enqueue("instance.create", server, params, user, dossier)
       Audit.log(user, "dossier.create", target: dossier,
-        detail: {"modules" => dossier.modules.to_s, "extensions" => dossier.extensions.to_s, "payer" => payer.name.to_s})
+        detail: {"modules" => dossier.modules.to_s, "extensions" => dossier.extensions.to_s, "payer" => payer.name.to_s,
+                 "kind" => dossier.kind.to_s})
       Outcome(Dossier).new(dossier)
     end
 
@@ -90,6 +94,7 @@ module PartiduoAdmin
       end
       add(errors, "label", "admin.errors.required") if input.label.strip.empty?
       add(errors, "regime", "admin.errors.dossier.regime") unless %w[fr be].includes?(input.regime)
+      kind_errors(input, errors)
       add(errors, "locale", "admin.errors.dossier.locale") unless Config::LOCALES.includes?(input.locale)
       add(errors, "siren", "admin.errors.siren") unless input.siren.empty? || Siren.valid?(input.siren)
       add(errors, "modules", "admin.errors.dossier.modules") unless valid_modules?(input.modules)
@@ -97,6 +102,18 @@ module PartiduoAdmin
       add(errors, "admin_email", "admin.errors.email") unless EMAIL.matches?(input.admin_email.strip)
       schedule_errors(input, errors)
       errors
+    end
+
+    # Type de dossier : déclaré ; un foyer n'a que la Comptabilité parmi les
+    # modules officiels (le cœur refuserait le provisionnement : mieux vaut
+    # le dire au formulaire). Les extensions restent libres : celles
+    # d'entreprise sont écartées par le cœur (`incompatible_with`).
+    private def self.kind_errors(input : DossierInput, errors : Errors) : Nil
+      if !Protocol.valid_dossier_kind?(input.kind)
+        add(errors, "kind", "admin.errors.dossier.kind")
+      elsif input.kind == "household" && input.modules.uniq.sort! != Protocol::HOUSEHOLD_MODULES
+        add(errors, "modules", "admin.errors.dossier.household_modules")
+      end
     end
 
     private def self.schedule_errors(input : DossierInput, errors : Errors) : Nil
@@ -141,6 +158,9 @@ module PartiduoAdmin
       return Outcome(Task).failure("base", "admin.errors.forbidden") unless Access.can?(user, :modules, dossier)
       return Outcome(Task).failure("base", "admin.errors.dossier.not_active") unless dossier.state == "active"
       return Outcome(Task).failure("modules", "admin.errors.dossier.modules") unless valid_modules?(modules)
+      if dossier.kind == "household" && modules.uniq.sort! != Protocol::HOUSEHOLD_MODULES
+        return Outcome(Task).failure("modules", "admin.errors.dossier.household_modules")
+      end
       return Outcome(Task).failure("extensions", "admin.errors.dossier.extensions") unless valid_extensions?(extensions)
       # Extensions retirées avant les modules (une extension requiert un
       # module, jamais l'inverse), modules ajoutés avant les extensions ;
@@ -340,7 +360,7 @@ module PartiduoAdmin
       return {"new_slug", "admin.errors.dossier.slug_taken"} if Dossier.filter(slug: slug).exists?
       # Instance neuve : un certificat de plus, compté comme à la création.
       return {"base", "admin.errors.dossier.quota"} if LetsEncrypt.quota_reached?(dossier.server!.domain.to_s, Config.now)
-      copy = Dossier.create!(slug: slug, label: dossier.label, regime: dossier.regime, locale: dossier.locale,
+      copy = Dossier.create!(slug: slug, label: dossier.label, regime: dossier.regime, locale: dossier.locale, kind: dossier.kind,
         siren: dossier.siren, vat_number: dossier.vat_number, modules: dossier.modules, extensions: dossier.extensions,
         admin_email: dossier.admin_email, server: dossier.server!, firm: dossier.firm!, payer: dossier.payer!,
         package: dossier.package, version: backup.version.presence || dossier.version, state: "creating",
