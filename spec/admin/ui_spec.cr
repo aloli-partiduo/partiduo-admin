@@ -1,36 +1,14 @@
 # SPDX-License-Identifier: AGPL-3.0-or-later
 
 require "../spec_helper"
-require "yaml"
-
-private def flatten(node : YAML::Any, prefix : String, into : Set(String)) : Set(String)
-  if hash = node.as_h?
-    hash.each { |key, value| flatten(value, prefix.empty? ? key.as_s : "#{prefix}.#{key.as_s}", into) }
-  else
-    into << prefix.sub(/\.(one|other)\z/, "")
-  end
-  into
-end
-
-private def locale_keys(code : String) : Set(String)
-  path = File.join(__DIR__, "../../src/admin/locales/#{code}.yml")
-  flatten(YAML.parse(File.read(path))[code], "", Set(String).new)
-end
-
 describe "Interface de l'administration" do
-  it "a les mêmes libellés en français, anglais et néerlandais" do
-    fr = locale_keys("fr")
-    locale_keys("en").should eq(fr)
-    locale_keys("nl").should eq(fr)
+  it "a les mêmes libellés en français, anglais et néerlandais, aux mêmes interpolations" do
+    PartiduoTranslations.parity_failures(File.expand_path("../../src/admin/locales", __DIR__)).should eq([] of String)
   end
 
-  it "a un libellé pour chaque clé citée par le code et les gabarits" do
-    fr = locale_keys("fr")
-    used = Set(String).new
-    Dir.glob(File.join(__DIR__, "../../src/admin/**/*.{cr,html}")).each do |file|
-      File.read(file).scan(/["'](admin\.[a-z_.]+[a-z_])["']/) { |match| used << match[1] }
-    end
-    (used - fr).to_a.sort!.should eq([] of String)
+  it "a un libellé dans chaque langue pour chaque clé citée par le code et les gabarits" do
+    root = File.expand_path("../..", __DIR__)
+    PartiduoTranslations.unknown_keys(root, %w[src/admin/**/*.cr src/admin/**/*.html], %w[admin]).should eq([] of String)
   end
 
   it "sert la page de connexion dans les trois langues, avec les repères d'accessibilité" do

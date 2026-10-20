@@ -24,7 +24,7 @@
       <dt>{% translate "admin.dossiers.fields.package" %}</dt><dd>{% translate dossier.package_key %}</dd>
       <dt>{% translate "admin.dossiers.fields.version" %}</dt><dd class="pd-mono">{{ dossier.version|default:"—" }}</dd>
       <dt>{% translate "admin.dossiers.fields.server" %}</dt><dd>{{ dossier.server_name }}</dd>
-      {% if dossier.dns_state %}<dt>{% translate "admin.dossiers.fields.dns" %}</dt><dd>{% translate dossier.dns_state_key %}</dd>{% endif %}
+      {% if dossier.dns_state != "" %}<dt>{% translate "admin.dossiers.fields.dns" %}</dt><dd>{% translate dossier.dns_state_key %}</dd>{% endif %}
       <dt>{% translate "admin.dossiers.fields.database" %}</dt><dd class="pd-mono">{{ dossier.database|default:"—" }}</dd>
       <dt>{% translate "admin.dossiers.fields.firm" %}</dt><dd>{{ dossier.firm_name }}</dd>
       <dt>{% translate "admin.dossiers.fields.payer" %}</dt><dd>{{ dossier.payer_name }}</dd>
