@@ -65,7 +65,10 @@ nl:
       totp_confirm: "Bevestigen"
       totp_enabled: "Authenticatie-app geactiveerd."
       totp_on: "Authenticatie-app actief."
-      totp_scan: "Voeg deze sleutel toe aan uw authenticatie-app en voer daarna de getoonde code in."
+      totp_scan: "Scan deze QR-code met uw authenticatie-app en voer daarna de getoonde code in."
+      totp_manual: "Of voer dit geheim met de hand in:"
+      totp_secret_label: "Geheim om met de hand in te voeren: "
+      totp_qr_label: "QR-code om te scannen met uw authenticatie-app"
       totp_title: "Authenticatie-app (TOTP)"
     brand: "Partiduo"
     copy:

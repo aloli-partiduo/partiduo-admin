@@ -151,8 +151,9 @@ module PartiduoAdmin
         # `nil` et non "" : une chaîne vide est vraie dans un gabarit Marten
         # (seuls nil, false et 0 sont faux) ; le bouton « activer » ne
         # s'affichait jamais.
-        "totp_secret"      => secret,
-        "totp_uri"         => secret ? Auth::Totp.provisioning_uri(current, secret) : nil,
+        # QR code de l'URI `otpauth://`, puis secret à saisir à la main.
+        "totp_qr"          => secret ? Qr::Svg.enrollment(Auth::Totp.provisioning_uri(current, secret), I18n.t("admin.account.totp_qr_label")) : nil,
+        "totp_secret"      => secret ? Qr::Svg.group(secret) : nil,
         "enrollment"       => level == Auth::ENROLLMENT,
         "password_allowed" => !current.super_admin?,
         # connect (ADR-012 D4) : moyens d'authentification tenus par connect.

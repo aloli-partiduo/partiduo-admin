@@ -65,7 +65,10 @@ fr:
       totp_confirm: "Confirmer"
       totp_enabled: "Application d'authentification activée."
       totp_on: "Application d'authentification active."
-      totp_scan: "Ajoutez cette clé dans votre application d'authentification, puis saisissez le code affiché."
+      totp_scan: "Scannez ce QR code avec votre application d'authentification, puis saisissez le code qu'elle affiche."
+      totp_manual: "Ou saisissez ce secret à la main :"
+      totp_secret_label: "Secret à saisir à la main : "
+      totp_qr_label: "QR code à scanner avec votre application d'authentification"
       totp_title: "Application d'authentification (TOTP)"
     brand: "Partiduo"
     copy:

@@ -11,12 +11,12 @@ describe "Interface de l'administration : vérification de bout en bout" do
     browser = AdminSpec::Browser.new(token: AdminSpec.session(user, 1))
     page = browser.get("/account").html
     page.should contain("Activer une application d'authentification")
-    page.should_not contain(%(<p class="pd-token mb-2"></p>))
+    page.should_not contain(%(<code></code>))
 
     browser.post("/account/totp", {"command" => "begin"}).status.should eq(302)
     secret = PartiduoAdmin::User.get!(id: user.pk).totp_pending_secret || fail("secret en attente absent")
     page = browser.get("/account").html
-    page.should contain(%(<p class="pd-token mb-2">#{secret}</p>))
+    page.should contain(%(<code>#{PartiduoAdmin::Qr::Svg.group(secret)}</code>))
     page.should_not contain("Activer une application d'authentification")
   end
 

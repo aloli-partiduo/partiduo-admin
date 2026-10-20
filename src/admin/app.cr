@@ -3,6 +3,7 @@
 require "../shared/protocol"
 require "../shared/backup_crypto"
 require "../shared/licences"
+require "../shared/qr_svg"
 require "./config"
 require "./models/organization"
 require "./models/security"

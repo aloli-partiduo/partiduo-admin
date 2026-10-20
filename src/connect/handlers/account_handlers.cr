@@ -59,8 +59,9 @@ module PartiduoConnect
         "passkeys"      => Passkey.filter(account_id: current.pk).order("created_at").to_a,
         "recovery_left" => Auth::RecoveryCodes.remaining(current),
         # `nil` et non "" : une chaîne vide est vraie dans un gabarit Marten.
-        "totp_secret" => secret,
-        "totp_uri"    => secret ? Auth::Totp.provisioning_uri(current, secret) : nil,
+        # QR code de l'URI `otpauth://`, puis secret à saisir à la main.
+        "totp_qr"     => secret ? PartiduoAdmin::Qr::Svg.enrollment(Auth::Totp.provisioning_uri(current, secret), I18n.t("connect.account.totp_qr_label")) : nil,
+        "totp_secret" => secret ? PartiduoAdmin::Qr::Svg.group(secret) : nil,
         "journal"     => elevated? ? Audit.for(current) : nil,
         "next"        => complete && elevated? ? continue_target : nil,
         "next_field"  => query("next").presence,

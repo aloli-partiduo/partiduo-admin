@@ -163,3 +163,15 @@ fieldset.pd-fieldset legend { font-weight: 600; margin-block-end: .35rem; }
 .pd-auth-tools { display: flex; flex-wrap: wrap; gap: .6rem; align-items: center; justify-content: flex-end; align-self: flex-end; }
 .pd-auth-tools form { align-self: auto; }
 .pd-apps { display: flex; flex-wrap: wrap; gap: .5rem; }
+
+/* Enrôlement TOTP : QR code puis secret à saisir à la main, mêmes règles que
+   partiduo-ui-bulma (app.css). Le QR code reste noir sur blanc en thème
+   sombre (fond blanc du cadre et du SVG) : les lecteurs l'exigent. */
+.pd-totp-grid { display: grid; grid-template-columns: 13rem minmax(0, 1fr); gap: 1.25rem; align-items: start; }
+.pd-qr-box { margin: 0; background: #fff; padding: .5rem; border: 1px solid var(--pd-rule); border-radius: var(--bulma-radius); }
+.pd-qr { display: block; width: 100%; height: auto; }
+.pd-secret code { font-size: 1.05rem; letter-spacing: .08em; word-break: break-all; background: var(--pd-row-alt); color: var(--pd-ink); padding: .3rem .5rem; display: inline-block; }
+@media (max-width: 767.98px) {
+  .pd-totp-grid { grid-template-columns: minmax(0, 1fr); }
+  .pd-qr-box { max-width: 13rem; }
+}

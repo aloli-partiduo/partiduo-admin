@@ -68,9 +68,14 @@
   <h2 id="totp">{% translate "connect.account.totp_title" %}</h2>
   {% if account.totp_enabled %}<p>{% translate "connect.account.totp_on" %}</p>
   {% elsif totp_secret %}
-  <p class="mb-2">{% translate "connect.account.totp_scan" %}</p>
-  <p class="pd-token mb-2">{{ totp_secret }}</p>
-  <p class="help mb-3 pd-mono">{{ totp_uri }}</p>
+  <p class="mb-3">{% translate "connect.account.totp_scan" %}</p>
+  <div class="pd-totp-grid mb-4">
+    <figure class="pd-qr-box">{{ totp_qr }}</figure>
+    <div>
+      <p>{% translate "connect.account.totp_manual" %}</p>
+      <p class="pd-secret"><span class="is-sr-only">{% translate "connect.account.totp_secret_label" %}</span><code>{{ totp_secret }}</code></p>
+    </div>
+  </div>
   <form method="post" action="{% url 'account_totp' %}" class="pd-inline">
     {% csrf_input %}
     <div class="field"><label class="label" for="pd-totp-code">{% translate "connect.login.code" %}</label><div class="control"><input class="input pd-mono" id="pd-totp-code" name="code" inputmode="numeric" autocomplete="one-time-code" required></div></div>

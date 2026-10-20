@@ -100,6 +100,27 @@ describe "connect : comptes" do
     other.get("/account").location.should start_with("/login")
   end
 
+  it "montre à l'enrôlement le QR code de l'URI otpauth://, puis le secret groupé" do
+    issued = PartiduoConnect::Signup.issue("qr@example.net", now: SPEC_NOW)
+    browser = ConnectSpec::Browser.new
+    browser.post(URI.parse(issued.url).path, {"code" => issued.code})
+    browser.post("/account/password", {"password" => ConnectSpec::PASSWORD, "confirmation" => ConnectSpec::PASSWORD})
+    browser.post("/account/totp", {"command" => "begin"})
+    account = PartiduoConnect::Account.get!(email: "qr@example.net")
+    secret = account.totp_pending_secret.to_s
+    response = browser.get("/account")
+    html = response.html
+
+    label = I18n.t("connect.account.totp_qr_label")
+    qr = html.index!(%(<figure class="pd-qr-box"><svg class="pd-qr" ))
+    html.should contain(%(aria-label="#{label}"))
+    html.index!(%(<code>#{PartiduoAdmin::Qr::Svg.group(secret)}</code>)).should be > qr
+    html.should_not contain("otpauth://")
+    uri = PartiduoConnect::Auth::Totp.provisioning_uri(account, secret)
+    # Contenu brut : `html` décode les entités, l'apostrophe du libellé comprise.
+    response.content.should contain(PartiduoAdmin::Qr::Svg.render(PartiduoAdmin::Qr::QrCode.encode(uri), label))
+  end
+
   it "ferme les autres sessions et prévient la personne quand un code de récupération sert (D7, D8)" do
     account = ConnectSpec.account
     codes = PartiduoConnect::Auth::RecoveryCodes.generate(account)

@@ -4,7 +4,7 @@
 # Assemble THIRD-PARTY-LICENSES.txt : licences des composants tiers compilés
 # ou servis par les programmes de ce dépôt (administration, exécutant,
 # connect) — Crystal, shards du verrou (hors dépendances de développement),
-# Bulma, htmx, Lucide, IBM Plex. Servi par /licences des programmes web. À relancer
+# Bulma, htmx, Lucide, IBM Plex, encodeur QR code de Project Nayuki. Servi par /licences des programmes web. À relancer
 # après tout changement du verrou (shards installés dans lib/).
 set -eu
 cd "$(dirname "$0")/.."
@@ -44,6 +44,8 @@ section() {
   cat licenses/htmx.txt
   section "Lucide 1.48.0 (icônes, planche copiée de partiduo-ui-bulma)" "https://github.com/lucide-icons/lucide" "ISC"
   cat licenses/lucide.txt
+  section "QR Code generator (algorithme de l'encodeur QR code, recopié de partiduo-app)" "https://github.com/nayuki/QR-Code-generator" "MIT"
+  cat licenses/qrcodegen.txt
   section "IBM Plex (polices)" "https://github.com/IBM/plex" "OFL-1.1"
   cat src/admin/assets/admin/fonts/LICENSE-IBM-Plex.txt
 } >"$out"

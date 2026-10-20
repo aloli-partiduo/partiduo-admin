@@ -677,7 +677,8 @@ licence et un lien vers ce dépôt (`src/shared/licences.cr`), et offrent à
 `/licences` la liste des composants tiers avec leur licence, leur provenance
 et leur texte. Ce texte, `THIRD-PARTY-LICENSES.txt`, est assemblé par
 `scripts/third-party-licenses.sh` (Crystal, shards du verrou, Bulma, htmx,
-Lucide, IBM Plex ; textes vendus dans `licenses/`) : à relancer après tout
+Lucide, IBM Plex, encodeur QR code de Project Nayuki ; textes vendus dans
+`licenses/`) : à relancer après tout
 changement du verrou ; la CI le vérifie.
 
 == Pages d'accès communes avec partiduo-ui-bulma
@@ -694,6 +695,20 @@ pour octet de ceux de `partiduo-ui-bulma` : ne pas les modifier ici, mais
 là-bas, puis les recopier et mettre à jour l'empreinte dans les deux specs
 (`spec/admin/shared_assets_spec.cr` ici, `spec/ui/shared_assets_spec.cr`
 là-bas).
+
+L'enrôlement de l'application d'authentification (page du compte de
+l'administration et de connect) affiche un QR code de l'URI `otpauth://`,
+puis le secret groupé par quatre caractères, comme l'application (classes
+`pd-totp-grid`, `pd-qr-box`, `pd-qr`, `pd-secret`, dans `admin.css` et
+`connect.css` ; noir sur blanc dans les deux thèmes). L'encodeur
+`src/shared/qr_code.cr` (`PartiduoAdmin::Qr::QrCode`) est une copie de
+`partiduo-app/src/auth/services/qr_code.cr` : son bloc `class QrCode … end`
+est identique à la source, ce que vérifie `spec/admin/qr_code_spec.cr`
+(empreinte SHA-256 du bloc, matrice d'une URI réelle, et comparaison à la
+copie de travail voisine `../partiduo-app` quand elle est là). Ne pas le
+modifier ici : modifier partiduo-app, recopier, puis mettre à jour les
+empreintes de la spec. Le rendu SVG (`src/shared/qr_svg.cr`) reprend celui
+de `PartiduoUi::QrSvg`.
 
 == Développement local
 
