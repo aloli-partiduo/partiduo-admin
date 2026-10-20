@@ -78,8 +78,9 @@ module PartiduoAdmin
       end
       template = htmx? ? "admin/_task_body.html" : "admin/task.html"
       # Code de création du compte connect (ADR-012 D6), à transmettre de
-      # vive voix à l'administrateur du dossier : mis en évidence.
-      signup_code = (JSON.parse(task.result.presence || "{}")["signup_code"]?.try(&.as_s?) rescue nil)
+      # vive voix à l'administrateur du dossier : mis en évidence. Vide quand
+      # l'administrateur a déjà un compte connect : rien à afficher.
+      signup_code = (JSON.parse(task.result.presence || "{}")["signup_code"]?.try(&.as_s?).presence rescue nil)
       page(template, {"task" => task, "result" => task.result.presence || "{}", "signup_code" => signup_code,
                       "can_retry" => Tasks.retryable?(task) && !user.file_manager?, "can_cancel" => task.state == "pending" && !user.file_manager?})
     end

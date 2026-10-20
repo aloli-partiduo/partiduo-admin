@@ -115,3 +115,13 @@ fieldset.pd-fieldset legend { font-weight: 600; margin-block-end: .35rem; }
   .pd-main { padding: 1rem; }
 }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+/* Tâche en attente ou en cours : anneau qui tourne dans le bandeau, pour
+   montrer que l'exécutant travaille. Sans animation si le poste la refuse. */
+.pd-busy { display: flex; align-items: center; gap: .75rem; }
+.pd-busy::before { content: ""; flex: none; width: 1.1rem; height: 1.1rem; border-radius: 50%;
+  border: .18rem solid currentColor; border-right-color: transparent; animation: pd-spin .8s linear infinite; }
+@keyframes pd-spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) {
+  .pd-busy::before { animation: pd-pulse 1.6s ease-in-out infinite; border-right-color: currentColor; }
+  @keyframes pd-pulse { 50% { opacity: .35; } }
+}

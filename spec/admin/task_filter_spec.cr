@@ -91,6 +91,8 @@ describe "Interface de l'administration : relance d'une tâche" do
     relancee.should_not contain("Enregistré")
     relancee.should contain("En attente de l'exécutant")
     relancee.should contain(%(hx-trigger="every 5s"))
+    # Animation : l'exécutant travaille.
+    relancee.should contain(%(pd-busy" role="status" aria-busy="true"))
 
     # La tâche se termine : le prochain rafraîchissement recharge la page.
     echec.reload
@@ -98,7 +100,22 @@ describe "Interface de l'administration : relance d'une tâche" do
     echec.save!
     refresh = browser.get("/tasks/#{echec.pk}", {"HX-Request" => "true"})
     refresh.headers["HX-Refresh"]?.should eq("true")
-    browser.get("/tasks/#{echec.pk}").html.should contain("Tâche réussie.")
+    finie = browser.get("/tasks/#{echec.pk}").html
+    finie.should contain("Tâche réussie.")
+    finie.should_not contain("pd-busy")
+  end
+
+  it "n'affiche pas de code de création vide (administrateur déjà doté d'un compte connect)" do
+    firm = AdminSpec.firm
+    server, _ = AdminSpec.server("loulou-code")
+    dossier = AdminSpec.dossier(firm, server, slug: "pipo-code")
+    browser = AdminSpec::Browser.new(token: AdminSpec.session(AdminSpec.super_admin))
+    vide = PartiduoAdmin::Task.create!(kind: "instance.admin_invite", server: server, dossier: dossier, state: "succeeded",
+      result: %({"email":"a@example.com","signup_code":"","connect_account":true}))
+    browser.get("/tasks/#{vide.pk}").html.should_not contain("pd-token")
+    plein = PartiduoAdmin::Task.create!(kind: "instance.admin_invite", server: server, dossier: dossier, state: "succeeded",
+      result: %({"email":"b@example.com","signup_code":"WXYZ-2345","connect_account":false}))
+    browser.get("/tasks/#{plein.pk}").html.should contain(%(<p class="pd-token mt-2">WXYZ-2345</p>))
   end
 end
 
