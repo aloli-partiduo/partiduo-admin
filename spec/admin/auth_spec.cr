@@ -94,7 +94,7 @@ describe "Authentification de l'administration" do
     # générés sans être vus.
     shown = registered["html"].as_s
     shown.should contain("Codes de récupération")
-    shown.scan(/<li>[^<]+<\/li>/).size.should eq(10)
+    shown.scan(/<li><code>[^<]+<\/code><\/li>/).size.should eq(10)
     registered["redirect"]?.should be_nil
     # Sans session élevée : pas de bouton, mais la marche à suivre.
     unelevated = browser.get("/account").content

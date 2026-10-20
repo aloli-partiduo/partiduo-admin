@@ -80,6 +80,8 @@ fr:
     login:
       connect_button: "Me connecter avec mon compte Partiduo"
       connect_help: "Un seul compte pour l'administration et tous vos dossiers : passkey, application d'authentification et codes de récupération sont tenus par connect."
+      connect_title: "Compte Partiduo"
+      restart: "Revenir à la connexion"
       title: "Connexion à l'administration"
       passkey_title: "Avec une clé d'accès (passkey)"
       passkey_help: "Exigée pour le super-admin. Votre appareil vous demande votre empreinte, votre visage ou votre code."
@@ -98,6 +100,8 @@ fr:
       failed: "La clé d'accès n'a pas pu être utilisée. Réessayez."
       waiting: "Suivez les indications de votre appareil…"
     invitation:
+      connect_existing_title: "J'ai déjà un compte Partiduo"
+      connect_new_title: "Pas encore de compte Partiduo"
       connect_existing: "J'ai déjà un compte Partiduo : me connecter"
       connect_intro: "Accès à l'administration pour %{email}, avec votre compte Partiduo (le même que pour vos dossiers)."
       connect_new: "Créer mon compte Partiduo"

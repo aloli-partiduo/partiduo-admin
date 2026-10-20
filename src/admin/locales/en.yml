@@ -80,6 +80,8 @@ en:
     login:
       connect_button: "Sign in with my Partiduo account"
       connect_help: "One account for the administration and all your files: passkey, authenticator app and recovery codes are held by connect."
+      connect_title: "Partiduo account"
+      restart: "Back to sign in"
       title: "Sign in to the administration"
       passkey_title: "With a passkey"
       passkey_help: "Required for the super admin. Your device asks for your fingerprint, face or PIN."
@@ -98,6 +100,8 @@ en:
       failed: "The passkey could not be used. Please try again."
       waiting: "Follow the instructions on your device…"
     invitation:
+      connect_existing_title: "I already have a Partiduo account"
+      connect_new_title: "No Partiduo account yet"
       connect_existing: "I already have a Partiduo account: sign in"
       connect_intro: "Access to the administration for %{email}, with your Partiduo account (the same as for your files)."
       connect_new: "Create my Partiduo account"

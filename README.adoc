@@ -675,8 +675,23 @@ licence et un lien vers ce dépôt (`src/shared/licences.cr`), et offrent à
 `/licences` la liste des composants tiers avec leur licence, leur provenance
 et leur texte. Ce texte, `THIRD-PARTY-LICENSES.txt`, est assemblé par
 `scripts/third-party-licenses.sh` (Crystal, shards du verrou, Bulma, htmx,
-IBM Plex ; textes vendus dans `licenses/`) : à relancer après tout
+Lucide, IBM Plex ; textes vendus dans `licenses/`) : à relancer après tout
 changement du verrou ; la CI le vérifie.
+
+== Pages d'accès communes avec partiduo-ui-bulma
+
+Connexion, second facteur, invitation, codes de récupération, erreurs et
+`/licences` ont la même mise en page que celles de l'application
+(`partiduo-ui-bulma`, interface de référence) : langue, bandeau, carte,
+blocs avec icônes, séparateurs, boutons tactiles, pied de page. Seules
+changent la mention sous le nom (« administration des dossiers ») et les
+blocs propres (connexion par connect). `access.css`, `theme.css`,
+`bulma.min.css`, `fonts.css`, `icons/sprite.svg`, `brand/logo.svg` et
+`brand/aloli-logo.svg` sous `src/admin/assets/admin/` sont des copies octet
+pour octet de ceux de `partiduo-ui-bulma` : ne pas les modifier ici, mais
+là-bas, puis les recopier et mettre à jour l'empreinte dans les deux specs
+(`spec/admin/shared_assets_spec.cr` ici, `spec/ui/shared_assets_spec.cr`
+là-bas).
 
 == Développement local
 

@@ -26,6 +26,24 @@ private def check_auth_brand(html : String) : Nil
   brand.should contain(%(<b class="pd-name">Parti<span>duo</span></b><small>administration des dossiers</small>))
   html.index!(brand).should be > html.index!(%(<header class="pd-auth-top">))
   html.index!(brand).should be < html.index!(%(<main class="pd-auth"))
+  check_banner_and_footer(html)
+end
+
+# Bandeau et pied de page des pages d'accès, communs avec partiduo-ui-bulma :
+# « une création », ALOLI (logo, deux lignes, lien vers son site), provenance
+# du code (AGPL-3.0, art. 13) ; feuille commune chargée avant admin.css.
+private def check_banner_and_footer(html : String) : Nil
+  html.should contain(%(<link rel="stylesheet" href="/assets/admin/css/access.css">\n    <link rel="stylesheet" href="/assets/admin/css/admin.css">))
+  html.should contain(%(<form class="pd-lang" method="post" action="/language">))
+  banner = html.match!(/<div class="pd-auth-banner">.*?<\/a>\s*<\/div>/m)[0]
+  banner.should contain(%(<p class="pd-auth-credit">une création</p>))
+  banner.should contain(%(<a class="pd-auth-aloli" href="https://aloli.fr" target="_blank" rel="noopener"><img src="/assets/admin/brand/aloli-logo.svg" alt="ALOLI" width="151" height="56"><span>))
+  banner.should contain("informatique d")
+  banner.should contain("<br>à taille humaine</span></a>")
+  footer = html.match!(/<footer class="pd-foot">.*?<\/footer>/m)[0]
+  footer.should contain("Partiduo #{PartiduoAdmin::VERSION} — logiciel libre sous licence AGPL-3.0")
+  footer.should contain(%(<a href="/licences">Composants et licences</a>))
+  html.index!(footer).should be > html.index!("</main>")
 end
 
 describe "Identité visuelle de l'administration" do
@@ -56,6 +74,25 @@ describe "Identité visuelle de l'administration" do
 
   it "centre le logo, le nom et la mention en haut de la page de connexion" do
     check_auth_brand(AdminSpec::Browser.new.get("/login").html)
+  end
+
+  it "met en forme la connexion comme l'application : blocs, icônes, séparateur, cibles tactiles" do
+    html = AdminSpec::Browser.new.get("/login").html
+    html.should contain(%(<section class="pd-auth-block" aria-labelledby="pd-passkey-title">))
+    html.should contain(%(<h2 id="pd-passkey-title" class="pd-auth-subtitle"><svg class="pd-icon" aria-hidden="true" focusable="false"><use href="/assets/admin/icons/sprite.svg#key-round"></use></svg>))
+    html.should contain(%(<p class="pd-or"><span>ou</span></p>))
+    html.should contain(%(<form method="post" action="/login" class="pd-auth-block" novalidate aria-labelledby="pd-password-title">))
+    html.should contain(%(<button class="button is-link pd-touch" type="submit">))
+    refused = AdminSpec::Browser.new.post("/login", {"email" => "personne@example.com", "password" => "faux"}).html
+    refused.should contain(%(<div class="notification is-danger is-light pd-alert" role="alert" id="pd-login-error">))
+    refused.should contain(%(aria-describedby="pd-login-error"))
+  end
+
+  it "garde la même mise en page sur les autres pages d'accès" do
+    %w[/licences /invitation/inconnu].each do |path|
+      response = AdminSpec::Browser.new.get(path)
+      check_auth_brand(response.html)
+    end
   end
 
   it "pose favicons et marque dans la barre, lien vers l'accueil, et sur les pages d'erreur" do

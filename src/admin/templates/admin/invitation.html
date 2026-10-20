@@ -1,19 +1,28 @@
-{# SPDX-License-Identifier: AGPL-3.0-or-later. Invitation : l'utilisateur confirme, puis enrôle ses moyens d'authentification. #}{% extend "admin/auth_base.html" %}
+{# SPDX-License-Identifier: AGPL-3.0-or-later. Invitation : l'utilisateur confirme, puis enrôle ses moyens d'authentification ; avec connect (ADR-012), création du compte Partiduo ou connexion à celui qu'il a déjà. Mise en forme de partiduo-ui-bulma. #}{% extend "admin/auth_base.html" %}
 {% block title %}{% translate "admin.invitation.title" %}{% endblock title %}
 {% block content %}
 <h1 class="pd-auth-title">{% translate "admin.invitation.title" %}</h1>
 {% if invalid %}
-<p role="alert">{% translate "admin.invitation.invalid" %}</p>
+<p class="mb-4" role="alert">{% translate "admin.invitation.invalid" %}</p>
+<p><a href="{% url 'login' %}">{% translate "admin.login.restart" %}</a></p>
 {% elsif connect %}
-<p class="mb-3">{% translate "admin.invitation.connect_intro" email: invited.email %}</p>
-{% if signup_url %}<p class="mb-2">{% translate "admin.invitation.connect_new_help" %}</p>
-<a class="button is-primary mb-4" href="{{ signup_url }}">{% translate "admin.invitation.connect_new" %}</a>{% endif %}
-<p><a class="button{% if signup_url %} is-light{% else %} is-primary{% endif %}" href="{{ connect_path }}">{% translate "admin.invitation.connect_existing" %}</a></p>
+<p class="mb-4">{% translate "admin.invitation.connect_intro" email: invited.email %}</p>
+{% if signup_url %}
+<section class="mb-4" aria-labelledby="pd-signup-title">
+  <h2 id="pd-signup-title" class="title is-6">{% translate "admin.invitation.connect_new_title" %}</h2>
+  <p class="mb-2">{% translate "admin.invitation.connect_new_help" %}</p>
+  <a class="button is-primary pd-touch" href="{{ signup_url }}">{% translate "admin.invitation.connect_new" %}</a>
+</section>
+{% endif %}
+<section aria-labelledby="pd-existing-title">
+  <h2 id="pd-existing-title" class="title is-6">{% translate "admin.invitation.connect_existing_title" %}</h2>
+  <a class="button{% if signup_url %} is-light{% else %} is-primary{% endif %} pd-touch" href="{{ connect_path }}">{% translate "admin.invitation.connect_existing" %}</a>
+</section>
 {% else %}
-<p class="mb-3">{% translate "admin.invitation.intro" email: invited.email %}</p>
+<p class="mb-4">{% translate "admin.invitation.intro" email: invited.email %}</p>
 <form method="post" action="{% url 'invitation' token: token %}">
   {% csrf_input %}
-  <button class="button is-primary" type="submit">{% translate "admin.invitation.accept" %}</button>
+  <button class="button is-primary pd-touch" type="submit">{% translate "admin.invitation.accept" %}</button>
 </form>
 {% endif %}
 {% endblock content %}

@@ -80,6 +80,8 @@ nl:
     login:
       connect_button: "Aanmelden met mijn Partiduo-account"
       connect_help: "Eén account voor het beheer en al uw dossiers: toegangssleutel, authenticatie-app en herstelcodes worden door connect bewaard."
+      connect_title: "Partiduo-account"
+      restart: "Terug naar aanmelden"
       title: "Aanmelden bij het beheer"
       passkey_title: "Met een toegangssleutel (passkey)"
       passkey_help: "Verplicht voor de superbeheerder. Uw toestel vraagt uw vingerafdruk, gezicht of code."
@@ -98,6 +100,8 @@ nl:
       failed: "De toegangssleutel kon niet worden gebruikt. Probeer opnieuw."
       waiting: "Volg de aanwijzingen van uw toestel…"
     invitation:
+      connect_existing_title: "Ik heb al een Partiduo-account"
+      connect_new_title: "Nog geen Partiduo-account"
       connect_existing: "Ik heb al een Partiduo-account: aanmelden"
       connect_intro: "Toegang tot het beheer voor %{email}, met uw Partiduo-account (hetzelfde als voor uw dossiers)."
       connect_new: "Mijn Partiduo-account aanmaken"

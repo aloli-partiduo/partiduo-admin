@@ -1,4 +1,4 @@
-{# SPDX-License-Identifier: AGPL-3.0-or-later. Pages d'authentification et d'erreur : logo, nom et mention de l'administration centrés en haut, carte centrée, sans menu. #}<!DOCTYPE html>
+{# SPDX-License-Identifier: AGPL-3.0-or-later. Mise en page des pages d'accès (connexion, second facteur, invitation, codes de récupération, erreurs, licences), commune avec partiduo-ui-bulma : langue, bandeau (Partiduo, « une création », ALOLI), carte centrée, pied de page ; sans menu. #}<!DOCTYPE html>
 <html lang="{{ locale }}">
   <head>
 {% include "admin/_head.html" %}
@@ -7,17 +7,19 @@
   <body class="pd-auth-body">
     <a class="pd-skip" href="#pd-main">{% translate "admin.shell.skip" %}</a>
     <header class="pd-auth-top">
-      <form method="post" action="{% url 'language' %}">
+      <form class="pd-lang" method="post" action="{% url 'language' %}">
         {% csrf_input %}
         <input type="hidden" name="next" value="{{ current_path }}">
         <label class="is-sr-only" for="pd-lang">{% translate "admin.shell.language" %}</label>
-        <div class="select is-small"><select id="pd-lang" name="locale">{% for code in locales %}<option value="{{ code }}" lang="{{ code }}"{% if code == locale %} selected{% endif %}>{{ code|upcase }}</option>{% endfor %}</select></div>
-        <button class="button is-small" type="submit">{% translate "admin.shell.apply" %}</button>
+        <div class="select"><select id="pd-lang" name="locale">
+          {% for code in locales %}<option value="{{ code }}" lang="{{ code }}"{% if code == locale %} selected{% endif %}>{{ code|upcase }}</option>{% endfor %}
+        </select></div>
+        <button class="button" type="submit">{% translate "admin.shell.apply" %}</button>
       </form>
       <div class="pd-auth-banner">
         <div class="pd-auth-brand"><img class="pd-logo" src="{% asset 'admin/brand/logo.svg' %}" alt="" width="56" height="56"><span><b class="pd-name">Parti<span>duo</span></b><small>{% translate "admin.shell.tagline" %}</small></span></div>
         <p class="pd-auth-credit">{% translate "admin.shell.credit" %}</p>
-        <a class="pd-auth-aloli" href="https://aloli.fr" target="_blank" rel="noopener"><img src="{% asset 'admin/brand/aloli-logo.svg' %}" alt="ALOLI" width="46" height="56"><span>{% translate "admin.shell.aloli_line_1" %}<br>{% translate "admin.shell.aloli_line_2" %}</span></a>
+        <a class="pd-auth-aloli" href="https://aloli.fr" target="_blank" rel="noopener"><img src="{% asset 'admin/brand/aloli-logo.svg' %}" alt="ALOLI" width="151" height="56"><span>{% translate "admin.shell.aloli_line_1" %}<br>{% translate "admin.shell.aloli_line_2" %}</span></a>
       </div>
     </header>
     <main class="pd-auth" id="pd-main" tabindex="-1">

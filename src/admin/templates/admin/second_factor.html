@@ -1,16 +1,17 @@
-{# SPDX-License-Identifier: AGPL-3.0-or-later. Second facteur : code TOTP ou code de récupération (ADR-002 D2, D7). #}{% extend "admin/auth_base.html" %}
+{# SPDX-License-Identifier: AGPL-3.0-or-later. Second facteur : code TOTP ou code de récupération (ADR-002 D2, D7). Mise en forme de partiduo-ui-bulma. #}{% extend "admin/auth_base.html" %}
 {% block title %}{% translate "admin.login.second_factor" %}{% endblock title %}
 {% block content %}
 <h1 class="pd-auth-title">{% translate "admin.login.second_factor" %}</h1>
-{% if error %}<div class="notification is-danger is-light" role="alert" id="pd-code-error">{{ error }}</div>{% endif %}
-<form method="post" action="{% url 'second_factor' %}" novalidate>
+{% if error %}{% include "admin/_alert.html" with message=error, id="pd-code-error" %}{% endif %}
+<form method="post" action="{% url 'second_factor' %}" class="pd-auth-block" novalidate>
   {% csrf_input %}
   <input type="hidden" name="next" value="{{ next }}">
   <div class="field">
-    <label class="label" for="pd-code">{% translate "admin.login.code" %}</label>
-    <div class="control"><input class="input pd-mono" id="pd-code" name="code" type="text" inputmode="text" autocomplete="one-time-code" required aria-describedby="pd-code-help{% if error %} pd-code-error{% endif %}"></div>
-    <p class="help" id="pd-code-help">{% translate "admin.login.code_help" %}</p>
+    <label class="label" for="pd-code">{% include "admin/_icon.html" with name="smartphone" %} {% translate "admin.login.code" %}</label>
+    <p class="help mb-2" id="pd-code-help">{% translate "admin.login.code_help" %}</p>
+    <div class="control"><input class="input pd-code" id="pd-code" name="code" type="text" inputmode="text" autocomplete="one-time-code" autocapitalize="characters" spellcheck="false" required autofocus aria-describedby="pd-code-help{% if error %} pd-code-error{% endif %}"{% if error %} aria-invalid="true"{% endif %}></div>
   </div>
-  <button class="button is-link" type="submit">{% translate "admin.login.verify" %}</button>
+  <button class="button is-link pd-touch" type="submit">{% translate "admin.login.verify" %}</button>
 </form>
+<p class="mt-4"><a href="{% url 'login' %}">{% translate "admin.login.restart" %}</a></p>
 {% endblock content %}

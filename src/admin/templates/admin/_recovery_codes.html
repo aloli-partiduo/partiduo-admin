@@ -1,5 +1,5 @@
-{# SPDX-License-Identifier: AGPL-3.0-or-later. Codes de récupération, affichés une seule fois (ADR-002 D7) : fragment commun à la page dédiée et à l'enregistrement d'une clé d'accès. #}
+{# SPDX-License-Identifier: AGPL-3.0-or-later. Codes de récupération, affichés une seule fois (ADR-002 D7) : fragment commun à la page dédiée et à l'enregistrement d'une clé d'accès ; liste présentée comme dans partiduo-ui-bulma. #}
 <h1 class="pd-auth-title" tabindex="-1">{% translate "admin.account.recovery_title" %}</h1>
-<p class="mb-3" role="status">{% translate "admin.account.recovery_once" %}</p>
-<ul class="pd-codes mb-4">{% for code in codes %}<li>{{ code }}</li>{% endfor %}</ul>
-<a class="button is-primary" href="{% url 'account' %}">{% translate "admin.account.continue" %}</a>
+<div class="notification is-warning is-light" role="status">{% translate "admin.account.recovery_once" %}</div>
+<ol class="pd-code-list">{% for code in codes %}<li><code>{{ code }}</code></li>{% endfor %}</ol>
+<a class="button is-primary pd-touch" href="{% url 'account' %}">{% translate "admin.account.continue" %}</a>
