@@ -59,6 +59,11 @@
   --pd-rule: #dce3e4;
   /* Bordure des champs de saisie : 3:1 au moins sur --pd-surface (WCAG 1.4.11). */
   --pd-field-border: #7d8d92;
+  /* Fond et texte des champs de saisie (champs de Bulma, lignes de saisie,
+     barre supérieure) : un seul jeton par thème, au lieu de la luminosité
+     que Bulma dérive pour chaque composant. */
+  --pd-field-bg: #ffffff;
+  --pd-field-ink: #1b2a30;
   /* Étiquette neutre (`tag is-light` sans couleur : « annulée », état d'une
      période…) : texte à 4,5:1 au moins sur son fond (WCAG 1.4.3). */
   --pd-tag-bg: #e8eef0;
@@ -125,6 +130,8 @@
     --pd-muted: #93a6ab;
     --pd-rule: #26363b;
     --pd-field-border: #6a7d82;
+    --pd-field-bg: #101b1e;
+    --pd-field-ink: #e3eced;
     --pd-tag-bg: #26383e;
     --pd-tag-ink: #dbe6e8;
     --pd-row-alt: #182629;
@@ -186,6 +193,8 @@
   --pd-muted: #93a6ab;
   --pd-rule: #26363b;
   --pd-field-border: #6a7d82;
+  --pd-field-bg: #101b1e;
+  --pd-field-ink: #e3eced;
   --pd-tag-bg: #26383e;
   --pd-tag-ink: #dbe6e8;
   --pd-row-alt: #182629;
@@ -203,3 +212,10 @@
 }
 
 :root[data-theme="dark"] .notification.is-light { --bulma-notification-background-l: var(--bulma-light-l); }
+
+/* Champs de saisie de Bulma (texte, liste, zone de texte) sur les jetons
+   --pd-field-* dans les deux thèmes : un champ ne garde jamais le fond blanc
+   d'un composant dont Bulma calcule la couleur à part (recherche de la barre
+   supérieure, période, numéro de pièce). États désactivés : ceux de Bulma,
+   plus précis. */
+.input, .textarea, .select select { background-color: var(--pd-field-bg); color: var(--pd-field-ink); }

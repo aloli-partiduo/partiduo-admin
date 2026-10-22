@@ -10,7 +10,7 @@ require "digest/sha256"
 # modifier partiduo-ui-bulma, recopier, puis mettre à jour l'empreinte dans
 # les deux specs.
 private SHARED_ASSETS = {
-  "css/theme.css"        => "33c9b3a32188701b36ef03c3ff7732c88f2851e9192809c49c24daf3095b921f",
+  "css/theme.css"        => "78f0c25498197e16a3bb2ff62fcbf13ca8e263cc6dbaebe823799e59b074b5f2",
   "css/access.css"       => "7dd4e486308843f0cbfe8ff66867aa92df3e13cbe563dd15311dc8ecf5e19ab5",
   "css/bulma.min.css"    => "67fa26df1ca9e95d8f2adc7c04fa1b15fa3d24257470ebc10cc68b9aab914bee",
   "css/fonts.css"        => "28df0b5dad4409d1418e5b85a8c66d213cb8b7d38ccf01580017fac9d1967a1b",
