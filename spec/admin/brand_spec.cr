@@ -24,6 +24,8 @@ private def check_auth_brand(html : String) : Nil
   brand = html.match!(/<div class="pd-auth-brand">.*?<\/div>/m)[0]
   brand.should contain(%(<img class="pd-logo" src="/assets/admin/brand/logo.svg" alt="" width="56" height="56">))
   brand.should contain(%(<b class="pd-name">Parti<span>duo</span></b><small>administration des dossiers</small>))
+  # « admin » en grand : on sait d'un coup d'œil sur quel service on se connecte.
+  brand.should contain(%(<p class="pd-auth-realm" lang="en">admin</p>))
   html.index!(brand).should be > html.index!(%(<header class="pd-auth-top">))
   html.index!(brand).should be < html.index!(%(<main class="pd-auth"))
   check_banner_and_footer(html)

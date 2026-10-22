@@ -28,6 +28,12 @@ describe "connect : OpenID Connect" do
     html.should_not contain("no-referrer")
   end
 
+  it "affiche « connect » en grand à côté de la marque, pour savoir où l'on se connecte" do
+    html = ConnectSpec::Browser.new.get("/login").html
+    brand = html.match!(/<div class="pd-auth-brand">.*?<\/div>/m)[0]
+    brand.should contain(%(<p class="pd-auth-realm" lang="en">connect</p>))
+  end
+
   it "offre le code source et les licences des composants tiers (AGPL-3.0, art. 13)" do
     browser = ConnectSpec::Browser.new
     browser.get("/login").html.should contain(PartiduoLicences::SOURCE_URL)

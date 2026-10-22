@@ -125,3 +125,8 @@ fieldset.pd-fieldset legend { font-weight: 600; margin-block-end: .35rem; }
   .pd-busy::before { animation: pd-pulse 1.6s ease-in-out infinite; border-right-color: currentColor; }
   @keyframes pd-pulse { 50% { opacity: .35; } }
 }
+/* Pages d'accès : « admin » ou « connect » en grand à côté de la marque,
+   pour savoir d'un coup d'œil sur quel service on se connecte. */
+.pd-auth-realm { margin: 0 0 0 .75rem; padding: .1rem .7rem; border: 2px solid currentColor; border-radius: .5rem;
+  font-size: 1.75rem; font-weight: 700; line-height: 1.2; letter-spacing: .04em; text-transform: uppercase;
+  color: var(--pd-brand-parti); align-self: center; }
