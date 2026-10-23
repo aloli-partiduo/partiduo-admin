@@ -4,6 +4,14 @@ es:
       free: "Partiduo %{version} — software libre con licencia AGPL-3.0"
       licences: "Componentes y licencias"
       source: "Código fuente"
+    languages:
+      fr: "Francés"
+      en: "Inglés"
+      nl: "Neerlandés"
+      de: "Alemán"
+      es: "Español"
+      it: "Italiano"
+      pt: "Portugués"
     licences:
       component: "Componente"
       licence: "Licencia"
@@ -33,6 +41,11 @@ es:
       journal_what: "Evento"
       journal_when: "Fecha (UTC)"
       journal_where: "Dirección IP"
+      language: "Idioma"
+      language_browser: "Idioma del navegador"
+      language_help: "Se aplica a connect, a la consola de administración y a todos sus expedientes a partir de su próximo inicio de sesión. «Idioma del navegador»: el que pide su navegador."
+      language_saved: "Idioma guardado."
+      language_title: "Idioma de visualización"
       level: "Nivel de la sesión"
       missing: "Para completar su cuenta:"
       missing_items:

@@ -1,4 +1,4 @@
-{# SPDX-License-Identifier: AGPL-3.0-or-later. Compte (ADR-012 D1) : moyens d'authentification, codes de récupération, adresse, journal. Sert aussi à l'enrôlement. #}{% extend "connect/base.html" %}
+{# SPDX-License-Identifier: AGPL-3.0-or-later. Compte (ADR-012 D1) : langue d'affichage, moyens d'authentification, codes de récupération, adresse, journal. Sert aussi à l'enrôlement. #}{% extend "connect/base.html" %}
 {% block title %}{% translate "connect.account.title" %}{% endblock title %}
 {% block card_class %} is-wide{% endblock card_class %}
 {% block content %}
@@ -28,6 +28,19 @@
     <button class="button" type="submit">{% translate "connect.save" %}</button>
   </form>
   {% endif %}
+</section>
+
+<section class="pd-panel" aria-labelledby="pd-language-title">
+  <h2 id="pd-language-title">{% translate "connect.account.language_title" %}</h2>
+  <form method="post" action="{% url 'account_language' %}" class="pd-inline">
+    {% csrf_input %}
+    <div class="field"><label class="label" for="pd-account-locale">{% translate "connect.account.language" %}</label><div class="control"><div class="select"><select id="pd-account-locale" name="locale" aria-describedby="pd-language-help">
+      <option value=""{% if language_browser %} selected{% endif %}>{% translate "connect.account.language_browser" %}</option>
+      {% for language in languages %}<option value="{{ language.code }}"{% if language.selected %} selected{% endif %}>{{ language.label }}</option>{% endfor %}
+    </select></div></div></div>
+    <button class="button" type="submit">{% translate "connect.save" %}</button>
+  </form>
+  <p class="help" id="pd-language-help">{% translate "connect.account.language_help" %}</p>
 </section>
 
 <section class="pd-panel" aria-labelledby="pd-passkeys-title">

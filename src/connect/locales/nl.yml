@@ -4,6 +4,14 @@ nl:
       free: "Partiduo %{version} — vrije software onder de AGPL-3.0-licentie"
       licences: "Componenten en licenties"
       source: "Broncode"
+    languages:
+      fr: "Frans"
+      en: "Engels"
+      nl: "Nederlands"
+      de: "Duits"
+      es: "Spaans"
+      it: "Italiaans"
+      pt: "Portugees"
     licences:
       component: "Component"
       licence: "Licentie"
@@ -33,6 +41,11 @@ nl:
       journal_what: "Gebeurtenis"
       journal_when: "Datum (UTC)"
       journal_where: "IP-adres"
+      language: "Taal"
+      language_browser: "Taal van de browser"
+      language_help: "Geldt voor connect, de beheerconsole en al uw dossiers, vanaf hun volgende aanmelding. „Taal van de browser”: de taal die uw browser vraagt."
+      language_saved: "Taal opgeslagen."
+      language_title: "Weergavetaal"
       level: "Niveau van de sessie"
       missing: "Om uw account af te ronden:"
       missing_items:

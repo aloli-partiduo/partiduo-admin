@@ -520,7 +520,9 @@ seul si elle entre (ADR-002 D3).
 |`/authorize`, `/token`, `/userinfo`
 |Flux « code d'autorisation » ; PKCE S256 obligatoire, clients
 confidentiels (`client_secret_basic` ou `_post`), `acr` 1 à 3
-(ADR-002 D2), `acr_values=3` fait passer par la passkey.
+(ADR-002 D2), `acr_values=3` fait passer par la passkey. Claims : `sub`,
+`email`, `email_verified`, `name`, et `locale` (langue d'affichage du
+compte) seulement si le compte en a une (D-ADM-015).
 
 |`/logout`
 |Déconnexion unique : la session fermée avise par canal arrière chaque
@@ -533,8 +535,10 @@ envoyer par courriel) et un code (à transmettre par un autre canal) ;
 `{"account": true}` si l'adresse a déjà un compte (ADR-012 D6).
 
 |`/signup/<jeton>`, `/account`
-|Création du compte (lien + code), enrôlement, facteurs, codes,
-changement d'adresse, journal personnel.
+|Création du compte (lien + code), enrôlement, langue d'affichage (l'une
+des sept langues, ou celle du navigateur ; vaut pour connect, la console et
+les dossiers, D-ADM-015), facteurs, codes, changement d'adresse, journal
+personnel.
 
 |`/api/v1/clients`
 |Déclaration du client d'un dossier par l'exécutant de son serveur
@@ -585,6 +589,10 @@ ni mot de passe, ni TOTP, ni passkey locaux : la connexion passe par
 `/login/connect` (niveau attesté par connect, passkey redemandée au
 super-admin), la déconnexion par connect, l'invitation d'un utilisateur lie
 son compte connect (même adresse) et rend le code de création du compte.
+La langue de la console est alors celle du compte connect (claim `locale`,
+relu à chaque connexion), sinon celle du navigateur ; le sélecteur de langue
+des écrans connectés devient un lien vers la page du compte connect
+(D-ADM-015, `DECISIONS.adoc`).
 Client à déclarer chez connect :
 
 [source,sh]

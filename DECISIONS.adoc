@@ -1,0 +1,89 @@
+= partiduo-admin — décisions
+:toc: left
+:toc-title: Table des matières
+:icons: font
+
+Décisions prises dans ce dépôt (console d'administration `src/admin`,
+fournisseur d'identité `connect` `src/connect`, exécutant `src/agent`)
+quand un point n'était pas tranché par les ADR (contexte, choix,
+alternatives écartées). Les ADR ne sont jamais modifiés : un écart ou un
+complément y est proposé ici.
+
+La numérotation `D-ADM-…` continue celle des décisions de l'administration
+consignées dans `partiduo-app/DECISIONS.adoc` (D-ADM-001 à D-ADM-014).
+
+== Décisions
+
+=== D-ADM-015 — Langue d'affichage tenue par connect (23 octobre 2026)
+
+Décision de l'utilisateur : « La langue d'affichage doit être réglée dans
+connect, puisque l'utilisateur est le même pour chaque dossier et pour
+l'admin. » Version 0.1.52.
+
+*Contexte.* Chaque programme gardait sa langue : cookie de la visite et
+langue de l'utilisateur dans la console, langue du compte dans connect,
+langue de l'utilisateur dans chaque dossier. Une personne connectée par
+connect devait donc régler sa langue partout, et pouvait voir connect en
+allemand, la console en français et ses dossiers en néerlandais.
+
+*Choix.*
+
+* *connect tient la langue.* `Account#locale` : l'une des sept langues
+  (`fr en nl de es it pt`), ou vide pour suivre le navigateur (champ
+  `blank: true`, sans migration : la colonne garde son défaut `fr`, les
+  comptes existants gardent leur valeur). Réglage sur la page du compte
+  (`/account`, formulaire « Langue d'affichage » envoyé à
+  `/account/language`, sans élévation, comme le sélecteur des pages
+  d'accès) : les sept langues, nommées dans la langue de la page, et
+  « Langue du navigateur ». Choisir la langue du navigateur retire le
+  cookie de la visite, qui la masquerait. Le sélecteur des pages d'accès
+  garde son comportement : cookie de la visite, et langue du compte s'il y
+  a une session.
+* *Claim standard `locale`* (OpenID Connect Core, § 5.1) dans le jeton
+  d'identité et `userinfo`, *seulement si le compte a une langue* : absent,
+  le client suit le navigateur. Annoncé dans `claims_supported`.
+* *Console.* À chaque connexion par connect, le claim est ramené à sa
+  langue de base (`de-DE` → `de`) ; s'il est l'une des sept langues, il
+  devient la langue de la session (`admin_session.locale`, migration
+  0010), vide sinon. Un changement fait dans connect est donc repris à la
+  connexion suivante, sans écriture de connect vers la console.
+* *Ordre de priorité.* Écrans d'une session connect : langue de connect,
+  sinon cookie de la visite, sinon navigateur (`Accept-Language`, middleware
+  I18n de Marten), sinon `fr` ; la langue de l'utilisateur de la console
+  (`User#locale`) n'y compte plus : elle reste celle des courriels et de
+  l'invitation à créer le compte connect. Pages d'accès (sans session) :
+  cookie de la visite s'il a été posé par le sélecteur, sinon navigateur,
+  sinon `fr`. Session sans connect (mot de passe local, quand connect n'est
+  pas configuré) : comportement inchangé (langue de l'utilisateur, puis
+  cookie, puis navigateur). connect : langue du compte, sinon cookie,
+  sinon navigateur, sinon `fr`.
+* *Sélecteur → lien.* Sur les écrans connectés d'une session connect, le
+  sélecteur de langue de la console est remplacé par un lien vers
+  `<URL de connect>/account` (« Langue : compte connect »). Les pages
+  d'accès gardent leur sélecteur. Les dossiers (`partiduo-app`,
+  `partiduo-ui-bulma`) appliquent la même règle.
+
+*Pourquoi un lien.* C'est la solution simple et sûre : la langue n'a
+qu'un lieu d'écriture, connect, et ne circule que dans le sens prévu par
+OpenID Connect (jeton signé, lu à la connexion). Aucun service n'écrit chez
+un autre : pas de jeton d'API de la console ou des dossiers vers connect,
+pas de droit d'écriture à protéger, pas de désaccord possible entre deux
+copies.
+
+*Alternatives écartées.*
+
+* Sélecteur de la console qui écrirait la langue chez connect (API
+  authentifiée) : un nouveau droit d'écriture sur les comptes, à donner à
+  chaque dossier, pour un réglage rare.
+* Lecture de `userinfo` à chaque page : un appel réseau par page, et la
+  console dépendrait de la disponibilité de connect après la connexion.
+* Recopier le claim dans `User#locale` : la langue de l'utilisateur sert
+  aussi aux courriels envoyés par l'administrateur avant toute connexion ;
+  la session suffit, et un compte sans langue n'y serait plus distingué.
+* `fr` pour un compte sans langue : contredit le choix « langue du
+  navigateur », que le claim absent exprime.
+
+*Limites.* Une session déjà ouverte garde sa langue jusqu'à la connexion
+suivante. Les courriels de connect partent dans la langue du compte, en
+`fr` pour un compte qui suit son navigateur (aucun navigateur n'est connu
+à l'envoi).

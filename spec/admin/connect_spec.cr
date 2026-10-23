@@ -82,3 +82,81 @@ describe "Administration : liaison d'un utilisateur existant à connect (ADR-012
     run.call(other.email.to_s, "sub-1").should contain("déjà liée")
   end
 end
+
+# Langue tenue par connect (D-ADM-015) : claim `locale` du jeton d'identité,
+# relu à chaque connexion, avant le cookie et le navigateur.
+describe "Administration : langue tenue par connect (D-ADM-015)" do
+  it "ouvre la console dans la langue du compte connect, sans traduction absente, et renvoie vers connect pour la changer" do
+    AdminConnectSpec.with_connect do |transport|
+      user = AdminSpec.user
+      user.connect_sub = "sub-de"
+      user.save!
+      browser = AdminSpec::Browser.new("fr-FR,fr;q=0.9")
+      browser.jar[PartiduoAdmin::BaseHandler::LOCALE_COOKIE] = "nl"
+      AdminConnectSpec.login(browser, transport, "sub-de", user.email.to_s, locale: "de-DE").headers["Location"].should eq("/")
+      PartiduoAdmin::Session.filter(user_id: user.pk, revoked_at__isnull: true).first!.locale.should eq("de")
+
+      page = browser.get("/account")
+      page.status.should eq(200)
+      page.content.should contain(%(<html lang="de">))
+      PartiduoTranslations.problems(page.content).should eq([] of String)
+      html = page.html
+      html.should contain(%(href="#{AdminConnectSpec::URL}/account"))
+      html.should contain(PartiduoTranslations.texts["de"]["admin.shell.language_connect"].to_s)
+      html.should_not contain(%(id="pd-lang"))
+    end
+  end
+
+  it "reprend à la connexion suivante un changement de langue fait dans connect" do
+    AdminConnectSpec.with_connect do |transport|
+      user = AdminSpec.user
+      user.connect_sub = "sub-change"
+      user.save!
+      browser = AdminSpec::Browser.new("fr")
+      AdminConnectSpec.login(browser, transport, "sub-change", user.email.to_s, locale: "it")
+      browser.get("/account").content.should contain(%(<html lang="it">))
+
+      # Changement dans connect : la connexion suivante prend la nouvelle
+      # langue.
+      browser.get("/account").content.should contain(%(<html lang="it">))
+      again = AdminSpec::Browser.new("fr")
+      AdminConnectSpec.login(again, transport, "sub-change", user.email.to_s, locale: "pt")
+      again.get("/account").content.should contain(%(<html lang="pt">))
+    end
+  end
+
+  it "suit le navigateur pour un compte connect sans langue, puis fr pour une langue non servie" do
+    AdminConnectSpec.with_connect do |transport|
+      user = AdminSpec.user
+      user.connect_sub = "sub-nav"
+      user.save!
+      es = AdminSpec::Browser.new("es-ES,es;q=0.9")
+      AdminConnectSpec.login(es, transport, "sub-nav", user.email.to_s)
+      PartiduoAdmin::Session.filter(user_id: user.pk, revoked_at__isnull: true).first!.locale.should eq("")
+      page = es.get("/account")
+      page.content.should contain(%(<html lang="es">))
+      PartiduoTranslations.problems(page.content).should eq([] of String)
+
+      # Langue de l'utilisateur de la console (« fr ») ignorée : seule celle
+      # de connect compte ; une langue non servie (ja) vaut absence.
+      ja = AdminSpec::Browser.new("ja")
+      AdminConnectSpec.login(ja, transport, "sub-nav", user.email.to_s, locale: "ja-JP")
+      ja.get("/account").content.should contain(%(<html lang="fr">))
+    end
+  end
+
+  it "ramène une étiquette régionale à la langue de base" do
+    {"de-DE" => "de", "pt_BR" => "pt", "NL-be" => "nl", "en" => "en", "ja" => "", "" => "", nil => ""}.each do |value, base|
+      PartiduoAdmin::Connect.base_locale(value).should eq(base)
+    end
+  end
+
+  it "garde le sélecteur de langue pour une session sans connect" do
+    user = AdminSpec.user
+    browser = AdminSpec::Browser.new("fr", AdminSpec.session(user))
+    html = browser.get("/account").html
+    html.should contain(%(id="pd-lang"))
+    html.should_not contain("language_connect")
+    html.should_not contain(PartiduoTranslations.texts["fr"]["admin.shell.language_connect"].to_s)
+  end
+end

@@ -201,6 +201,9 @@ module PartiduoAdmin
       context["locale"] = I18n.locale
       context["locales"] = Config::LOCALES
       context["current_path"] = request.full_path
+      # Session ouverte par connect : la langue se règle sur la page du
+      # compte connect (D-ADM-015), pas par le sélecteur.
+      context["connect_account_url"] = session_record.try(&.connect?) ? Connect.url.try { |url| "#{url}/account" } : nil
       # Provenance du code (AGPL-3.0, art. 13) : pied de page.
       context["app_version"] = VERSION
       context["source_url"] = PartiduoLicences::SOURCE_URL
@@ -244,8 +247,14 @@ module PartiduoAdmin
       value.starts_with?('/') && !value.starts_with?("//") && !value.includes?('\\') ? value : default
     end
 
+    # Session ouverte par connect : langue du compte connect (claim `locale`,
+    # D-ADM-015), sinon celle de la visite (cookie), sinon celle du navigateur
+    # (middleware I18n de Marten), sinon fr. Autre session : langue de
+    # l'utilisateur, puis cookie.
     private def activate_locale
-      locale = user?.try(&.locale) || request.cookies[LOCALE_COOKIE]?
+      session = session_record
+      preferred = session && session.connect? ? session.locale.presence : user?.try(&.locale)
+      locale = preferred || request.cookies[LOCALE_COOKIE]?
       I18n.activate(locale) if locale && Config::LOCALES.includes?(locale)
       nil
     end

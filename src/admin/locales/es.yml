@@ -42,6 +42,8 @@ es:
       skip: "Ir al contenido"
       tagline: "administración de los expedientes"
       language: "Idioma"
+      language_connect: "Idioma: cuenta connect"
+      language_connect_help: "El idioma de visualización se configura en su cuenta connect; se aplica a partir del próximo inicio de sesión."
       apply: "Aplicar"
       logout: "Cerrar sesión"
       navigation: "Navegación principal"

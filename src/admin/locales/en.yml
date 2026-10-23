@@ -42,6 +42,8 @@ en:
       skip: "Skip to content"
       tagline: "company file administration"
       language: "Language"
+      language_connect: "Language: connect account"
+      language_connect_help: "The display language is set in your connect account; it applies from the next sign-in."
       apply: "Apply"
       logout: "Sign out"
       navigation: "Main navigation"

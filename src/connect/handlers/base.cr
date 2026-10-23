@@ -125,8 +125,10 @@ module PartiduoConnect
       client_id ? Client.filter(client_id: client_id, active: true).first : nil
     end
 
+    # Langue du compte, sinon celle de la visite (cookie), sinon celle du
+    # navigateur (négociée par le middleware I18n de Marten), sinon fr.
     private def activate_locale
-      locale = account?.try(&.locale) || request.cookies[LOCALE_COOKIE]?
+      locale = account?.try(&.locale.presence) || request.cookies[LOCALE_COOKIE]?
       I18n.activate(locale) if locale && Config::LOCALES.includes?(locale)
       nil
     end

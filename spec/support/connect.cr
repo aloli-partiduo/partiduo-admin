@@ -47,20 +47,24 @@ module AdminConnectSpec
     Jose::JWS.sign(claims.to_json, Jose::JWS::Algorithm::ES256, KEY, {"kid" => "k1"})
   end
 
-  def self.id_token(nonce : String, subject : String, email : String, acr : String = "2", sid : String = "sid-a") : String
-    sign({"iss" => JSON::Any.new(URL), "aud" => JSON::Any.new(CLIENT_ID), "sub" => JSON::Any.new(subject),
-          "nonce" => JSON::Any.new(nonce), "exp" => JSON::Any.new((Time.utc + 5.minutes).to_unix),
-          "iat" => JSON::Any.new(Time.utc.to_unix), "email" => JSON::Any.new(email), "acr" => JSON::Any.new(acr),
-          "sid" => JSON::Any.new(sid)})
+  # `locale` : claim de la langue du compte connect, absent si `nil`.
+  def self.id_token(nonce : String, subject : String, email : String, acr : String = "2", sid : String = "sid-a",
+                    locale : String? = nil) : String
+    claims = {"iss" => JSON::Any.new(URL), "aud" => JSON::Any.new(CLIENT_ID), "sub" => JSON::Any.new(subject),
+              "nonce" => JSON::Any.new(nonce), "exp" => JSON::Any.new((Time.utc + 5.minutes).to_unix),
+              "iat" => JSON::Any.new(Time.utc.to_unix), "email" => JSON::Any.new(email), "acr" => JSON::Any.new(acr),
+              "sid" => JSON::Any.new(sid)}
+    claims["locale"] = JSON::Any.new(locale) if locale
+    sign(claims)
   end
 
   # Aller-retour complet par connect dans `browser` : rend la réponse du
   # retour.
   def self.login(browser : AdminSpec::Browser, transport : Transport, subject : String, email : String,
-                 acr : String = "2", start : String = "/login/connect") : Marten::HTTP::Response
+                 acr : String = "2", start : String = "/login/connect", locale : String? = nil) : Marten::HTTP::Response
     location = browser.get(start).headers["Location"]
     query = URI.parse(location).query_params
-    transport.id_token = id_token(query["nonce"], subject, email, acr)
+    transport.id_token = id_token(query["nonce"], subject, email, acr, locale: locale)
     browser.get("/login/connect/callback?#{URI::Params.encode({"code" => "c1", "state" => query["state"]})}")
   end
 end

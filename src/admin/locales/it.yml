@@ -42,6 +42,8 @@ it:
       skip: "Vai al contenuto"
       tagline: "amministrazione dei dossier"
       language: "Lingua"
+      language_connect: "Lingua: account connect"
+      language_connect_help: "La lingua di visualizzazione si imposta nel Suo account connect; vale dal prossimo accesso."
       apply: "Applica"
       logout: "Esci"
       navigation: "Navigazione principale"

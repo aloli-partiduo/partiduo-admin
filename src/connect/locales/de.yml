@@ -4,6 +4,14 @@ de:
       free: "Partiduo %{version} — freie Software unter der Lizenz AGPL-3.0"
       licences: "Komponenten und Lizenzen"
       source: "Quellcode"
+    languages:
+      fr: "Französisch"
+      en: "Englisch"
+      nl: "Niederländisch"
+      de: "Deutsch"
+      es: "Spanisch"
+      it: "Italienisch"
+      pt: "Portugiesisch"
     licences:
       component: "Komponente"
       licence: "Lizenz"
@@ -33,6 +41,11 @@ de:
       journal_what: "Ereignis"
       journal_when: "Datum (UTC)"
       journal_where: "IP-Adresse"
+      language: "Sprache"
+      language_browser: "Sprache des Browsers"
+      language_help: "Gilt für connect, die Verwaltungskonsole und alle Ihre Mandanten ab der nächsten Anmeldung. „Sprache des Browsers“: die Sprache, die Ihr Browser anfordert."
+      language_saved: "Sprache gespeichert."
+      language_title: "Anzeigesprache"
       level: "Stufe der Sitzung"
       missing: "Um Ihr Konto fertigzustellen:"
       missing_items:

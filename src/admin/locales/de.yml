@@ -42,6 +42,8 @@ de:
       skip: "Zum Inhalt springen"
       tagline: "Mandantenverwaltung"
       language: "Sprache"
+      language_connect: "Sprache: connect-Konto"
+      language_connect_help: "Die Anzeigesprache wird in Ihrem connect-Konto eingestellt; sie gilt ab der nächsten Anmeldung."
       apply: "Übernehmen"
       logout: "Abmelden"
       navigation: "Hauptnavigation"

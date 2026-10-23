@@ -42,6 +42,8 @@ nl:
       skip: "Naar de inhoud"
       tagline: "beheer van de dossiers"
       language: "Taal"
+      language_connect: "Taal: connect-account"
+      language_connect_help: "De weergavetaal stelt u in uw connect-account in; ze geldt vanaf de volgende aanmelding."
       apply: "Toepassen"
       logout: "Afmelden"
       navigation: "Hoofdnavigatie"

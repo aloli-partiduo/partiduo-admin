@@ -42,6 +42,8 @@ pt:
       skip: "Ir para o conteúdo"
       tagline: "administração dos dossiers"
       language: "Idioma"
+      language_connect: "Idioma: conta connect"
+      language_connect_help: "O idioma de apresentação define-se na sua conta connect; aplica-se a partir do próximo início de sessão."
       apply: "Aplicar"
       logout: "Terminar sessão"
       navigation: "Navegação principal"

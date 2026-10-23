@@ -10,6 +10,9 @@
       <header class="pd-top">
         <a class="pd-brand" href="{% url 'dashboard' %}"><img class="pd-logo" src="{% asset 'admin/brand/favicon.svg' %}" alt="" width="32" height="32"><b class="pd-name">Parti<span>duo</span></b><small>{% translate "admin.shell.tagline" %}</small></a>
         <span class="pd-grow"></span>
+        {% if connect_account_url %}
+        <a class="button is-small is-light" href="{{ connect_account_url }}" title="{% translate 'admin.shell.language_connect_help' %}">{% translate "admin.shell.language_connect" %}</a>
+        {% else %}
         <form method="post" action="{% url 'language' %}">
           {% csrf_input %}
           <input type="hidden" name="next" value="{{ current_path }}">
@@ -17,6 +20,7 @@
           <div class="select is-small"><select id="pd-lang" name="locale">{% for code in locales %}<option value="{{ code }}" lang="{{ code }}"{% if code == locale %} selected{% endif %}>{{ code|upcase }}</option>{% endfor %}</select></div>
           <button class="button is-small" type="submit">{% translate "admin.shell.apply" %}</button>
         </form>
+        {% endif %}
         {% if current_user %}
         <span class="pd-user"><a href="{% url 'account' %}">{{ current_user.display_name }}</a> · {% translate current_user.role_key %}</span>
         <form method="post" action="{% url 'logout' %}">{% csrf_input %}<button class="button is-small" type="submit">{% translate "admin.shell.logout" %}</button></form>

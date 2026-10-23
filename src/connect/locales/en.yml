@@ -4,6 +4,14 @@ en:
       free: "Partiduo %{version} — free software under the AGPL-3.0 license"
       licences: "Components and licenses"
       source: "Source code"
+    languages:
+      fr: "French"
+      en: "English"
+      nl: "Dutch"
+      de: "German"
+      es: "Spanish"
+      it: "Italian"
+      pt: "Portuguese"
     licences:
       component: "Component"
       licence: "License"
@@ -33,6 +41,11 @@ en:
       journal_what: "Event"
       journal_when: "Date (UTC)"
       journal_where: "IP address"
+      language: "Language"
+      language_browser: "Browser language"
+      language_help: "Applies to connect, the administration console and all your files, from their next sign-in. “Browser language”: the one your browser asks for."
+      language_saved: "Language saved."
+      language_title: "Display language"
       level: "Session level"
       missing: "To finish your account:"
       missing_items:

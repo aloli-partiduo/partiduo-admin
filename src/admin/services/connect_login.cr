@@ -15,6 +15,8 @@ module PartiduoAdmin
       #   donc pas le compte d'un autre.
       # * Niveau attesté inférieur à celui qu'exige le rôle (super-admin :
       #   passkey) : `step_up`, le niveau à redemander à connect.
+      # * Langue : celle du claim `locale`, gardée par la session ; vide
+      #   (navigateur) sans claim.
       def self.login(identity : Connect::Identity, invitation : String? = nil, ip : String = "",
                      user_agent : String = "", now : Time = Time.utc) : Outcome
         user = User.filter(connect_sub: identity.subject).first
@@ -33,6 +35,8 @@ module PartiduoAdmin
         refresh_email(user, identity)
         opened = Sessions.open(user, identity.level, "connect", ip, user_agent, now)
         opened.session.federated_sid = identity.sid
+        # Langue tenue par connect (D-ADM-015), relue à chaque connexion.
+        opened.session.locale = identity.locale
         opened.session.save!
         Audit.log(user, "auth.login", target: user, detail: {"level" => identity.level.to_s, "method" => "connect"}, ip: ip)
         Outcome.new(opened: opened)

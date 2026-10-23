@@ -22,6 +22,13 @@ module PartiduoAdmin
     field :strong_auth_at, :date_time, null: true, blank: true
     # Session de connect qui a ouvert celle-ci (`sid`, ADR-012 D8).
     field :federated_sid, :string, max_size: 64, null: true, blank: true
+    # Langue tenue par connect (claim `locale`, D-ADM-015) ; vide : celle de
+    # la visite, puis du navigateur.
+    field :locale, :string, max_size: 8, blank: true, default: ""
+
+    def connect? : Bool
+      method == "connect"
+    end
   end
 
   # Défi à usage unique (WebAuthn, second facteur en attente).

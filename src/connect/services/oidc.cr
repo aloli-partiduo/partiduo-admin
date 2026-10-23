@@ -189,8 +189,10 @@ module PartiduoConnect
         "email"          => JSON::Any.new(account.email.to_s),
         "email_verified" => JSON::Any.new(true),
         "name"           => JSON::Any.new(account.name),
-        "locale"         => JSON::Any.new(account.locale.to_s),
       }
+      # Langue du compte (claim standard) : absente pour un compte qui suit
+      # son navigateur.
+      account.locale.presence.try { |locale| claims["locale"] = JSON::Any.new(locale) }
       claims["nonce"] = JSON::Any.new(nonce) unless nonce.empty?
       SigningKeys.sign(claims)
     end
@@ -201,13 +203,14 @@ module PartiduoConnect
       access = AccessToken.filter(token_digest: Secrets.digest(token), expires_at__gt: now).first
       account = access.try(&.account)
       return if access.nil? || account.nil? || !account.can_sign_in?
-      {
-        "sub"            => account.sub.to_s,
-        "email"          => account.email.to_s,
-        "email_verified" => true,
-        "name"           => account.name,
-        "locale"         => account.locale.to_s,
-      }.to_json
+      info = {
+        "sub"            => JSON::Any.new(account.sub.to_s),
+        "email"          => JSON::Any.new(account.email.to_s),
+        "email_verified" => JSON::Any.new(true),
+        "name"           => JSON::Any.new(account.name),
+      }
+      account.locale.presence.try { |locale| info["locale"] = JSON::Any.new(locale) }
+      info.to_json
     end
 
     # Jeton de déconnexion (OpenID Connect Back-Channel Logout 1.0).

@@ -9,7 +9,9 @@ module PartiduoConnect
     field :sub, :string, max_size: 64, unique: true
     field :email, :email, unique: true
     field :display_name, :string, max_size: 200, blank: true, default: ""
-    field :locale, :string, max_size: 8, default: "fr"
+    # Langue d'affichage du compte, pour connect et chaque client (claim
+    # `locale`) ; vide : celle du navigateur.
+    field :locale, :string, max_size: 8, blank: true, default: "fr"
     field :password_digest, :string, max_size: 128, null: true, blank: true
     field :password_changed_at, :date_time, null: true, blank: true
     field :totp_secret, :string, max_size: 64, null: true, blank: true

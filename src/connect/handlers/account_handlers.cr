@@ -45,19 +45,27 @@ module PartiduoConnect
     include Marten::Template::Object::Auto
   end
 
+  # Langue proposée par la page du compte.
+  record LanguageOption, code : String, label : String, selected : Bool do
+    include Marten::Template::Object::Auto
+  end
+
   class AccountHandler < AccountScreenHandler
     def get
       current = account
       secret = current.totp_pending_secret
       complete = Auth.complete?(current)
       page("connect/account.html", {
-        "account"       => current,
-        "level"         => level,
-        "complete"      => complete,
-        "can_enroll"    => can_enroll?,
-        "missing"       => Auth.missing(current).map { |item| "connect.account.missing_items.#{item}" },
-        "passkeys"      => Passkey.filter(account_id: current.pk).order("created_at").to_a,
-        "recovery_left" => Auth::RecoveryCodes.remaining(current),
+        "account"   => current,
+        "languages" => Config::LOCALES.map { |code| LanguageOption.new(code, I18n.t("connect.languages.#{code}"), code == current.locale) },
+        # Booléen : une chaîne vide serait vraie dans un gabarit Marten.
+        "language_browser" => current.locale.to_s.empty?,
+        "level"            => level,
+        "complete"         => complete,
+        "can_enroll"       => can_enroll?,
+        "missing"          => Auth.missing(current).map { |item| "connect.account.missing_items.#{item}" },
+        "passkeys"         => Passkey.filter(account_id: current.pk).order("created_at").to_a,
+        "recovery_left"    => Auth::RecoveryCodes.remaining(current),
         # `nil` et non "" : une chaîne vide est vraie dans un gabarit Marten.
         # QR code de l'URI `otpauth://`, puis secret à saisir à la main.
         "totp_qr"     => secret ? PartiduoAdmin::Qr::Svg.enrollment(Auth::Totp.provisioning_uri(current, secret), I18n.t("connect.account.totp_qr_label")) : nil,
@@ -94,6 +102,26 @@ module PartiduoConnect
       current.save!
       Audit.log(current, "account.profile", ip: ip)
       flash["success"] = I18n.t("connect.account.saved")
+      redirect("/account")
+    end
+  end
+
+  # Langue d'affichage du compte : l'une des langues de connect, ou vide
+  # pour suivre le navigateur. Vaut pour connect et pour chaque client, qui
+  # la reçoit dans le claim `locale` à la connexion suivante. Sans élévation,
+  # comme le sélecteur des pages d'accès.
+  class AccountLanguageHandler < AccountScreenHandler
+    def post
+      locale = field("locale")
+      return redirect("/account") unless locale.empty? || Config::LOCALES.includes?(locale)
+      current = account
+      current.locale = locale
+      current.save!
+      # Langue du navigateur : le cookie de la visite ne la masque plus.
+      request.cookies.delete(LOCALE_COOKIE) if locale.empty?
+      Audit.log(current, "account.locale", detail: {"locale" => locale}, ip: ip)
+      I18n.activate(locale) unless locale.empty?
+      flash["success"] = I18n.t("connect.account.language_saved")
       redirect("/account")
     end
   end

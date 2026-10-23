@@ -68,7 +68,16 @@ module PartiduoAdmin
     class_property transport : Transport = NetTransport.new
 
     # Identité attestée par connect.
-    record Identity, subject : String, email : String, level : Int32, sid : String?
+    # `locale` : langue du compte connect ramenée à l'une des langues de la
+    # console (`de-DE` → `de`), vide sinon.
+    record Identity, subject : String, email : String, level : Int32, sid : String?, locale : String = ""
+
+    # Langue de base d'une étiquette BCP 47 (`de-DE`, `pt_BR` → `de`, `pt`)
+    # si la console la sert ; vide sinon.
+    def self.base_locale(value : String?) : String
+      base = value.to_s.strip.downcase.split(/[-_]/, 2).first? || ""
+      Config::LOCALES.includes?(base) ? base : ""
+    end
 
     def self.url : String?
       ENV["PARTIDUO_ADMIN_CONNECT_URL"]?.presence.try(&.rchop('/'))
@@ -129,7 +138,7 @@ module PartiduoAdmin
       subject = claims["sub"]?.try(&.as_s?).presence || raise Error.new("admin.errors.connect.invalid", "sub absent")
       level = claims["acr"]?.try(&.as_s?).try(&.to_i?) || Auth::PASSWORD
       Identity.new(subject, claims["email"]?.try(&.as_s?).to_s.downcase, level.clamp(Auth::PASSWORD, Auth::PASSKEY),
-        claims["sid"]?.try(&.as_s?))
+        claims["sid"]?.try(&.as_s?), base_locale(claims["locale"]?.try(&.as_s?)))
     end
 
     # Jeton de déconnexion par canal arrière (ADR-012 D8) : rend `{sub, sid}`.

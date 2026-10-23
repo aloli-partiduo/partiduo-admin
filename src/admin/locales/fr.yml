@@ -42,6 +42,8 @@ fr:
       skip: "Aller au contenu"
       tagline: "administration des dossiers"
       language: "Langue"
+      language_connect: "Langue : compte connect"
+      language_connect_help: "La langue d'affichage se règle dans votre compte connect ; elle s'applique à la prochaine connexion."
       apply: "Appliquer"
       logout: "Se déconnecter"
       navigation: "Navigation principale"

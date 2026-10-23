@@ -35,6 +35,7 @@ Marten.routes.draw do
   path "/account", PartiduoConnect::AccountHandler, name: "account"
   path "/account/continue", PartiduoConnect::ContinueHandler, name: "account_continue"
   path "/account/profile", PartiduoConnect::AccountProfileHandler, name: "account_profile"
+  path "/account/language", PartiduoConnect::AccountLanguageHandler, name: "account_language"
   path "/account/password", PartiduoConnect::AccountPasswordHandler, name: "account_password"
   path "/account/totp", PartiduoConnect::AccountTotpHandler, name: "account_totp"
   path "/account/recovery-codes", PartiduoConnect::RecoveryCodesHandler, name: "account_recovery_codes"
