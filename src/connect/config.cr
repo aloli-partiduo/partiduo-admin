@@ -8,7 +8,7 @@ module PartiduoConnect
   module Config
     ISSUER_NAME = "Partiduo"
 
-    LOCALES = %w[fr en nl]
+    LOCALES = %w[fr en nl de es it pt]
 
     # Niveaux d'authentification (ADR-002 D2), publiés comme `acr` : 0
     # enrôlement, 1 mot de passe, 2 mot de passe + TOTP (ou code de

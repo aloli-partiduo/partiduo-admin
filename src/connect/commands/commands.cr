@@ -94,7 +94,7 @@ module PartiduoConnect
       def setup
         on_option_with_arg("email", "adresse", "adresse de la personne") { |value| @email = value }
         on_option_with_arg("name", "nom", "nom affiché") { |value| @name = value }
-        on_option_with_arg("locale", "langue", "fr, en ou nl") { |value| @locale = value }
+        on_option_with_arg("locale", "langue", "fr, en, nl, de, es, it ou pt") { |value| @locale = value }
       end
 
       def run

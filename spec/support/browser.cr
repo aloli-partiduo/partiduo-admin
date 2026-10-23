@@ -28,6 +28,12 @@ module AdminSpec
       perform { |client| client.post(path, data: body, content_type: FORM, headers: @headers.merge(headers)) }
     end
 
+    # Corps déjà encodé (champs répétés, formulaires relevés par
+    # spec/support/translations.cr).
+    def perform_raw(path : String, body : String, headers = {} of String => String) : Marten::HTTP::Response
+      perform { |client| client.post(path, data: body, content_type: FORM, headers: @headers.merge(headers)) }
+    end
+
     def cookie(name : String) : String?
       @jar[name]?
     end

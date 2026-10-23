@@ -1,5 +1,7 @@
 /* SPDX-License-Identifier: AGPL-3.0-or-later
-   Partiduo — thème de partiduo-ui-bulma (ADR-005 D5), repris tel quel par partiduo-admin (ADR-008 D1).
+   Partiduo — thème de partiduo-ui-bulma (ADR-005 D5), repris octet pour
+   octet par partiduo-admin (ADR-008 D1) : empreinte vérifiée par les specs
+   des deux dépôts ; ne modifier qu'ici, puis recopier.
    Toute la charte tient ici : changer de couleurs ou de polices ne touche aucun gabarit. */
 
 :root {
@@ -14,6 +16,16 @@
   --bulma-link-h: 192deg;
   --bulma-link-s: 70%;
   --bulma-link-l: 32%;
+  /* Texte des boutons `is-link` : blanc sur le bleu-vert (Bulma le calcule
+     d'après sa couleur par défaut). */
+  --bulma-link-invert-l: 100%;
+  /* Couleur des liens dans le texte : Bulma la tire de sa propre échelle
+     (58 % en clair, 2,2:1 sur blanc) ; ici 4,5:1 au moins sur les fonds
+     (WCAG 1.4.3). */
+  --bulma-link-on-scheme-l: 30%;
+  --bulma-primary-on-scheme-l: 25%;
+  --bulma-info-h: 198deg;
+  --bulma-info-s: 100%;
   --bulma-success-h: 146deg;
   --bulma-success-s: 46%;
   --bulma-success-l: 33%;
@@ -23,6 +35,12 @@
   --bulma-warning-h: 38deg;
   --bulma-warning-s: 100%;
   --bulma-warning-l: 40%;
+  /* Neutres de Bulma (champs, bordures, texte des composants) alignés sur la
+     teinte des jetons --pd-* plutôt que sur son gris bleuté. */
+  --bulma-scheme-h: 192;
+  --bulma-scheme-s: 16%;
+  --bulma-text-h: 192deg;
+  --bulma-text-s: 16%;
 
   --bulma-family-primary: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
   --bulma-family-code: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
@@ -39,9 +57,20 @@
   --pd-ink: #1b2a30;
   --pd-muted: #5b6b70;
   --pd-rule: #dce3e4;
+  /* Bordure des champs de saisie : 3:1 au moins sur --pd-surface (WCAG 1.4.11). */
+  --pd-field-border: #7d8d92;
+  /* Fond et texte des champs de saisie (champs de Bulma, lignes de saisie,
+     barre supérieure) : un seul jeton par thème, au lieu de la luminosité
+     que Bulma dérive pour chaque composant. */
+  --pd-field-bg: #ffffff;
+  --pd-field-ink: #1b2a30;
+  /* Étiquette neutre (`tag is-light` sans couleur : « annulée », état d'une
+     période…) : texte à 4,5:1 au moins sur son fond (WCAG 1.4.3). */
+  --pd-tag-bg: #e8eef0;
+  --pd-tag-ink: #33434a;
   --pd-row-alt: #f8fafa;
   --pd-debit: #1b2a30;
-  --pd-ok: #2e7d4f;
+  --pd-ok: #276e45;
   --pd-ok-bg: #e5f3ea;
   --pd-gap: #b23a3a;
   --pd-gap-bg: #f9e7e7;
@@ -62,12 +91,37 @@
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
     color-scheme: dark;
-    --bulma-primary-l: 52%;
+    /* Boutons pleins : teinte moyenne, texte presque noir (6:1 et plus),
+       pour `is-primary` comme pour `is-link` ; texte des liens clair. */
+    --bulma-primary-l: 45%;
     --bulma-primary-invert-l: 6%;
-    --bulma-link-l: 62%;
+    --bulma-primary-on-scheme-l: 68%;
+    --bulma-link-l: 45%;
+    --bulma-link-invert-l: 6%;
+    --bulma-link-on-scheme-l: 68%;
     --bulma-success-l: 48%;
     --bulma-danger-l: 62%;
     --bulma-warning-l: 55%;
+    /* Variantes `is-light` (notifications, étiquettes, boutons) : Bulma les
+       garde claires en sombre (fond à 90 %), d'où des pavés éblouissants ;
+       ici fond sombre teinté et texte clair de la même teinte. */
+    --bulma-light-l: 20%;
+    --bulma-light-invert-l: 90%;
+    --bulma-primary-light-invert-l: 88%;
+    --bulma-link-light-invert-l: 88%;
+    --bulma-info-light-invert-l: 88%;
+    --bulma-success-light-invert-l: 88%;
+    --bulma-warning-light-invert-l: 88%;
+    --bulma-danger-light-invert-l: 88%;
+    /* Neutres de Bulma (champs de saisie, listes) alignés sur les jetons :
+       fond des champs = --pd-surface, texte = --pd-ink. */
+    --bulma-scheme-main-l: 11%;
+    --bulma-scheme-main-bis-l: 13%;
+    --bulma-scheme-main-ter-l: 15%;
+    --bulma-background-l: 15%;
+    --bulma-text-l: 86%;
+    --bulma-text-strong-l: 92%;
+    --bulma-text-weak-l: 64%;
     --pd-ground: #0f1719;
     --pd-surface: #152125;
     --pd-sidebar: #0b2a32;
@@ -75,6 +129,11 @@
     --pd-ink: #e3eced;
     --pd-muted: #93a6ab;
     --pd-rule: #26363b;
+    --pd-field-border: #6a7d82;
+    --pd-field-bg: #101b1e;
+    --pd-field-ink: #e3eced;
+    --pd-tag-bg: #26383e;
+    --pd-tag-ink: #dbe6e8;
     --pd-row-alt: #182629;
     --pd-debit: #e3eced;
     --pd-ok: #6fcf97;
@@ -84,20 +143,48 @@
     --pd-warn: #f2b85a;
     --pd-warn-bg: #3a2d14;
     --pd-focus: #5cc3dc;
-    --pd-on-primary: #0f1719;
+    --pd-on-primary: #04161b;
     --pd-brand-parti: #e3eced;
     --pd-brand-duo: #5cc3dc;
   }
+  /* Bulma fixe à 90 % le fond des notifications `is-light` : il suit ici
+     --bulma-light-l, comme les étiquettes et les boutons. */
+  :root:not([data-theme="light"]) .notification.is-light { --bulma-notification-background-l: var(--bulma-light-l); }
 }
 
 :root[data-theme="dark"] {
   color-scheme: dark;
-  --bulma-primary-l: 52%;
+  /* Boutons pleins : teinte moyenne, texte presque noir (6:1 et plus),
+     pour `is-primary` comme pour `is-link` ; texte des liens clair. */
+  --bulma-primary-l: 45%;
   --bulma-primary-invert-l: 6%;
-  --bulma-link-l: 62%;
+  --bulma-primary-on-scheme-l: 68%;
+  --bulma-link-l: 45%;
+  --bulma-link-invert-l: 6%;
+  --bulma-link-on-scheme-l: 68%;
   --bulma-success-l: 48%;
   --bulma-danger-l: 62%;
   --bulma-warning-l: 55%;
+  /* Variantes `is-light` (notifications, étiquettes, boutons) : Bulma les
+     garde claires en sombre (fond à 90 %), d'où des pavés éblouissants ;
+     ici fond sombre teinté et texte clair de la même teinte. */
+  --bulma-light-l: 20%;
+  --bulma-light-invert-l: 90%;
+  --bulma-primary-light-invert-l: 88%;
+  --bulma-link-light-invert-l: 88%;
+  --bulma-info-light-invert-l: 88%;
+  --bulma-success-light-invert-l: 88%;
+  --bulma-warning-light-invert-l: 88%;
+  --bulma-danger-light-invert-l: 88%;
+  /* Neutres de Bulma (champs de saisie, listes) alignés sur les jetons :
+     fond des champs = --pd-surface, texte = --pd-ink. */
+  --bulma-scheme-main-l: 11%;
+  --bulma-scheme-main-bis-l: 13%;
+  --bulma-scheme-main-ter-l: 15%;
+  --bulma-background-l: 15%;
+  --bulma-text-l: 86%;
+  --bulma-text-strong-l: 92%;
+  --bulma-text-weak-l: 64%;
   --pd-ground: #0f1719;
   --pd-surface: #152125;
   --pd-sidebar: #0b2a32;
@@ -105,6 +192,11 @@
   --pd-ink: #e3eced;
   --pd-muted: #93a6ab;
   --pd-rule: #26363b;
+  --pd-field-border: #6a7d82;
+  --pd-field-bg: #101b1e;
+  --pd-field-ink: #e3eced;
+  --pd-tag-bg: #26383e;
+  --pd-tag-ink: #dbe6e8;
   --pd-row-alt: #182629;
   --pd-debit: #e3eced;
   --pd-ok: #6fcf97;
@@ -114,7 +206,16 @@
   --pd-warn: #f2b85a;
   --pd-warn-bg: #3a2d14;
   --pd-focus: #5cc3dc;
-  --pd-on-primary: #0f1719;
+  --pd-on-primary: #04161b;
   --pd-brand-parti: #e3eced;
   --pd-brand-duo: #5cc3dc;
 }
+
+:root[data-theme="dark"] .notification.is-light { --bulma-notification-background-l: var(--bulma-light-l); }
+
+/* Champs de saisie de Bulma (texte, liste, zone de texte) sur les jetons
+   --pd-field-* dans les deux thèmes : un champ ne garde jamais le fond blanc
+   d'un composant dont Bulma calcule la couleur à part (recherche de la barre
+   supérieure, période, numéro de pièce). États désactivés : ceux de Bulma,
+   plus précis. */
+.input, .textarea, .select select { background-color: var(--pd-field-bg); color: var(--pd-field-ink); }

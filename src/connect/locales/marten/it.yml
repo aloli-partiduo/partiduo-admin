@@ -1,0 +1,137 @@
+# SPDX-License-Identifier: AGPL-3.0-or-later
+#
+# Messages intégrés de Marten en italien (Marten ne livre que de, en
+# et fr) : formats de date et validation des champs des modèles et des
+# schémas. Sans eux, une valeur refusée par Marten s'affiche « missing
+# translation: it.marten.… ». Chargés après ceux de Marten (locales de
+# l'application `connect`), copie de partiduo-app (src/core/locales/marten/).
+it:
+  i18n:
+    date:
+      abbr_day_names: [lun, mar, mer, gio, ven, sab, dom]
+      abbr_month_names: [gen, feb, mar, apr, mag, giu, lug, ago, set, ott, nov, dic]
+      day_names: [lunedì, martedì, mercoledì, giovedì, venerdì, sabato, domenica]
+      month_names: [gennaio, febbraio, marzo, aprile, maggio, giugno,
+                    luglio, agosto, settembre, ottobre, novembre, dicembre]
+      formats:
+        default: "%d/%m/%Y"
+        long: "%-d %B %Y"
+        short: "%-d %b"
+    time:
+      am: "AM"
+      formats:
+        default: "%a %d %b %Y %H:%M:%S %z"
+        long: "%-d %B %Y %H:%M"
+        short: "%-d %b %H:%M"
+      pm: "PM"
+  marten:
+    db:
+      field:
+        base:
+          errors:
+            blank: "Questo campo non può essere vuoto."
+            nil: "Questo campo non può essere nullo."
+        email:
+          errors:
+            invalid: "Inserisca un indirizzo e-mail valido."
+        image:
+          errors:
+            not_an_image: "Fornisca un'immagine valida."
+        slug:
+          errors:
+            invalid: "Inserisca uno slug valido."
+        string:
+          errors:
+            too_short: "La lunghezza minima consentita è %{min_size}."
+            too_long: "La lunghezza massima consentita è %{max_size}."
+            invalid_choice: "Inserisca un valore valido. %{value} non è tra i valori consentiti."
+        text:
+          errors:
+            too_long: "La lunghezza massima consentita è %{max_size}."
+        url:
+          errors:
+            invalid: "Inserisca un URL valido."
+        uuid:
+          errors:
+            invalid: "È necessario fornire un UUID valido."
+        decimal:
+          errors:
+            invalid: "Inserisca un numero valido."
+            max_digits: "Inserisca al massimo %{max_digits} cifre in totale."
+            max_decimal_places: "Inserisca al massimo %{decimal_places} cifre dopo la virgola."
+            max_whole_digits: "Inserisca al massimo %{max_whole_digits} cifre prima della virgola."
+    schema:
+      field:
+        base:
+          errors:
+            invalid: "Il valore fornito non è valido."
+            required: "Questo campo è obbligatorio."
+        decimal:
+          errors:
+            invalid: "Inserisca un numero valido."
+            max_digits: "Inserisca al massimo %{max_digits} cifre in totale."
+            max_decimal_places: "Inserisca al massimo %{decimal_places} cifre dopo la virgola."
+            max_whole_digits: "Inserisca al massimo %{max_whole_digits} cifre prima della virgola."
+        date:
+          errors:
+            invalid: "Inserisca una data valida."
+          input_formats:
+            - "%Y-%m-%d"
+            - "%d/%m/%Y"
+            - "%d/%m/%y"
+            - "%d %b %Y"
+            - "%d %B %Y"
+        date_time:
+          errors:
+            invalid: "Inserisca una data e un'ora valide."
+          input_formats:
+            - "%Y-%m-%d %H:%M:%S"
+            - "%Y-%m-%d %H:%M:%S.%f"
+            - "%Y-%m-%d %H:%M"
+            - "%d/%m/%Y %H:%M:%S"
+            - "%d/%m/%Y %H:%M"
+            - "%d/%m/%y %H:%M:%S"
+            - "%d/%m/%y %H:%M"
+        duration:
+          errors:
+            invalid: "Inserisca una durata valida."
+        email:
+          errors:
+            invalid: "Inserisca un indirizzo e-mail valido."
+        enum:
+          errors:
+            invalid: "Inserisca un valore valido. %{value} non è tra i valori consentiti."
+        slug:
+          errors:
+            invalid: "Inserisca uno slug valido."
+        file:
+          errors:
+            empty: "I file vuoti non sono consentiti."
+            file_name_too_long: "La lunghezza massima consentita del nome del file è %{max_name_size}."
+        float:
+          errors:
+            invalid: "Inserisca un numero valido."
+            too_small: "Questo valore deve essere maggiore o uguale a %{min_value}."
+            too_big: "Questo valore deve essere minore o uguale a %{max_value}."
+        image:
+          errors:
+            not_an_image: "Fornisca un'immagine valida: il file non è un'immagine oppure è danneggiato."
+        int:
+          errors:
+            invalid: "Inserisca un numero valido."
+            too_small: "Questo valore deve essere maggiore o uguale a %{min_value}."
+            too_big: "Questo valore deve essere minore o uguale a %{max_value}."
+        json:
+          errors:
+            invalid: "Inserisca un JSON valido."
+        string:
+          errors:
+            too_short: "La lunghezza minima consentita è %{min_size}."
+            too_long: "La lunghezza massima consentita è %{max_size}."
+            invalid_choice: "Inserisca un valore valido. %{value} non è tra i valori consentiti."
+        url:
+          errors:
+            invalid: "Inserisca un URL valido."
+        uuid:
+          errors:
+            invalid: "Inserisca un UUID valido."

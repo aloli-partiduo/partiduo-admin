@@ -59,6 +59,10 @@ fr:
       fr: "Français"
       en: "Anglais"
       nl: "Néerlandais"
+      de: "Allemand"
+      es: "Espagnol"
+      it: "Italien"
+      pt: "Portugais"
     kinds:
       company: "Entreprise"
       household: "Foyer"

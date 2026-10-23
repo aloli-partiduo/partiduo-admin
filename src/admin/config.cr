@@ -13,7 +13,7 @@ module PartiduoAdmin
     FILE_MANAGER = "file_manager"
     ROLES        = [SUPER_ADMIN, FIRM_ADMIN, FILE_MANAGER]
 
-    LOCALES = %w[fr en nl]
+    LOCALES = %w[fr en nl de es it pt]
 
     # Limitation des tentatives (ADR-002, CNIL 2022-100) : mêmes paliers que
     # les dossiers.

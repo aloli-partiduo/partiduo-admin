@@ -59,6 +59,10 @@ nl:
       fr: "Frans"
       en: "Engels"
       nl: "Nederlands"
+      de: "Duits"
+      es: "Spaans"
+      it: "Italiaans"
+      pt: "Portugees"
     kinds:
       company: "Onderneming"
       household: "Huishouden"

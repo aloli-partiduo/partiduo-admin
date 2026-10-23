@@ -176,7 +176,7 @@ describe PartiduoAdmin::Dns::OvhProvider do
     provider.update("partiduo.app", 7_i64, "autre.aloli.net.", 300)
     provider.delete("partiduo.app", 7_i64)
     provider.refresh("partiduo.app")
-    calls = transport.requests.reject { |request| request[1].ends_with?("/auth/time") }
+    calls = transport.requests.reject(&.[1].ends_with?("/auth/time"))
     calls.map { |request| "#{request[0]} #{request[1].sub("https://eu.api.ovh.com/1.0", "")}" }.should eq([
       "GET /domain/zone/partiduo.app/record?subDomain=client",
       "GET /domain/zone/partiduo.app/record/7",

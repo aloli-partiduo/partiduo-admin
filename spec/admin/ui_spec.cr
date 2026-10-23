@@ -2,13 +2,26 @@
 
 require "../spec_helper"
 describe "Interface de l'administration" do
-  it "a les mêmes libellés en français, anglais et néerlandais, aux mêmes interpolations" do
+  it "a les mêmes libellés dans les sept langues (fr, en, nl, de, es, it, pt), aux mêmes interpolations" do
     PartiduoTranslations.parity_failures(File.expand_path("../../src/admin/locales", __DIR__)).should eq([] of String)
   end
 
   it "a un libellé dans chaque langue pour chaque clé citée par le code et les gabarits" do
     root = File.expand_path("../..", __DIR__)
     PartiduoTranslations.unknown_keys(root, %w[src/admin/**/*.cr src/admin/**/*.html], %w[admin]).should eq([] of String)
+  end
+
+  it "donne au courriel d'invitation de l'exécutant les textes de admin.emails, dans chaque langue d'un dossier" do
+    PartiduoAgent::InvitationMail::TEXTS.keys.should eq(PartiduoAdmin::Config::LOCALES)
+    PartiduoAgent::LOCALES.should eq(PartiduoAdmin::Config::LOCALES)
+    PartiduoAdmin::Config::LOCALES.each do |locale|
+      I18n.with_locale(locale) do
+        texts = PartiduoAgent::InvitationMail::TEXTS[locale]
+        {locale, texts["subject"]}.should eq({locale, I18n.t("admin.emails.dossier_invitation.subject", host: "%{host}")})
+        {locale, texts["intro"]}.should eq({locale, I18n.t("admin.emails.dossier_invitation.intro", host: "%{host}")})
+        {locale, texts["ignore"]}.should eq({locale, I18n.t("admin.emails.ignore")})
+      end
+    end
   end
 
   it "sert la page de connexion dans les trois langues, avec les repères d'accessibilité" do

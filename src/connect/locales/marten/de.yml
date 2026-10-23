@@ -1,0 +1,30 @@
+# SPDX-License-Identifier: AGPL-3.0-or-later
+#
+# Messages intégrés de Marten (validation des champs des modèles et des
+# schémas) que la traduction allemande de Marten n'a pas : nombres décimaux
+# et images. Chargés après ceux de Marten (locales de l'application
+# `connect`), copie de partiduo-app (src/core/locales/marten/).
+de:
+  marten:
+    db:
+      field:
+        image:
+          errors:
+            not_an_image: "Geben Sie ein gültiges Bild an."
+        decimal:
+          errors:
+            invalid: "Geben Sie eine gültige Zahl ein."
+            max_digits: "Geben Sie insgesamt höchstens %{max_digits} Ziffern ein."
+            max_decimal_places: "Geben Sie höchstens %{decimal_places} Nachkommastellen ein."
+            max_whole_digits: "Geben Sie höchstens %{max_whole_digits} Vorkommastellen ein."
+    schema:
+      field:
+        decimal:
+          errors:
+            invalid: "Geben Sie eine gültige Zahl ein."
+            max_digits: "Geben Sie insgesamt höchstens %{max_digits} Ziffern ein."
+            max_decimal_places: "Geben Sie höchstens %{decimal_places} Nachkommastellen ein."
+            max_whole_digits: "Geben Sie höchstens %{max_whole_digits} Vorkommastellen ein."
+        image:
+          errors:
+            not_an_image: "Geben Sie ein gültiges Bild an: Die Datei ist kein Bild oder sie ist beschädigt."

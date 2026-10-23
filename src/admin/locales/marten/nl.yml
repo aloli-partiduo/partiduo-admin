@@ -1,0 +1,137 @@
+# SPDX-License-Identifier: AGPL-3.0-or-later
+#
+# Messages intégrés de Marten en néerlandais (Marten ne livre que de, en
+# et fr) : formats de date et validation des champs des modèles et des
+# schémas. Sans eux, une valeur refusée par Marten s'affiche « missing
+# translation: nl.marten.… ». Chargés après ceux de Marten (locales de
+# l'application `admin`), copie de partiduo-app (src/core/locales/marten/).
+nl:
+  i18n:
+    date:
+      abbr_day_names: [ma, di, wo, do, vr, za, zo]
+      abbr_month_names: [jan, feb, mrt, apr, mei, jun, jul, aug, sep, okt, nov, dec]
+      day_names: [maandag, dinsdag, woensdag, donderdag, vrijdag, zaterdag, zondag]
+      month_names: [januari, februari, maart, april, mei, juni,
+                    juli, augustus, september, oktober, november, december]
+      formats:
+        default: "%d-%m-%Y"
+        long: "%-d %B %Y"
+        short: "%-d %b"
+    time:
+      am: "'s ochtends"
+      formats:
+        default: "%a %d %b %Y %H:%M:%S %z"
+        long: "%-d %B %Y %H:%M"
+        short: "%-d %b %H:%M"
+      pm: "'s middags"
+  marten:
+    db:
+      field:
+        base:
+          errors:
+            blank: "Dit veld mag niet leeg zijn."
+            nil: "Dit veld mag niet null zijn."
+        email:
+          errors:
+            invalid: "Voer een geldig e-mailadres in."
+        image:
+          errors:
+            not_an_image: "Lever een geldige afbeelding aan."
+        slug:
+          errors:
+            invalid: "Voer een geldige slug in."
+        string:
+          errors:
+            too_short: "De minimaal toegestane lengte is %{min_size}."
+            too_long: "De maximaal toegestane lengte is %{max_size}."
+            invalid_choice: "Voer een geldige waarde in. %{value} is geen van de toegestane waarden."
+        text:
+          errors:
+            too_long: "De maximaal toegestane lengte is %{max_size}."
+        url:
+          errors:
+            invalid: "Voer een geldige URL in."
+        uuid:
+          errors:
+            invalid: "Er moet een geldige UUID worden opgegeven."
+        decimal:
+          errors:
+            invalid: "Voer een geldig getal in."
+            max_digits: "Voer in totaal niet meer dan %{max_digits} cijfers in."
+            max_decimal_places: "Voer niet meer dan %{decimal_places} cijfers na de komma in."
+            max_whole_digits: "Voer niet meer dan %{max_whole_digits} cijfers voor de komma in."
+    schema:
+      field:
+        base:
+          errors:
+            invalid: "De opgegeven waarde is ongeldig."
+            required: "Dit veld is verplicht."
+        decimal:
+          errors:
+            invalid: "Voer een geldig getal in."
+            max_digits: "Voer in totaal niet meer dan %{max_digits} cijfers in."
+            max_decimal_places: "Voer niet meer dan %{decimal_places} cijfers na de komma in."
+            max_whole_digits: "Voer niet meer dan %{max_whole_digits} cijfers voor de komma in."
+        date:
+          errors:
+            invalid: "Voer een geldige datum in."
+          input_formats:
+            - "%Y-%m-%d"
+            - "%d-%m-%Y"
+            - "%d/%m/%Y"
+            - "%d %b %Y"
+            - "%d %B %Y"
+        date_time:
+          errors:
+            invalid: "Voer een geldige datum en tijd in."
+          input_formats:
+            - "%Y-%m-%d %H:%M:%S"
+            - "%Y-%m-%d %H:%M:%S.%f"
+            - "%Y-%m-%d %H:%M"
+            - "%d-%m-%Y %H:%M:%S"
+            - "%d-%m-%Y %H:%M"
+            - "%d/%m/%Y %H:%M:%S"
+            - "%d/%m/%Y %H:%M"
+        duration:
+          errors:
+            invalid: "Voer een geldige duur in."
+        email:
+          errors:
+            invalid: "Voer een geldig e-mailadres in."
+        enum:
+          errors:
+            invalid: "Voer een geldige waarde in. %{value} is geen van de toegestane waarden."
+        slug:
+          errors:
+            invalid: "Voer een geldige slug in."
+        file:
+          errors:
+            empty: "Lege bestanden zijn niet toegestaan."
+            file_name_too_long: "De maximaal toegestane lengte van de bestandsnaam is %{max_name_size}."
+        float:
+          errors:
+            invalid: "Voer een geldig getal in."
+            too_small: "Deze waarde moet groter dan of gelijk aan %{min_value} zijn."
+            too_big: "Deze waarde moet kleiner dan of gelijk aan %{max_value} zijn."
+        image:
+          errors:
+            not_an_image: "Lever een geldige afbeelding aan. Het bestand is geen afbeelding of is beschadigd."
+        int:
+          errors:
+            invalid: "Voer een geldig getal in."
+            too_small: "Deze waarde moet groter dan of gelijk aan %{min_value} zijn."
+            too_big: "Deze waarde moet kleiner dan of gelijk aan %{max_value} zijn."
+        json:
+          errors:
+            invalid: "Voer geldige JSON in."
+        string:
+          errors:
+            too_short: "De minimaal toegestane lengte is %{min_size}."
+            too_long: "De maximaal toegestane lengte is %{max_size}."
+            invalid_choice: "Voer een geldige waarde in. %{value} is geen van de toegestane waarden."
+        url:
+          errors:
+            invalid: "Voer een geldige URL in."
+        uuid:
+          errors:
+            invalid: "Voer een geldige UUID in."

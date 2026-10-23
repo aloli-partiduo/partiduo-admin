@@ -1,0 +1,30 @@
+# SPDX-License-Identifier: AGPL-3.0-or-later
+#
+# Messages intégrés de Marten (validation des champs des modèles et des
+# schémas) que la traduction française de Marten n'a pas : nombres décimaux
+# et images. Chargés après ceux de Marten (locales de l'application
+# `connect`), copie de partiduo-app (src/core/locales/marten/).
+fr:
+  marten:
+    db:
+      field:
+        image:
+          errors:
+            not_an_image: "Fournissez une image valide."
+        decimal:
+          errors:
+            invalid: "Saisissez un nombre valide."
+            max_digits: "Saisissez au plus %{max_digits} chiffres au total."
+            max_decimal_places: "Saisissez au plus %{decimal_places} chiffres après la virgule."
+            max_whole_digits: "Saisissez au plus %{max_whole_digits} chiffres avant la virgule."
+    schema:
+      field:
+        decimal:
+          errors:
+            invalid: "Saisissez un nombre valide."
+            max_digits: "Saisissez au plus %{max_digits} chiffres au total."
+            max_decimal_places: "Saisissez au plus %{decimal_places} chiffres après la virgule."
+            max_whole_digits: "Saisissez au plus %{max_whole_digits} chiffres avant la virgule."
+        image:
+          errors:
+            not_an_image: "Fournissez une image valide : le fichier n'est pas une image, ou il est endommagé."

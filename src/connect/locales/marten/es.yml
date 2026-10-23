@@ -1,0 +1,137 @@
+# SPDX-License-Identifier: AGPL-3.0-or-later
+#
+# Messages intégrés de Marten en espagnol (Marten ne livre que de, en
+# et fr) : formats de date et validation des champs des modèles et des
+# schémas. Sans eux, une valeur refusée par Marten s'affiche « missing
+# translation: es.marten.… ». Chargés après ceux de Marten (locales de
+# l'application `connect`), copie de partiduo-app (src/core/locales/marten/).
+es:
+  i18n:
+    date:
+      abbr_day_names: [lun, mar, mié, jue, vie, sáb, dom]
+      abbr_month_names: [ene, feb, mar, abr, may, jun, jul, ago, sept, oct, nov, dic]
+      day_names: [lunes, martes, miércoles, jueves, viernes, sábado, domingo]
+      month_names: [enero, febrero, marzo, abril, mayo, junio,
+                    julio, agosto, septiembre, octubre, noviembre, diciembre]
+      formats:
+        default: "%d/%m/%Y"
+        long: "%-d de %B de %Y"
+        short: "%-d %b"
+    time:
+      am: "a. m."
+      formats:
+        default: "%a %d %b %Y %H:%M:%S %z"
+        long: "%-d de %B de %Y %H:%M"
+        short: "%-d %b %H:%M"
+      pm: "p. m."
+  marten:
+    db:
+      field:
+        base:
+          errors:
+            blank: "Este campo no puede estar vacío."
+            nil: "Este campo no puede ser nulo."
+        email:
+          errors:
+            invalid: "Introduzca una dirección de correo electrónico válida."
+        image:
+          errors:
+            not_an_image: "Proporcione una imagen válida."
+        slug:
+          errors:
+            invalid: "Introduzca un slug válido."
+        string:
+          errors:
+            too_short: "La longitud mínima permitida es %{min_size}."
+            too_long: "La longitud máxima permitida es %{max_size}."
+            invalid_choice: "Introduzca un valor válido. %{value} no es un valor aceptado."
+        text:
+          errors:
+            too_long: "La longitud máxima permitida es %{max_size}."
+        url:
+          errors:
+            invalid: "Introduzca una URL válida."
+        uuid:
+          errors:
+            invalid: "Debe proporcionarse un UUID válido."
+        decimal:
+          errors:
+            invalid: "Introduzca un número válido."
+            max_digits: "Introduzca como máximo %{max_digits} cifras en total."
+            max_decimal_places: "Introduzca como máximo %{decimal_places} cifras después de la coma."
+            max_whole_digits: "Introduzca como máximo %{max_whole_digits} cifras antes de la coma."
+    schema:
+      field:
+        base:
+          errors:
+            invalid: "El valor proporcionado no es válido."
+            required: "Este campo es obligatorio."
+        decimal:
+          errors:
+            invalid: "Introduzca un número válido."
+            max_digits: "Introduzca como máximo %{max_digits} cifras en total."
+            max_decimal_places: "Introduzca como máximo %{decimal_places} cifras después de la coma."
+            max_whole_digits: "Introduzca como máximo %{max_whole_digits} cifras antes de la coma."
+        date:
+          errors:
+            invalid: "Introduzca una fecha válida."
+          input_formats:
+            - "%Y-%m-%d"
+            - "%d/%m/%Y"
+            - "%d-%m-%Y"
+            - "%d %b %Y"
+            - "%d %B %Y"
+        date_time:
+          errors:
+            invalid: "Introduzca una fecha y una hora válidas."
+          input_formats:
+            - "%Y-%m-%d %H:%M:%S"
+            - "%Y-%m-%d %H:%M:%S.%f"
+            - "%Y-%m-%d %H:%M"
+            - "%d/%m/%Y %H:%M:%S"
+            - "%d/%m/%Y %H:%M"
+            - "%d-%m-%Y %H:%M:%S"
+            - "%d-%m-%Y %H:%M"
+        duration:
+          errors:
+            invalid: "Introduzca una duración válida."
+        email:
+          errors:
+            invalid: "Introduzca una dirección de correo electrónico válida."
+        enum:
+          errors:
+            invalid: "Introduzca un valor válido. %{value} no es un valor aceptado."
+        slug:
+          errors:
+            invalid: "Introduzca un slug válido."
+        file:
+          errors:
+            empty: "No se permiten archivos vacíos."
+            file_name_too_long: "La longitud máxima permitida del nombre del archivo es %{max_name_size}."
+        float:
+          errors:
+            invalid: "Introduzca un número válido."
+            too_small: "Este valor debe ser mayor o igual que %{min_value}."
+            too_big: "Este valor debe ser menor o igual que %{max_value}."
+        image:
+          errors:
+            not_an_image: "Proporcione una imagen válida. El archivo no es una imagen o está dañado."
+        int:
+          errors:
+            invalid: "Introduzca un número válido."
+            too_small: "Este valor debe ser mayor o igual que %{min_value}."
+            too_big: "Este valor debe ser menor o igual que %{max_value}."
+        json:
+          errors:
+            invalid: "Introduzca un JSON válido."
+        string:
+          errors:
+            too_short: "La longitud mínima permitida es %{min_size}."
+            too_long: "La longitud máxima permitida es %{max_size}."
+            invalid_choice: "Introduzca un valor válido. %{value} no es un valor aceptado."
+        url:
+          errors:
+            invalid: "Introduzca una URL válida."
+        uuid:
+          errors:
+            invalid: "Introduzca un UUID válido."

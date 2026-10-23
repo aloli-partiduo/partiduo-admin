@@ -1,0 +1,137 @@
+# SPDX-License-Identifier: AGPL-3.0-or-later
+#
+# Messages intégrés de Marten en portugais (Marten ne livre que de, en
+# et fr) : formats de date et validation des champs des modèles et des
+# schémas. Sans eux, une valeur refusée par Marten s'affiche « missing
+# translation: pt.marten.… ». Chargés après ceux de Marten (locales de
+# l'application `admin`), copie de partiduo-app (src/core/locales/marten/).
+pt:
+  i18n:
+    date:
+      abbr_day_names: [seg, ter, qua, qui, sex, sáb, dom]
+      abbr_month_names: [jan, fev, mar, abr, mai, jun, jul, ago, set, out, nov, dez]
+      day_names: [segunda-feira, terça-feira, quarta-feira, quinta-feira, sexta-feira, sábado, domingo]
+      month_names: [janeiro, fevereiro, março, abril, maio, junho,
+                    julho, agosto, setembro, outubro, novembro, dezembro]
+      formats:
+        default: "%d/%m/%Y"
+        long: "%-d de %B de %Y"
+        short: "%-d %b"
+    time:
+      am: "a.m."
+      formats:
+        default: "%a %d %b %Y %H:%M:%S %z"
+        long: "%-d de %B de %Y %H:%M"
+        short: "%-d %b %H:%M"
+      pm: "p.m."
+  marten:
+    db:
+      field:
+        base:
+          errors:
+            blank: "Este campo não pode estar vazio."
+            nil: "Este campo não pode ser nulo."
+        email:
+          errors:
+            invalid: "Introduza um endereço de e-mail válido."
+        image:
+          errors:
+            not_an_image: "Forneça uma imagem válida."
+        slug:
+          errors:
+            invalid: "Introduza um slug válido."
+        string:
+          errors:
+            too_short: "O comprimento mínimo permitido é %{min_size}."
+            too_long: "O comprimento máximo permitido é %{max_size}."
+            invalid_choice: "Introduza um valor válido. %{value} não é um dos valores permitidos."
+        text:
+          errors:
+            too_long: "O comprimento máximo permitido é %{max_size}."
+        url:
+          errors:
+            invalid: "Introduza um URL válido."
+        uuid:
+          errors:
+            invalid: "É necessário fornecer um UUID válido."
+        decimal:
+          errors:
+            invalid: "Introduza um número válido."
+            max_digits: "Introduza no máximo %{max_digits} algarismos no total."
+            max_decimal_places: "Introduza no máximo %{decimal_places} algarismos depois da vírgula."
+            max_whole_digits: "Introduza no máximo %{max_whole_digits} algarismos antes da vírgula."
+    schema:
+      field:
+        base:
+          errors:
+            invalid: "O valor fornecido é inválido."
+            required: "Este campo é obrigatório."
+        decimal:
+          errors:
+            invalid: "Introduza um número válido."
+            max_digits: "Introduza no máximo %{max_digits} algarismos no total."
+            max_decimal_places: "Introduza no máximo %{decimal_places} algarismos depois da vírgula."
+            max_whole_digits: "Introduza no máximo %{max_whole_digits} algarismos antes da vírgula."
+        date:
+          errors:
+            invalid: "Introduza uma data válida."
+          input_formats:
+            - "%Y-%m-%d"
+            - "%d/%m/%Y"
+            - "%d/%m/%y"
+            - "%d %b %Y"
+            - "%d %B %Y"
+        date_time:
+          errors:
+            invalid: "Introduza uma data e uma hora válidas."
+          input_formats:
+            - "%Y-%m-%d %H:%M:%S"
+            - "%Y-%m-%d %H:%M:%S.%f"
+            - "%Y-%m-%d %H:%M"
+            - "%d/%m/%Y %H:%M:%S"
+            - "%d/%m/%Y %H:%M"
+            - "%d/%m/%y %H:%M:%S"
+            - "%d/%m/%y %H:%M"
+        duration:
+          errors:
+            invalid: "Introduza uma duração válida."
+        email:
+          errors:
+            invalid: "Introduza um endereço de e-mail válido."
+        enum:
+          errors:
+            invalid: "Introduza um valor válido. %{value} não é um dos valores permitidos."
+        slug:
+          errors:
+            invalid: "Introduza um slug válido."
+        file:
+          errors:
+            empty: "Não são permitidos ficheiros vazios."
+            file_name_too_long: "O comprimento máximo permitido do nome do ficheiro é %{max_name_size}."
+        float:
+          errors:
+            invalid: "Introduza um número válido."
+            too_small: "Este valor deve ser maior ou igual a %{min_value}."
+            too_big: "Este valor deve ser menor ou igual a %{max_value}."
+        image:
+          errors:
+            not_an_image: "Forneça uma imagem válida: o ficheiro não é uma imagem ou está danificado."
+        int:
+          errors:
+            invalid: "Introduza um número válido."
+            too_small: "Este valor deve ser maior ou igual a %{min_value}."
+            too_big: "Este valor deve ser menor ou igual a %{max_value}."
+        json:
+          errors:
+            invalid: "Introduza um JSON válido."
+        string:
+          errors:
+            too_short: "O comprimento mínimo permitido é %{min_size}."
+            too_long: "O comprimento máximo permitido é %{max_size}."
+            invalid_choice: "Introduza um valor válido. %{value} não é um dos valores permitidos."
+        url:
+          errors:
+            invalid: "Introduza um URL válido."
+        uuid:
+          errors:
+            invalid: "Introduza um UUID válido."

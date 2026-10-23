@@ -59,6 +59,10 @@ en:
       fr: "French"
       en: "English"
       nl: "Dutch"
+      de: "German"
+      es: "Spanish"
+      it: "Italian"
+      pt: "Portuguese"
     kinds:
       company: "Business"
       household: "Household"

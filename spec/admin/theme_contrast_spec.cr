@@ -12,6 +12,8 @@ require "spec"
 # la barre latérale, et les couleurs écrites en dur.
 module ThemeContrast
   CSS_DIR = File.expand_path("../../src/admin/assets/admin/css", __DIR__)
+  # Feuilles de connect : même theme.css (copie), mise en page connect.css.
+  CONNECT_CSS_DIR = File.expand_path("../../src/connect/assets/connect/css", __DIR__)
 
   record Rgb, r : Float64, g : Float64, b : Float64 do
     def luminance : Float64
@@ -184,8 +186,8 @@ module ThemeContrast
   # commentaires retirés.
   record Rule, selector : String, props : Hash(String, String)
 
-  def self.admin_rules : Array(Rule)
-    css = File.read(File.join(CSS_DIR, "admin.css")).gsub(%r{/\*.*?\*/}m, "")
+  def self.admin_rules(path : String = File.join(CSS_DIR, "admin.css")) : Array(Rule)
+    css = File.read(path).gsub(%r{/\*.*?\*/}m, "")
     css.scan(/([^{}]+)\{([^{}]*)\}/).map do |match|
       props = {} of String => String
       match[2].scan(/([a-z-]+)\s*:\s*([^;]+);?/) { |item| props[item[1]] = item[2].strip }
@@ -207,10 +209,12 @@ module ThemeContrast
 
   # Couples d'`admin.css` : texte et fond d'une même règle ; texte seul sur
   # les fonds de la console (barre latérale pour `.pd-side`).
-  def self.admin_pairs(tokens : Hash(String, String)) : Array({String, Rgb, Rgb, Float64})
+  def self.admin_pairs(tokens : Hash(String, String), path : String = File.join(CSS_DIR, "admin.css")) : Array({String, Rgb, Rgb, Float64})
     list = [] of {String, Rgb, Rgb, Float64}
-    admin_rules.each do |rule|
+    admin_rules(path).each do |rule|
       selector, props = rule.selector, rule.props
+      # Logotype (`--pd-brand-*`) : exempté par WCAG 1.4.3.
+      next if props["color"]?.try(&.starts_with?("var(--pd-brand-"))
       ink = props["color"]?.try { |value| value_color(tokens, value) } || next
       background = props["background"]? || props["background-color"]?
       under = color(tokens, selector.starts_with?(".pd-side") ? "--pd-sidebar" : "--pd-surface")
@@ -270,6 +274,15 @@ describe "Contrastes de la console (WCAG AA)" do
     ThemeContrast.admin_pairs(ThemeContrast.light).size.should be > 20
     [ThemeContrast.light, ThemeContrast.dark].each do |tokens|
       ThemeContrast.failures(ThemeContrast.admin_pairs(tokens)).should eq([] of String)
+    end
+  end
+
+  it "atteint 4,5:1 pour chaque couleur de texte de connect.css, avec le theme.css de la console, dans les deux thèmes" do
+    File.read(File.join(ThemeContrast::CONNECT_CSS_DIR, "theme.css")).should eq(ThemeContrast.theme)
+    path = File.join(ThemeContrast::CONNECT_CSS_DIR, "connect.css")
+    ThemeContrast.admin_pairs(ThemeContrast.light, path).size.should be > 20
+    [ThemeContrast.light, ThemeContrast.dark].each do |tokens|
+      ThemeContrast.failures(ThemeContrast.admin_pairs(tokens, path)).should eq([] of String)
     end
   end
 

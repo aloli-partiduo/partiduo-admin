@@ -6,6 +6,10 @@ require "file_utils"
 require "socket"
 
 module PartiduoAgent
+  # Langues d'un dossier (`PartiduoAdmin::Config::LOCALES`, que l'exécutant
+  # ne charge pas) : toute autre valeur reçue devient `fr`.
+  LOCALES = %w[fr en nl de es it pt]
+
   # Échec d'une opération : `code` reprend, pour l'interface d'instance, la
   # catégorie de `error.code` (usage, refused, read_only…).
   class StepError < Exception
@@ -795,7 +799,7 @@ module PartiduoAgent
 
     def locale(params : JSON::Any) : String
       value = params["locale"]?.try(&.as_s?).presence || "fr"
-      %w[fr en nl].includes?(value) ? value : "fr"
+      LOCALES.includes?(value) ? value : "fr"
     end
 
     # Mode local : rien n'est installé ; les fichiers restent dans work_dir.

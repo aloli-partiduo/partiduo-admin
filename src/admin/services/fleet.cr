@@ -291,14 +291,8 @@ module PartiduoAdmin
     # fournie.
     def self.restore(user : User, dossier : Dossier, date : Time, target : String, new_slug : String = "",
                      backup_id : Int64? = nil, data_key : String = "") : Outcome(Task)
-      return Outcome(Task).failure("base", "admin.errors.forbidden") unless Access.can?(user, :restore, dossier)
-      return Outcome(Task).failure("target", "admin.errors.invalid") unless %w[move new replace].includes?(target)
-      return Outcome(Task).failure("base", "admin.errors.dossier.state") unless %w[active suspended].includes?(dossier.state)
-      # Déplacement (ADR-013 D7) : instance installée sur le serveur du
-      # dossier, qui ne l'a pas encore ; dossier suspendu, super-admin.
-      if target == "move"
-        return Outcome(Task).failure("base", "admin.errors.forbidden") unless user.super_admin?
-        return Outcome(Task).failure("base", "admin.errors.dossier.state") unless dossier.state == "suspended"
+      if refused = restore_refusal(user, dossier, target)
+        return Outcome(Task).failure(*refused)
       end
       backup = restored_backup(dossier, date, backup_id)
       return Outcome(Task).failure("date", "admin.errors.backup.none_before") if backup.nil?
@@ -321,6 +315,19 @@ module PartiduoAdmin
         detail: {"backup" => backup.pk.to_s, "target" => target, "new_slug" => new_slug, "date" => date.to_s("%F"),
                  "encryption" => backup.encryption_mode.to_s, "key_provided" => (!keys.nil?).to_s})
       Outcome(Task).new(task)
+    end
+
+    # Refus d'une restauration (champ, clé), avant de chercher la sauvegarde.
+    private def self.restore_refusal(user : User, dossier : Dossier, target : String) : {String, String}?
+      return {"base", "admin.errors.forbidden"} unless Access.can?(user, :restore, dossier)
+      return {"target", "admin.errors.invalid"} unless %w[move new replace].includes?(target)
+      return {"base", "admin.errors.dossier.state"} unless %w[active suspended].includes?(dossier.state)
+      # Déplacement (ADR-013 D7) : instance installée sur le serveur du
+      # dossier, qui ne l'a pas encore ; dossier suspendu, super-admin.
+      if target == "move"
+        return {"base", "admin.errors.forbidden"} unless user.super_admin?
+        return {"base", "admin.errors.dossier.state"} unless dossier.state == "suspended"
+      end
     end
 
     # --- Déplacement (ADR-013 D7) : manuel, au cas par cas ------------------

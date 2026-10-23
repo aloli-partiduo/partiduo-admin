@@ -24,7 +24,7 @@ module PartiduoAdmin
         on_option_with_arg("email", "adresse", "adresse du super-admin") { |value| @email = value }
         on_option_with_arg("first-name", "prenom", "prénom") { |value| @first_name = value }
         on_option_with_arg("last-name", "nom", "nom") { |value| @last_name = value }
-        on_option_with_arg("locale", "langue", "fr, en ou nl") { |value| @locale = value }
+        on_option_with_arg("locale", "langue", "fr, en, nl, de, es, it ou pt") { |value| @locale = value }
         on_option("reinvite", "réémet l'invitation du super-admin sans passkey") { |_| @reinvite = true }
       end
 

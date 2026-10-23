@@ -132,49 +132,16 @@ module PartiduoAdmin
     # l'enregistrement que l'administration a créé ; un autre enregistrement
     # pour ce nom bloque (rien n'est écrasé). Vrai si le nom est à jour.
     def self.sync(dossier : Dossier, actor : User? = nil, now : Time = Config.now) : Bool
-      return true unless managed?(dossier)
-      provider = self.provider.not_nil!
+      provider = self.provider
+      return true if provider.nil? || !managed?(dossier)
       zone = dossier.zone.downcase
       sub_domain = dossier.slug.to_s
       begin
         entries = provider.entries(zone, sub_domain)
         own = entries.find { |entry| entry.id == dossier.dns_record_id }
         others = entries.reject { |entry| entry.id == dossier.dns_record_id }
-        if dossier.state == "deleted"
-          if own
-            provider.delete(zone, own.id)
-            provider.refresh(zone)
-            Audit.log(actor, "dns.delete", target: dossier, detail: {"name" => dossier.host, "record" => own.id.to_s},
-              actor_label: actor ? nil : "system")
-          end
-          dossier.dns_record_id = nil
-          return settle(dossier, "removed", now)
-        end
-        unless Protocol.valid_slug?(sub_domain)
-          raise Error.new("sous-domaine refusé : #{sub_domain}")
-        end
-        server = dossier.server
-        if server.nil? || !server.active?
-          raise Error.new("serveur du dossier absent ou inactif")
-        end
-        target = target_for(server)
-        unless others.empty?
-          described = others.map { |entry| "#{entry.field_type} #{entry.target}" }.join(", ")
-          raise Error.new("nom déjà présent dans la zone, non créé par l'administration : #{described}")
-        end
-        if own.nil?
-          id = provider.create(zone, sub_domain, target, TTL)
-          provider.refresh(zone)
-          dossier.dns_record_id = id
-          Audit.log(actor, "dns.create", target: dossier, detail: {"name" => dossier.host, "target" => target, "record" => id.to_s},
-            actor_label: actor ? nil : "system")
-        elsif !same?(own.target, target)
-          provider.update(zone, own.id, target, TTL)
-          provider.refresh(zone)
-          Audit.log(actor, "dns.update", target: dossier,
-            detail: {"name" => dossier.host, "from" => own.target, "target" => target, "record" => own.id.to_s},
-            actor_label: actor ? nil : "system")
-        end
+        return remove(provider, dossier, zone, own, actor, now) if dossier.state == "deleted"
+        point(provider, dossier, zone, sub_domain, own, others, actor)
         settle(dossier, "ok", now)
       rescue ex : Error | OvhApi::Error | IO::Error | Socket::Error | JSON::ParseException
         Log.warn { "DNS de #{dossier.host} : #{ex.message}" }
@@ -182,6 +149,49 @@ module PartiduoAdmin
         dossier.save!
         Alerts.open("dns", "danger", dossier: dossier, detail: ex.message.to_s[0, 250]? || "", now: now)
         false
+      end
+    end
+
+    # Dossier supprimé : son enregistrement effacé.
+    private def self.remove(provider : Provider, dossier : Dossier, zone : String, own : Entry?, actor : User?, now : Time) : Bool
+      if own
+        provider.delete(zone, own.id)
+        provider.refresh(zone)
+        Audit.log(actor, "dns.delete", target: dossier, detail: {"name" => dossier.host, "record" => own.id.to_s},
+          actor_label: actor ? nil : "system")
+      end
+      dossier.dns_record_id = nil
+      settle(dossier, "removed", now)
+    end
+
+    # `CNAME` du dossier créé ou pointé vers son serveur ; un autre
+    # enregistrement pour ce nom bloque.
+    private def self.point(provider : Provider, dossier : Dossier, zone : String, sub_domain : String, own : Entry?,
+                           others : Array(Entry), actor : User?) : Nil
+      unless Protocol.valid_slug?(sub_domain)
+        raise Error.new("sous-domaine refusé : #{sub_domain}")
+      end
+      server = dossier.server
+      if server.nil? || !server.active?
+        raise Error.new("serveur du dossier absent ou inactif")
+      end
+      target = target_for(server)
+      unless others.empty?
+        described = others.map { |entry| "#{entry.field_type} #{entry.target}" }.join(", ")
+        raise Error.new("nom déjà présent dans la zone, non créé par l'administration : #{described}")
+      end
+      if own.nil?
+        id = provider.create(zone, sub_domain, target, TTL)
+        provider.refresh(zone)
+        dossier.dns_record_id = id
+        Audit.log(actor, "dns.create", target: dossier, detail: {"name" => dossier.host, "target" => target, "record" => id.to_s},
+          actor_label: actor ? nil : "system")
+      elsif !same?(own.target, target)
+        provider.update(zone, own.id, target, TTL)
+        provider.refresh(zone)
+        Audit.log(actor, "dns.update", target: dossier,
+          detail: {"name" => dossier.host, "from" => own.target, "target" => target, "record" => own.id.to_s},
+          actor_label: actor ? nil : "system")
       end
     end
 

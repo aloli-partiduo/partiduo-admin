@@ -192,15 +192,7 @@ module PartiduoAdmin
           return
         end
         if task.params_json["target"]?.try(&.as_s?) == "new"
-          if copy
-            # Installée comme à la création (service, vhost, certificat) :
-            # active, certificat compté dans le quota (D-AFN-009).
-            copy.state = "active"
-            copy.database = result["database"]?.try(&.as_s?) || copy.database
-            copy.version = result["version"]?.try(&.as_s?) || copy.version
-            copy.save!
-            record_certificate(copy, result, now)
-          end
+          installed_copy(copy, result, now) if copy
         else
           dossier.state = "active"
           dossier.version = result["version"]?.try(&.as_s?) || dossier.version
@@ -209,6 +201,16 @@ module PartiduoAdmin
           # certificat compté dans le quota (ADR-013 D7).
           record_certificate(dossier, result, now) if task.params_json["target"]?.try(&.as_s?) == "move"
         end
+      end
+
+      # Copie installée comme à la création (service, vhost, certificat) :
+      # active, certificat compté dans le quota (D-AFN-009).
+      private def self.installed_copy(copy : Dossier, result : JSON::Any, now : Time) : Nil
+        copy.state = "active"
+        copy.database = result["database"]?.try(&.as_s?) || copy.database
+        copy.version = result["version"]?.try(&.as_s?) || copy.version
+        copy.save!
+        record_certificate(copy, result, now)
       end
 
       def self.record_backup(task : Task, dossier : Dossier, kind : String, data : JSON::Any, now : Time) : Backup

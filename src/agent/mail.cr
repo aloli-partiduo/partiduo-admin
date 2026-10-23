@@ -34,6 +34,26 @@ module PartiduoAgent
         "intro"   => "U bent uitgenodigd om het Partiduo-dossier %{host} te beheren. Open deze link om uw toegang aan te maken:",
         "ignore"  => "Als u dit bericht niet verwachtte, negeer het dan.",
       },
+      "de" => {
+        "subject" => "Einladung zur Verwaltung des Mandanten %{host}",
+        "intro"   => "Sie wurden eingeladen, den Partiduo-Mandanten %{host} zu verwalten. Öffnen Sie diesen Link, um Ihren Zugang einzurichten:",
+        "ignore"  => "Wenn Sie diese Nachricht nicht erwartet haben, ignorieren Sie sie.",
+      },
+      "es" => {
+        "subject" => "Invitación para administrar el expediente %{host}",
+        "intro"   => "Se le invita a administrar el expediente Partiduo %{host}. Abra este enlace para crear su acceso:",
+        "ignore"  => "Si no esperaba este mensaje, ignórelo.",
+      },
+      "it" => {
+        "subject" => "Invito ad amministrare il dossier %{host}",
+        "intro"   => "È invitato ad amministrare il dossier Partiduo %{host}. Apra questo link per creare il Suo accesso:",
+        "ignore"  => "Se non si aspettava questo messaggio, lo ignori.",
+      },
+      "pt" => {
+        "subject" => "Convite para administrar o dossier %{host}",
+        "intro"   => "Recebeu um convite para administrar o dossier Partiduo %{host}. Abra esta ligação para criar o seu acesso:",
+        "ignore"  => "Se não esperava esta mensagem, ignore-a.",
+      },
     }
 
     def self.valid_address?(address : String) : Bool

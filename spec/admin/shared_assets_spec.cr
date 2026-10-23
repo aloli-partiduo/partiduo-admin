@@ -21,10 +21,21 @@ private SHARED_ASSETS = {
 
 private ASSETS = File.join(__DIR__, "../../src/admin/assets/admin")
 
+# Copies de connect (`src/connect/assets/connect/`), mêmes fichiers et mêmes
+# empreintes ; connect n'emploie ni access.css ni la planche d'icônes.
+private CONNECT_ASSETS = File.join(__DIR__, "../../src/connect/assets/connect")
+private CONNECT_SHARED = %w[css/theme.css css/bulma.min.css css/fonts.css brand/logo.svg brand/aloli-logo.svg]
+
 describe "Fichiers communs avec partiduo-ui-bulma (pages d'accès)" do
   SHARED_ASSETS.each do |file, digest|
     it "garde #{file} identique à celui de partiduo-ui-bulma (empreinte SHA-256)" do
       Digest::SHA256.hexdigest(File.read(File.join(ASSETS, file))).should eq(digest)
+    end
+  end
+
+  CONNECT_SHARED.each do |file|
+    it "garde #{file} de connect identique à celui de partiduo-ui-bulma (empreinte SHA-256)" do
+      Digest::SHA256.hexdigest(File.read(File.join(CONNECT_ASSETS, file))).should eq(SHARED_ASSETS[file])
     end
   end
 
