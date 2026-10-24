@@ -85,7 +85,7 @@ it:
       families:
         keeping:
           legend: "Regime e tenuta della contabilità"
-          help: "Contabilità completa, microimpresa o libera professione. Si possono combinare: la Contabilità riprende allora i registri in partita doppia."
+          help: "Contabilità completa; microimpresa o libera professione, l'una o l'altra. La Contabilità si può combinare con ciascuna: riprende allora i loro registri in partita doppia."
         management:
           legend: "Gestione"
           help: "Fatturazione, magazzino, monitoraggio, contabilità analitica e strumenti di gestione."
@@ -104,6 +104,11 @@ it:
         tools:
           legend: "Strumenti"
           help: "Giustificativi, importazioni, report, moduli e modelli."
+      choices:
+        scheme:
+          legend: "Regime di tassazione"
+          help: "Microimpresa o libera professione (dichiarazione controllata, 2035): due regimi distinti, un dossier ne tiene uno solo."
+          none: "Né l'uno né l'altro"
       accounting:
         name: "Contabilità"
         help: "Partita doppia: giornali, libro mastro, IVA, chiusura."
@@ -178,6 +183,7 @@ it:
         incompatible: "Incompatibile con %{others}."
         kind_excludes: "Non ammesso in un dossier «%{kind}»."
         kind_requires: "Obbligatorio per un dossier «%{kind}»."
+        regime_only: "Solo per un dossier «%{regimes}»."
       other:
         label: "Altre estensioni"
         help: "Codici di estensioni assenti dall'elenco, separati da virgole; il dossier li controlla all'attivazione."
@@ -186,6 +192,7 @@ it:
         incompatible: "Non disponibile: incompatibile con %{others}"
         kind_required: "Obbligatorio per un dossier «%{kind}»"
         unavailable: "Non ammesso in un dossier «%{kind}»"
+        unavailable_regime: "Non ammesso in un dossier «%{regime}»"
         checked: "%{piece} selezionato: anche %{others}, perché richiesto."
         unchecked: "Deselezionato anche: %{others}."
         confirm: "Deselezionare %{piece} deselezionerà anche ciò che ne dipende: %{others}. Continuare?"
@@ -814,6 +821,7 @@ it:
         requires_any: "%{piece} richiede %{others}."
         incompatible: "%{piece} è incompatibile con %{others}."
         kind_excludes: "%{piece} non è ammesso in un dossier «%{kind}»."
+        regime_excludes: "%{piece} non è ammesso in un dossier «%{regime}»."
         kind_requires: "Un dossier «%{kind}» richiede %{piece}."
       dossier:
         slug: "Sottodominio non valido: una minuscola all'inizio, poi minuscole, cifre, trattini (al massimo 40 caratteri)."

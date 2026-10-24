@@ -93,7 +93,7 @@ module PartiduoAdmin
         add(errors, "slug", "admin.errors.dossier.slug_taken")
       end
       add(errors, "label", "admin.errors.required") if input.label.strip.empty?
-      add(errors, "regime", "admin.errors.dossier.regime") unless %w[fr be].includes?(input.regime)
+      add(errors, "regime", "admin.errors.dossier.regime") unless Catalog::REGIMES.includes?(input.regime)
       kind_errors(input, errors)
       add(errors, "locale", "admin.errors.dossier.locale") unless Config::LOCALES.includes?(input.locale)
       add(errors, "siren", "admin.errors.siren") unless input.siren.empty? || Siren.valid?(input.siren)
@@ -112,12 +112,14 @@ module PartiduoAdmin
       if !Protocol.valid_dossier_kind?(input.kind)
         add(errors, "kind", "admin.errors.dossier.kind")
       elsif valid_modules?(input.modules)
-        piece_errors(input.kind, input.modules + input.extensions, errors)
+        piece_errors(input.kind, input.regime, input.modules + input.extensions, errors)
       end
     end
 
-    private def self.piece_errors(kind : String, codes : Array(String), errors : Errors) : Nil
-      Catalog.errors(kind, codes).each { |field, keys| keys.each { |key| add(errors, field, key) } }
+    # Régime invalide (déjà refusé) : ses restrictions ne sont pas jugées.
+    private def self.piece_errors(kind : String, regime : String, codes : Array(String), errors : Errors) : Nil
+      valid = Catalog::REGIMES.includes?(regime) ? regime : nil
+      Catalog.errors(kind, valid, codes).each { |field, keys| keys.each { |key| add(errors, field, key) } }
     end
 
     private def self.schedule_errors(input : DossierInput, errors : Errors) : Nil
@@ -164,7 +166,7 @@ module PartiduoAdmin
       return Outcome(Task).failure("modules", "admin.errors.dossier.modules") unless valid_modules?(modules)
       return Outcome(Task).failure("extensions", "admin.errors.dossier.extensions") unless valid_extensions?(extensions)
       errors = Errors.new
-      piece_errors(dossier.kind.presence || "company", modules + extensions, errors)
+      piece_errors(dossier.kind.presence || "company", dossier.regime.to_s, modules + extensions, errors)
       return Outcome(Task).new(nil, errors) unless errors.empty?
       # Extensions retirées avant les modules (une extension requiert un
       # module, jamais l'inverse), modules ajoutés avant les extensions ;

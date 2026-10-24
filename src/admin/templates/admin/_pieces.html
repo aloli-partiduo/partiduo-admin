@@ -1,22 +1,25 @@
-{# SPDX-License-Identifier: AGPL-3.0-or-later. Choix des modules et extensions par familles (DECISIONS D-ADM-016) : un fieldset par famille, nom, code et explication de chaque pièce, rappels lisibles sans JavaScript ; règles du catalogue en attributs data-* pour pieces.js, qui coche les dépendances, désactive les pièces incompatibles et masque celles qu'un foyer n'admet pas. Le serveur refait tous ces contrôles. #}<div class="pd-picker" data-pd-pieces data-kind="{{ pieces.kind }}" data-initial="{{ pieces.initial }}" data-messages="{{ pieces.messages }}" data-kinds="{{ pieces.kinds }}">
+{# SPDX-License-Identifier: AGPL-3.0-or-later. Choix des modules et extensions par familles (DECISIONS D-ADM-016, D-ADM-019) : un fieldset par famille, nom, code et explication de chaque pièce, rappels lisibles sans JavaScript ; les pièces d'un choix exclusif (micro-entreprise ou profession libérale) en boutons radio, avec « ni l'un ni l'autre » ; règles du catalogue en attributs data-* pour pieces.js, qui coche les dépendances, désactive les pièces incompatibles et masque celles que le type ou le régime du dossier n'admet pas. Le serveur refait tous ces contrôles. #}<div class="pd-picker" data-pd-pieces data-kind="{{ pieces.kind }}" data-regime="{{ pieces.regime }}" data-initial="{{ pieces.initial }}" data-messages="{{ pieces.messages }}" data-kinds="{{ pieces.kinds }}" data-regimes="{{ pieces.regimes }}">
   {% if piece_errors %}<div class="notification is-danger is-light" role="alert" id="pd-pieces-errors">{% for error in piece_errors %}<p>{{ error }}</p>{% endfor %}</div>{% endif %}
   {% for family in families %}<fieldset class="pd-fieldset pd-family" id="{{ family.id }}" data-pd-family aria-describedby="{{ family.describedby }}">
     <legend>{{ family.legend }}</legend>
     <p class="help" id="{{ family.help_id }}">{{ family.help }}</p>
     {% if family.has_errors %}<p class="help is-danger" id="{{ family.error_id }}">{% for error in family.errors %}{{ error }} {% endfor %}</p>{% endif %}
     <div class="pd-pieces">{% for piece in family.pieces %}
-      <div class="pd-piece" data-pd-piece="{{ piece.code }}">
-        <label class="pd-choice" for="{{ piece.id }}">
-          <input type="checkbox" id="{{ piece.id }}" name="{{ piece.name }}" value="{{ piece.code }}"{% if piece.checked %} checked{% endif %}{% if piece.locked %} disabled data-pd-locked{% endif %} aria-describedby="{{ piece.help_id }} {{ piece.status_id }}" data-label="{{ piece.label }}" data-requires="{{ piece.requires }}" data-requires-any="{{ piece.requires_any }}" data-conflicts="{{ piece.conflicts }}" data-excluded-kinds="{{ piece.excluded_kinds }}" data-required-kinds="{{ piece.required_kinds }}">
-          <span class="pd-piece-body">
-            <span class="pd-piece-head"><strong>{{ piece.label }}</strong> <code class="pd-piece-code">{{ piece.code }}</code></span>
-            <span class="pd-choice-help" id="{{ piece.help_id }}">{{ piece.help }}{% for note in piece.notes %}<span class="pd-piece-note" data-pd-note="{{ note.type }}">{{ note.text }}</span>{% endfor %}</span>
-            <span class="pd-piece-status" id="{{ piece.status_id }}" data-pd-status></span>
-          </span>
-        </label>
-        {% if piece.locked %}<input type="hidden" name="{{ piece.name }}" value="{{ piece.code }}">{% endif %}
-      </div>{% endfor %}
+      {% include "admin/_piece.html" with piece=piece %}{% endfor %}
     </div>
+    {% for group in family.groups %}<fieldset class="pd-fieldset pd-choice-group" id="{{ group.id }}" data-pd-choice="{{ group.code }}" aria-describedby="{{ group.help_id }}">
+      <legend>{{ group.legend }}</legend>
+      <p class="help" id="{{ group.help_id }}">{{ group.help }}</p>
+      <div class="pd-pieces">{% for piece in group.pieces %}
+      {% include "admin/_piece.html" with piece=piece %}{% endfor %}
+      <div class="pd-piece" data-pd-none>
+        <label class="pd-choice" for="{{ group.none_id }}">
+          <input type="radio" id="{{ group.none_id }}" name="{{ group.name }}" value=""{% if group.none_checked %} checked{% endif %} data-pd-none="{{ group.code }}">
+          <span class="pd-piece-body"><span class="pd-piece-head"><strong>{{ group.none_label }}</strong></span></span>
+        </label>
+      </div>
+      </div>
+    </fieldset>{% endfor %}
   </fieldset>{% endfor %}
   {% include "admin/_field.html" with field=other %}
   <p class="pd-status" role="status" aria-live="polite" data-pd-live></p>

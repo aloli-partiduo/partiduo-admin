@@ -63,7 +63,7 @@ module PartiduoAdmin
       page("admin/dossier_new.html", {
         "identity"     => identity_fields(input, t),
         "choices"      => choice_fields(input, t),
-        "families"     => PieceForm.families(nil, input.modules + input.extensions, t),
+        "families"     => PieceForm.families(nil, nil, input.modules + input.extensions, t),
         "other"        => other_field(input.extensions, t),
         "fields"       => assignment_fields(input, t),
         "base_errors"  => errs(t, "base") + errs(t, "package"),
@@ -221,14 +221,16 @@ module PartiduoAdmin
     private def form(dossier : Dossier, modules : Array(String), extensions : Array(String), errors : Fleet::Errors, status = 200)
       t = translate(errors)
       kind = dossier.kind.presence || "company"
+      regime = dossier.regime.to_s
       page("admin/dossier_modules.html", {
         "dossier"      => dossier,
         "kind_key"     => "admin.kinds.#{kind}",
-        "families"     => PieceForm.families(kind, modules + extensions, t),
+        "regime_key"   => "admin.regimes.#{regime}",
+        "families"     => PieceForm.families(kind, regime, modules + extensions, t),
         "other"        => other_field(extensions, t),
         "piece_errors" => piece_errors(t),
         "base_errors"  => errs(t, "base"),
-        "pieces"       => picker(kind, dossier.module_list + dossier.extension_list),
+        "pieces"       => picker(kind, dossier.module_list + dossier.extension_list, regime),
       }, status: status)
     end
   end

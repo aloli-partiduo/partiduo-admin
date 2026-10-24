@@ -85,7 +85,7 @@ en:
       families:
         keeping:
           legend: "Regime and bookkeeping"
-          help: "Full accounting, micro-enterprise or liberal profession. They can be combined: Accounting then turns the registers into double entry."
+          help: "Full accounting; micro-enterprise or liberal profession, one or the other. Accounting can be combined with either: it then turns their registers into double entry."
         management:
           legend: "Management"
           help: "Invoicing, stock, follow-up, analytics and management tools."
@@ -104,6 +104,11 @@ en:
         tools:
           legend: "Tools"
           help: "Receipts, imports, reports, forms and templates."
+      choices:
+        scheme:
+          legend: "Taxation scheme"
+          help: "Micro-enterprise or liberal profession (controlled declaration, 2035): two distinct schemes, a file keeps only one."
+          none: "Neither"
       accounting:
         name: "Accounting"
         help: "Double entry: journals, general ledger, VAT, closing."
@@ -178,6 +183,7 @@ en:
         incompatible: "Incompatible with %{others}."
         kind_excludes: "Not allowed in a “%{kind}” file."
         kind_requires: "Required for a “%{kind}” file."
+        regime_only: "Only for a “%{regimes}” file."
       other:
         label: "Other extensions"
         help: "Codes of extensions missing from the list, comma-separated; the company file checks them when enabling."
@@ -186,6 +192,7 @@ en:
         incompatible: "Unavailable: incompatible with %{others}"
         kind_required: "Required for a “%{kind}” file"
         unavailable: "Not allowed in a “%{kind}” file"
+        unavailable_regime: "Not allowed in a “%{regime}” file"
         checked: "%{piece} checked: %{others} too, as required."
         unchecked: "Also unchecked: %{others}."
         confirm: "Unchecking %{piece} will also uncheck what depends on it: %{others}. Continue?"
@@ -814,6 +821,7 @@ en:
         requires_any: "%{piece} requires %{others}."
         incompatible: "%{piece} is incompatible with %{others}."
         kind_excludes: "%{piece} is not allowed in a “%{kind}” file."
+        regime_excludes: "%{piece} is not allowed in a “%{regime}” file."
         kind_requires: "A “%{kind}” file requires %{piece}."
       dossier:
         slug: "Invalid subdomain: a lower case letter first, then lower case letters, digits, hyphens (40 characters at most)."

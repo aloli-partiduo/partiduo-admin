@@ -85,7 +85,7 @@ pt:
       families:
         keeping:
           legend: "Regime e escrituração"
-          help: "Contabilidade completa, microempresa ou profissão liberal. Podem acumular-se: a Contabilidade passa então os registos a partidas dobradas."
+          help: "Contabilidade completa; microempresa ou profissão liberal, uma ou outra. A Contabilidade pode acumular-se com cada uma: passa então os seus registos a partidas dobradas."
         management:
           legend: "Gestão"
           help: "Faturação, existências, acompanhamento, analítica e ferramentas de gestão."
@@ -104,6 +104,11 @@ pt:
         tools:
           legend: "Ferramentas"
           help: "Comprovativos, importações, relatórios, formulários e modelos."
+      choices:
+        scheme:
+          legend: "Regime de tributação"
+          help: "Microempresa ou profissão liberal (declaração controlada, 2035): dois regimes distintos, um dossier só tem um."
+          none: "Nenhum dos dois"
       accounting:
         name: "Contabilidade"
         help: "Partidas dobradas: diários, razão geral, IVA, encerramento."
@@ -178,6 +183,7 @@ pt:
         incompatible: "Incompatível com %{others}."
         kind_excludes: "Não admitido num dossier «%{kind}»."
         kind_requires: "Obrigatório num dossier «%{kind}»."
+        regime_only: "Apenas para um dossier «%{regimes}»."
       other:
         label: "Outras extensões"
         help: "Códigos de extensões ausentes da lista, separados por vírgulas; o dossier verifica-os na ativação."
@@ -186,6 +192,7 @@ pt:
         incompatible: "Indisponível: incompatível com %{others}"
         kind_required: "Obrigatório num dossier «%{kind}»"
         unavailable: "Não admitido num dossier «%{kind}»"
+        unavailable_regime: "Não admitido num dossier «%{regime}»"
         checked: "%{piece} assinalado: também %{others}, por ser necessário."
         unchecked: "Também desassinalado: %{others}."
         confirm: "Desassinalar %{piece} desassinalará também o que depende disso: %{others}. Continuar?"
@@ -814,6 +821,7 @@ pt:
         requires_any: "%{piece} requer %{others}."
         incompatible: "%{piece} é incompatível com %{others}."
         kind_excludes: "%{piece} não é admitido num dossier «%{kind}»."
+        regime_excludes: "%{piece} não é admitido num dossier «%{regime}»."
         kind_requires: "Um dossier «%{kind}» requer %{piece}."
       dossier:
         slug: "Subdomínio inválido: minúscula no início, depois minúsculas, algarismos, hífenes (40 caracteres no máximo)."

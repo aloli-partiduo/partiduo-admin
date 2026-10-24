@@ -85,7 +85,7 @@ es:
       families:
         keeping:
           legend: "Régimen y llevanza de la contabilidad"
-          help: "Contabilidad completa, microempresa o profesión liberal. Pueden combinarse: la Contabilidad pasa entonces los registros a partida doble."
+          help: "Contabilidad completa; microempresa o profesión liberal, una u otra. La Contabilidad puede combinarse con cada una: pasa entonces sus registros a partida doble."
         management:
           legend: "Gestión"
           help: "Facturación, existencias, seguimiento, analítica y herramientas de gestión."
@@ -104,6 +104,11 @@ es:
         tools:
           legend: "Herramientas"
           help: "Justificantes, importaciones, informes, formularios y plantillas."
+      choices:
+        scheme:
+          legend: "Régimen de tributación"
+          help: "Microempresa o profesión liberal (declaración controlada, 2035): dos regímenes distintos, un expediente solo lleva uno."
+          none: "Ninguno de los dos"
       accounting:
         name: "Contabilidad"
         help: "Partida doble: diarios, libro mayor, IVA, cierre."
@@ -178,6 +183,7 @@ es:
         incompatible: "Incompatible con %{others}."
         kind_excludes: "No admitido en un expediente «%{kind}»."
         kind_requires: "Obligatorio en un expediente «%{kind}»."
+        regime_only: "Solo para un expediente «%{regimes}»."
       other:
         label: "Otras extensiones"
         help: "Códigos de extensiones que no están en la lista, separados por comas; el expediente los comprueba al activarlos."
@@ -186,6 +192,7 @@ es:
         incompatible: "No disponible: incompatible con %{others}"
         kind_required: "Obligatorio en un expediente «%{kind}»"
         unavailable: "No admitido en un expediente «%{kind}»"
+        unavailable_regime: "No admitido en un expediente «%{regime}»"
         checked: "%{piece} marcado: también %{others}, por ser necesario."
         unchecked: "También desmarcado: %{others}."
         confirm: "Desmarcar %{piece} desmarcará también lo que depende de ello: %{others}. ¿Continuar?"
@@ -814,6 +821,7 @@ es:
         requires_any: "%{piece} requiere %{others}."
         incompatible: "%{piece} es incompatible con %{others}."
         kind_excludes: "%{piece} no se admite en un expediente «%{kind}»."
+        regime_excludes: "%{piece} no se admite en un expediente «%{regime}»."
         kind_requires: "Un expediente «%{kind}» requiere %{piece}."
       dossier:
         slug: "Subdominio no válido: minúscula al principio y luego minúsculas, cifras y guiones (40 caracteres como máximo)."

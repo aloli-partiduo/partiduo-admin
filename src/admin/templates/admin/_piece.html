@@ -1,0 +1,11 @@
+{# SPDX-License-Identifier: AGPL-3.0-or-later. Une pièce du choix des modules et extensions (D-ADM-016) : case à cocher, ou bouton radio d'un choix exclusif (D-ADM-019) ; nom, code, explication, rappels lisibles sans JavaScript, règles du catalogue en attributs data-* pour pieces.js. #}<div class="pd-piece" data-pd-piece="{{ piece.code }}">
+        <label class="pd-choice" for="{{ piece.id }}">
+          <input type="{{ piece.input_type }}" id="{{ piece.id }}" name="{{ piece.name }}" value="{{ piece.code }}"{% if piece.checked %} checked{% endif %}{% if piece.locked %} disabled data-pd-locked{% endif %} aria-describedby="{{ piece.help_id }} {{ piece.status_id }}" data-label="{{ piece.label }}" data-requires="{{ piece.requires }}" data-requires-any="{{ piece.requires_any }}" data-conflicts="{{ piece.conflicts }}" data-excluded-kinds="{{ piece.excluded_kinds }}" data-required-kinds="{{ piece.required_kinds }}" data-regimes="{{ piece.regimes }}" data-choice="{{ piece.choice }}">
+          <span class="pd-piece-body">
+            <span class="pd-piece-head"><strong>{{ piece.label }}</strong> <code class="pd-piece-code">{{ piece.code }}</code></span>
+            <span class="pd-choice-help" id="{{ piece.help_id }}">{{ piece.help }}{% for note in piece.notes %}<span class="pd-piece-note" data-pd-note="{{ note.type }}">{{ note.text }}</span>{% endfor %}</span>
+            <span class="pd-piece-status" id="{{ piece.status_id }}" data-pd-status></span>
+          </span>
+        </label>
+        {% if piece.locked %}<input type="hidden" name="{{ piece.name }}" value="{{ piece.code }}">{% endif %}
+      </div>

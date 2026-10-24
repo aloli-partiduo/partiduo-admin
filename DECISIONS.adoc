@@ -203,3 +203,48 @@ console aurait laissé passer.
   `CHORUSPRO`) proposées à un dossier belge : aucun manifeste ne déclare
   de régime ; les plateformes le font à l'exécution
   (`Adapter#regimes`).
+
+=== D-ADM-019 — Exclusions adoptées le 24 octobre 2026 : choix exclusif, type et régime au catalogue
+
+*Constat.* Les quatre exclusions que D-ADM-016 proposait de soumettre ont
+été adoptées et déclarées là où elles valent (D-AMD-038 à D-AMD-042 de
+`partiduo-app`) : `MICRO` et `LIBERAL` incompatibles ; `PERSO` exclu du type
+`company` ; `TELEDEC`, `EINV`, `SUPERPDP`, `ESALINK`, `MODELES` (et, sans
+rien changer d'autre, `CHORUSPRO`, `CRM`, `URSSAF`) exclus du type
+`household` ; `URSSAF`, `TELEDEC`, `CHORUSPRO` réservés au régime `fr` par
+la nouvelle déclaration `regimes` du manifeste.
+
+*Choix.*
+
+* *Catalogue* (`src/admin/services/catalog.cr`) : ces règles reportées
+  pièce par pièce ; champ `regimes` d'une pièce (vide : tous les régimes),
+  `REGIMES` (`fr`, `be`) ; manquement `regime_excludes` au contrôle
+  serveur (`problems(kind, regime, codes)` : régime invalide, déjà refusé,
+  non jugé) ; `unavailable(kind, regime)` écarte aussi de la page des
+  modules les pièces que le régime du dossier n'admet pas.
+* *Choix exclusif* (`CHOICES`, champ `choice` d'une pièce) : la
+  micro-entreprise et la profession libérale, deux à deux incompatibles,
+  deviennent des boutons radio dans la famille « Régime et tenue des
+  comptes », sous la légende « Régime d'imposition », avec « Ni l'un ni
+  l'autre » (valeur vide, ignorée par `PieceForm.split`) ; la Comptabilité
+  reste une case, cumulable (ADR-007 D3, D6). Le rappel d'incompatibilité
+  entre les deux n'est plus affiché : les boutons radio le disent.
+  Passer de l'une à l'autre sur la page des modules désactive l'ancienne
+  avant d'activer la nouvelle (ordre de l'exécutant, D-AFN-006).
+* *Rappels sans JavaScript* : « Seulement pour un dossier « France » »
+  à la création ; type et régime fixés rappelés sur la page des modules.
+* *pieces.js* : même source (`data-regimes`, `data-choice` de chaque
+  pièce, `data-regime` et `data-regimes` du conteneur) ; pièces que le
+  régime choisi n'admet pas masquées comme celles qu'un foyer n'admet pas ;
+  quitter un bouton radio décoche, après confirmation, ce qui dépendait de
+  l'ancien choix ; « Ni l'un ni l'autre » coché quand le choix est vidé,
+  groupe masqué quand aucune de ses pièces n'est proposée.
+* *Spec de concordance* : les manifestes voisins sont aussi lus pour
+  `regimes` ; les pièces d'un choix exclusif doivent être deux à deux
+  incompatibles et d'une même famille.
+* *Exécutant à blanc* (`DrySystem::DRY_CATALOG`) : l'extension de facture
+  électronique y porte son code du registre, `EINV` (et non
+  `EINVOICING`), avec sa dépendance `DOCUMENT`.
+
+Traductions dans les sept langues ; l'aide de la famille « Régime et
+tenue des comptes » ne dit plus que les trois se cumulent.

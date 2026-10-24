@@ -61,10 +61,12 @@ ou l'administration), `invite`, `signing-key`, `account`.
   se choisissent par familles (tenue des comptes, gestion,
   télédéclarations, facture électronique, banque et paiements, foyer,
   outils), d'après le catalogue de la console
-  (`src/admin/services/catalog.cr`, D-ADM-016) : dépendances cochées,
-  incompatibilités désactivées, pièces exclues d'un foyer écartées, mêmes
-  règles contrôlées par le serveur ; `spec/admin/catalog_spec.cr` compare
-  ce catalogue aux manifestes des dépôts voisins.
+  (`src/admin/services/catalog.cr`, D-ADM-016, D-ADM-019) : dépendances
+  cochées, incompatibilités désactivées, micro-entreprise ou profession
+  libérale en boutons radio, pièces exclues du type du dossier (foyer ou
+  entreprise) ou de son régime fiscal écartées, mêmes règles contrôlées
+  par le serveur ; `spec/admin/catalog_spec.cr` compare ce catalogue aux
+  manifestes des dépôts voisins.
 * *Serveurs* (jeton d'exécutant en empreinte), *tâches*, *sauvegardes*
   (mode de chiffrement, empreinte de la clé), *demandes d'opérations
   sensibles* (mode à une ou deux personnes),

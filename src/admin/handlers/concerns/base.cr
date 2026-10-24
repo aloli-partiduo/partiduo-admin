@@ -308,10 +308,10 @@ module PartiduoAdmin
       list.empty? ? nil : list
     end
 
-    # Réglages de `pieces.js` : type fixé (vide à la création, où il se
-    # choisit), pièces actives au départ, messages traduits.
-    def picker(kind : String, initial : Array(String) = [] of String) : PiecePicker
-      PiecePicker.new(kind, initial)
+    # Réglages de `pieces.js` : type et régime fixés (vides à la création,
+    # où ils se choisissent), pièces actives au départ, messages traduits.
+    def picker(kind : String, initial : Array(String) = [] of String, regime : String = "") : PiecePicker
+      PiecePicker.new(kind, initial, regime)
     end
   end
 

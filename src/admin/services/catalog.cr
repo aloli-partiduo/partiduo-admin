@@ -4,9 +4,9 @@ module PartiduoAdmin
   # Catalogue des pièces qu'un dossier peut activer (DECISIONS D-ADM-016) :
   # modules officiels de partiduo-app et extensions connues, rangés par
   # famille, avec les règles de leurs manifestes — `depends_on`,
-  # `depends_on_any`, `incompatible_with`, `incompatible_with_kind` — et
-  # celles des types de dossier (`InitialData.register_kind` du cœur :
-  # modules requis et exclus).
+  # `depends_on_any`, `incompatible_with`, `incompatible_with_kind`,
+  # `regimes` — et celles des types de dossier (`InitialData.register_kind`
+  # du cœur : modules requis et exclus).
   #
   # Seule source des règles de la console : le contrôle serveur (`problems`,
   # appelé par `Fleet`) et le confort du navigateur (attributs `data-*` lus
@@ -20,12 +20,17 @@ module PartiduoAdmin
     # Pièce : code, famille, module officiel (`--modules`) ou extension
     # (`--with`), dépendances (`depends_on` : toutes ; `depends_on_any` : une
     # au moins de chaque groupe), incompatibilités déclarées par la pièce,
-    # types de dossier qui l'excluent (`incompatible_with_kind`).
+    # types de dossier qui l'excluent (`incompatible_with_kind`), régimes
+    # fiscaux pour lesquels elle vaut (`regimes`, vide : tous). `choice` :
+    # choix exclusif auquel elle appartient (`CHOICES`), présenté en
+    # boutons radio.
     record Piece, code : String, family : String, official : Bool = false,
       depends_on : Array(String) = [] of String,
       depends_on_any : Array(Array(String)) = [] of Array(String),
       incompatible_with : Array(String) = [] of String,
-      excluded_kinds : Array(String) = [] of String
+      excluded_kinds : Array(String) = [] of String,
+      regimes : Array(String) = [] of String,
+      choice : String? = nil
 
     # Règles d'un type de dossier : pièces requises et exclues
     # (`register_kind(…, required:, excluded:)` de partiduo-app,
@@ -35,46 +40,61 @@ module PartiduoAdmin
     # Familles, dans l'ordre des formulaires.
     FAMILIES = %w[keeping management declarations einvoicing banking household tools]
 
+    # Régimes fiscaux d'un dossier (`tax_regime` du cœur).
+    REGIMES = %w[fr be]
+
+    # Choix exclusifs : pièces deux à deux incompatibles d'une même
+    # famille, présentées en boutons radio avec « ni l'un ni l'autre ».
+    # `scheme` : régime d'imposition, micro-entreprise ou déclaration
+    # contrôlée (D-AMD-038 du cœur).
+    CHOICES = {"scheme" => %w[micro liberal]}
+
     # Pièces connues, par famille. Manifestes : partiduo-app/src/<module>/
     # et partiduo-<extension>/src/<extension>/manifest.cr. Écartées : les
     # pièces du socle (toujours actives) et l'extension d'exemple `skel`,
     # qui reste possible comme autre extension.
     PIECES = [
-      # Tenue des comptes : les trois se cumulent (ADR-007 D3, D6 : la
-      # Comptabilité reprend en partie double les registres de la
-      # micro-entreprise ou de la profession libérale).
+      # Régime et tenue des comptes : micro-entreprise ou profession
+      # libérale, l'un ou l'autre (D-AMD-038 du cœur) ; la Comptabilité se
+      # cumule avec chacun (ADR-007 D3, D6 : elle reprend leurs registres en
+      # partie double).
       Piece.new("accounting", "keeping", official: true),
-      Piece.new("micro", "keeping", official: true),
-      Piece.new("liberal", "keeping", official: true),
+      Piece.new("micro", "keeping", official: true, incompatible_with: %w[liberal], choice: "scheme"),
+      Piece.new("liberal", "keeping", official: true, incompatible_with: %w[micro], choice: "scheme"),
       # Gestion.
       Piece.new("invoicing", "management", official: true),
       Piece.new("stock", "management", official: true, depends_on_any: [%w[invoicing accounting]]),
       Piece.new("followup", "management", official: true),
       Piece.new("analytic", "management", official: true, depends_on: %w[accounting]),
       Piece.new("amortis", "management", depends_on: %w[accounting], excluded_kinds: %w[household]),
-      Piece.new("crm", "management", depends_on: %w[invoicing]),
-      # Télédéclarations.
-      Piece.new("teledec", "declarations", depends_on_any: [%w[accounting liberal]]),
-      Piece.new("urssaf", "declarations", depends_on: %w[micro]),
+      Piece.new("crm", "management", depends_on: %w[invoicing], excluded_kinds: %w[household]),
+      # Télédéclarations : services de l'administration française.
+      Piece.new("teledec", "declarations", depends_on_any: [%w[accounting liberal]], excluded_kinds: %w[household],
+        regimes: %w[fr]),
+      Piece.new("urssaf", "declarations", depends_on: %w[micro], excluded_kinds: %w[household], regimes: %w[fr]),
       # Facture électronique : plusieurs plateformes peuvent être actives,
       # le dossier n'en raccorde qu'une (partiduo-einvoicing,
       # `Connections.active`).
-      Piece.new("einv", "einvoicing", depends_on: %w[document]),
-      Piece.new("superpdp", "einvoicing", depends_on: %w[einv]),
-      Piece.new("esalink", "einvoicing", depends_on: %w[einv]),
-      Piece.new("choruspro", "einvoicing", depends_on: %w[invoicing]),
+      # Jamais dans un foyer ; Chorus Pro, portail de la sphère publique
+      # française, seulement au régime fr.
+      Piece.new("einv", "einvoicing", depends_on: %w[document], excluded_kinds: %w[household]),
+      Piece.new("superpdp", "einvoicing", depends_on: %w[einv], excluded_kinds: %w[household]),
+      Piece.new("esalink", "einvoicing", depends_on: %w[einv], excluded_kinds: %w[household]),
+      Piece.new("choruspro", "einvoicing", depends_on: %w[invoicing], excluded_kinds: %w[household], regimes: %w[fr]),
       # Banque et paiements.
       Piece.new("bankimport", "banking", depends_on: %w[accounting]),
       Piece.new("sepa", "banking", depends_on: %w[accounting]),
-      # Foyer (ADR-011 A1, D-PER-002).
+      # Foyer (ADR-011 A1, D-PER-002) : seulement dans un dossier foyer
+      # (D-PER-024).
       Piece.new("perso", "household", depends_on: %w[accounting bankimport],
-        incompatible_with: %w[invoicing micro liberal stock followup analytic einv superpdp esalink choruspro teledec urssaf crm modeles]),
+        incompatible_with: %w[invoicing micro liberal stock followup analytic einv superpdp esalink choruspro teledec urssaf crm modeles],
+        excluded_kinds: %w[company]),
       # Outils.
       Piece.new("document", "tools"),
       Piece.new("import", "tools", depends_on: %w[accounting]),
       Piece.new("reports", "tools", depends_on: %w[accounting]),
       Piece.new("form", "tools"),
-      Piece.new("modeles", "tools"),
+      Piece.new("modeles", "tools", excluded_kinds: %w[household]),
     ]
 
     KINDS = {
@@ -83,8 +103,9 @@ module PartiduoAdmin
     }
 
     # Manquement à une règle : clé i18n (`admin.errors.pieces.*`), pièce en
-    # cause, autres pièces citées, type de dossier.
-    record Problem, key : String, piece : String, others : Array(String) = [] of String, kind : String = "" do
+    # cause, autres pièces citées, type de dossier, régime fiscal.
+    record Problem, key : String, piece : String, others : Array(String) = [] of String, kind : String = "",
+      regime : String = "" do
       # Famille de la pièce en cause : le formulaire y affiche le message.
       def field : String
         "family.#{Catalog.piece(piece).family}"
@@ -93,7 +114,7 @@ module PartiduoAdmin
       # Clé et paramètres en une chaîne (`Fleet::Errors` ne porte que des
       # chaînes), relue par `Catalog.message`.
       def encoded : String
-        ["#{PREFIX}#{key}", "piece=#{piece}", "others=#{others.join(',')}", "kind=#{kind}"].join('|')
+        ["#{PREFIX}#{key}", "piece=#{piece}", "others=#{others.join(',')}", "kind=#{kind}", "regime=#{regime}"].join('|')
       end
     end
 
@@ -130,6 +151,22 @@ module PartiduoAdmin
       kind_rule(kind).excluded.includes?(code) || (piece?(code).try(&.excluded_kinds.includes?(kind)) || false)
     end
 
+    # Ne vaut pas pour ce régime fiscal (`regimes` du manifeste).
+    def self.regime_excluded?(code : String, regime : String) : Bool
+      regimes = piece?(code).try(&.regimes) || [] of String
+      !regimes.empty? && !regimes.includes?(regime)
+    end
+
+    # Régimes pour lesquels la pièce vaut ; vide : tous.
+    def self.regimes(code : String) : Array(String)
+      piece?(code).try(&.regimes) || [] of String
+    end
+
+    # Pièces d'un choix exclusif, dans l'ordre du catalogue.
+    def self.choice(code : String) : Array(Piece)
+      PIECES.select(&.choice.==(code))
+    end
+
     def self.required?(code : String, kind : String) : Bool
       kind_rule(kind).required.includes?(code)
     end
@@ -152,10 +189,13 @@ module PartiduoAdmin
       (own + others).uniq
     end
 
-    # Pièces que ce type de dossier ne peut pas avoir : exclues, ou dont une
-    # dépendance ne peut pas l'être (point fixe). Un foyer ne les voit pas.
-    def self.unavailable(kind : String) : Set(String)
-      out = PIECES.select { |piece| excluded?(piece.code, kind) }.map(&.code).to_set
+    # Pièces que ce type de dossier (et ce régime, s'il est donné) ne peut
+    # pas avoir : exclues, ou dont une dépendance ne peut pas l'être (point
+    # fixe). La page des modules ne les propose pas.
+    def self.unavailable(kind : String, regime : String? = nil) : Set(String)
+      out = PIECES.select do |piece|
+        excluded?(piece.code, kind) || (regime ? regime_excluded?(piece.code, regime) : false)
+      end.map(&.code).to_set
       loop do
         added = PIECES.reject { |piece| out.includes?(piece.code) }.select do |piece|
           piece.depends_on.any? { |code| out.includes?(code) } ||
@@ -168,9 +208,10 @@ module PartiduoAdmin
     end
 
     # Manquements de l'ensemble `codes` (modules et extensions) pour ce type
-    # de dossier. Les codes inconnus du catalogue (autres extensions) ne sont
+    # de dossier et ce régime fiscal (`nil` : régime invalide, déjà refusé,
+    # non jugé). Les codes inconnus du catalogue (autres extensions) ne sont
     # pas jugés ici : le cœur les contrôle à l'activation.
-    def self.problems(kind : String, codes : Array(String)) : Array(Problem)
+    def self.problems(kind : String, regime : String?, codes : Array(String)) : Array(Problem)
       chosen = codes.uniq
       known = chosen.select { |code| known?(code) }
       found = [] of Problem
@@ -179,6 +220,7 @@ module PartiduoAdmin
       end
       known.each do |code|
         next found << Problem.new("kind_excludes", code, kind: kind) if excluded?(code, kind)
+        next found << Problem.new("regime_excludes", code, regime: regime) if regime && regime_excluded?(code, regime)
         found.concat(dependency_problems(piece(code), chosen))
       end
       known.each_with_index do |code, index|
@@ -198,9 +240,9 @@ module PartiduoAdmin
     end
 
     # Erreurs des manquements, par champ (famille de la pièce en cause).
-    def self.errors(kind : String, codes : Array(String)) : Hash(String, Array(String))
+    def self.errors(kind : String, regime : String?, codes : Array(String)) : Hash(String, Array(String))
       errors = {} of String => Array(String)
-      problems(kind, codes).each { |problem| (errors[problem.field] ||= [] of String) << problem.encoded }
+      problems(kind, regime, codes).each { |problem| (errors[problem.field] ||= [] of String) << problem.encoded }
       errors
     end
 
@@ -212,8 +254,10 @@ module PartiduoAdmin
       params = pairs.to_h { |pair| name, _, value = pair.partition('='); {name, value} }
       others = params["others"].split(',').reject(&.empty?)
       list = key == "requires_any" ? alternatives(others) : others.map { |code| quoted(code) }.join(", ")
+      regime = params["regime"]? || ""
       I18n.t("admin.errors.pieces.#{key}", piece: quoted(params["piece"]), others: list,
-        kind: params["kind"].empty? ? "" : I18n.t("admin.kinds.#{params["kind"]}"))
+        kind: params["kind"].empty? ? "" : I18n.t("admin.kinds.#{params["kind"]}"),
+        regime: regime.empty? ? "" : I18n.t("admin.regimes.#{regime}"))
     end
 
     # Nom d'une pièce dans la langue courante.

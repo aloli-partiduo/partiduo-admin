@@ -50,7 +50,7 @@ describe "Type de dossier (A-PER-5)" do
     PartiduoAdmin::Fleet.create_dossier(root, kind_input(firm, server, payer, "type-x", "association")).errors["kind"]
       .should eq(["admin.errors.dossier.kind"])
     PartiduoAdmin::Fleet.create_dossier(root, kind_input(firm, server, payer, "foyer-x", "household", ["accounting", "invoicing"]))
-      .errors["family.management"].should eq(["pieces:kind_excludes|piece=invoicing|others=|kind=household"])
+      .errors["family.management"].should eq(["pieces:kind_excludes|piece=invoicing|others=|kind=household|regime="])
     PartiduoAdmin::Fleet.create_dossier(root, kind_input(firm, server, payer, "foyer-y", "household", [] of String))
       .errors["modules"].should_not be_empty
     PartiduoAdmin::Dossier.filter(slug__in: %w[type-x foyer-x foyer-y]).exists?.should be_false
@@ -64,7 +64,7 @@ describe "Type de dossier (A-PER-5)" do
     dossier.modules = "accounting"
     dossier.save!
     PartiduoAdmin::Fleet.change_modules(AdminSpec.super_admin, dossier, ["accounting", "analytic"], [] of String)
-      .errors["family.management"].should eq(["pieces:kind_excludes|piece=analytic|others=|kind=household"])
+      .errors["family.management"].should eq(["pieces:kind_excludes|piece=analytic|others=|kind=household|regime="])
     PartiduoAdmin::Fleet.change_modules(AdminSpec.super_admin, dossier, ["accounting"], ["perso", "bankimport"]).ok?.should be_true
   end
 

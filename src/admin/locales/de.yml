@@ -85,7 +85,7 @@ de:
       families:
         keeping:
           legend: "Besteuerung und Buchführung"
-          help: "Vollständige Buchhaltung, Kleinstunternehmen oder freier Beruf. Sie lassen sich kombinieren: Die Buchhaltung übernimmt dann die Register in doppelter Buchführung."
+          help: "Vollständige Buchhaltung; Kleinstunternehmen oder freier Beruf, das eine oder das andere. Die Buchhaltung lässt sich mit beiden kombinieren: Sie übernimmt dann deren Register in doppelter Buchführung."
         management:
           legend: "Verwaltung"
           help: "Fakturierung, Lager, Nachverfolgung, Kostenrechnung und Verwaltungswerkzeuge."
@@ -104,6 +104,11 @@ de:
         tools:
           legend: "Werkzeuge"
           help: "Belege, Importe, Berichte, Formulare und Vorlagen."
+      choices:
+        scheme:
+          legend: "Besteuerungsart"
+          help: "Kleinstunternehmen oder freier Beruf (kontrollierte Erklärung, 2035): zwei getrennte Regelungen, ein Mandant führt nur eine."
+          none: "Keines von beiden"
       accounting:
         name: "Buchhaltung"
         help: "Doppelte Buchführung: Journale, Hauptbuch, USt, Abschluss."
@@ -178,6 +183,7 @@ de:
         incompatible: "Unvereinbar mit %{others}."
         kind_excludes: "In einem Mandanten „%{kind}“ nicht zulässig."
         kind_requires: "Erforderlich für einen Mandanten „%{kind}“."
+        regime_only: "Nur für einen Mandanten „%{regimes}“."
       other:
         label: "Weitere Erweiterungen"
         help: "Codes von Erweiterungen, die nicht in der Liste stehen, durch Kommas getrennt; der Mandant prüft sie bei der Aktivierung."
@@ -186,6 +192,7 @@ de:
         incompatible: "Nicht verfügbar: unvereinbar mit %{others}"
         kind_required: "Erforderlich für einen Mandanten „%{kind}“"
         unavailable: "In einem Mandanten „%{kind}“ nicht zulässig"
+        unavailable_regime: "In einem Mandanten „%{regime}“ nicht zulässig"
         checked: "%{piece} ausgewählt: auch %{others}, da erforderlich."
         unchecked: "Ebenfalls abgewählt: %{others}."
         confirm: "Wenn Sie %{piece} abwählen, wird auch abgewählt, was davon abhängt: %{others}. Fortfahren?"
@@ -814,6 +821,7 @@ de:
         requires_any: "%{piece} erfordert %{others}."
         incompatible: "%{piece} ist unvereinbar mit %{others}."
         kind_excludes: "%{piece} ist in einem Mandanten „%{kind}“ nicht zulässig."
+        regime_excludes: "%{piece} ist in einem Mandanten „%{regime}“ nicht zulässig."
         kind_requires: "Ein Mandant „%{kind}“ erfordert %{piece}."
       dossier:
         slug: "Ungültige Subdomain: zuerst ein Kleinbuchstabe, dann Kleinbuchstaben, Ziffern, Bindestriche (höchstens 40 Zeichen)."

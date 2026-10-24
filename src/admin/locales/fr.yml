@@ -85,7 +85,7 @@ fr:
       families:
         keeping:
           legend: "Régime et tenue des comptes"
-          help: "Comptabilité complète, micro-entreprise ou profession libérale. Ils peuvent se cumuler : la Comptabilité reprend alors les registres en partie double."
+          help: "Comptabilité complète ; micro-entreprise ou profession libérale, l'un ou l'autre. La Comptabilité se cumule avec chacun : elle reprend alors leurs registres en partie double."
         management:
           legend: "Gestion"
           help: "Facturation, stock, suivi, analytique et outils de gestion."
@@ -104,6 +104,11 @@ fr:
         tools:
           legend: "Outils"
           help: "Justificatifs, imports, rapports, formulaires et modèles."
+      choices:
+        scheme:
+          legend: "Régime d'imposition"
+          help: "Micro-entreprise ou profession libérale (déclaration contrôlée, 2035) : deux régimes distincts, un dossier n'en tient qu'un."
+          none: "Ni l'un ni l'autre"
       accounting:
         name: "Comptabilité"
         help: "Partie double : journaux, grand livre, TVA, clôture."
@@ -178,6 +183,7 @@ fr:
         incompatible: "Incompatible avec %{others}."
         kind_excludes: "Non admis dans un dossier « %{kind} »."
         kind_requires: "Requis pour un dossier « %{kind} »."
+        regime_only: "Seulement pour un dossier « %{regimes} »."
       other:
         label: "Autres extensions"
         help: "Codes d'extensions absentes de la liste, séparés par des virgules ; le dossier les contrôle à l'activation."
@@ -186,6 +192,7 @@ fr:
         incompatible: "Indisponible : incompatible avec %{others}"
         kind_required: "Requis pour un dossier « %{kind} »"
         unavailable: "Non admis dans un dossier « %{kind} »"
+        unavailable_regime: "Non admis dans un dossier « %{regime} »"
         checked: "%{piece} coché : %{others} aussi, car requis."
         unchecked: "Décoché aussi : %{others}."
         confirm: "Décocher %{piece} décochera aussi ce qui en dépend : %{others}. Continuer ?"
@@ -814,6 +821,7 @@ fr:
         requires_any: "%{piece} requiert %{others}."
         incompatible: "%{piece} est incompatible avec %{others}."
         kind_excludes: "%{piece} n'est pas admis dans un dossier « %{kind} »."
+        regime_excludes: "%{piece} n'est pas admis dans un dossier « %{regime} »."
         kind_requires: "Un dossier « %{kind} » requiert %{piece}."
       dossier:
         slug: "Sous-domaine invalide : minuscule en tête, puis minuscules, chiffres, tirets (40 caractères au plus)."

@@ -1,4 +1,4 @@
-{# SPDX-License-Identifier: AGPL-3.0-or-later. Modules et extensions d'un dossier, par familles (D-ADM-016) ; rappel avant l'enregistrement : désactiver une pièce conserve ses données (ADR-006 D2). #}{% extend "admin/base.html" %}
+{# SPDX-License-Identifier: AGPL-3.0-or-later. Modules et extensions d'un dossier, par familles (D-ADM-016), type et régime rappelés ; rappel avant l'enregistrement : désactiver une pièce conserve ses données (ADR-006 D2). #}{% extend "admin/base.html" %}
 {% block title %}{% translate "admin.dossiers.modules_title" %}{% endblock title %}
 {% block crumbs %}<li><a href="{% url 'dossiers' %}">{% translate "admin.dossiers.title" %}</a></li><li><a href="{% url 'dossier' id: dossier.id %}">{{ dossier.slug }}</a></li>{% endblock crumbs %}
 {% block heading %}{% translate "admin.dossiers.modules_title" %}{% endblock heading %}
@@ -8,6 +8,7 @@
   {% csrf_input %}
   {% include "admin/_base_errors.html" %}
   <p class="pd-help mb-4">{% translate "admin.dossiers.fields.kind" %} : <strong>{% translate kind_key %}</strong> — {% translate "admin.pieces.kind_fixed" %}</p>
+  <p class="pd-help mb-4">{% translate "admin.dossiers.fields.regime" %} : <strong>{% translate regime_key %}</strong> — {% translate "admin.pieces.kind_fixed" %}</p>
   {% include "admin/_pieces.html" %}
   <div class="notification is-warning is-light pd-keep">
     <p>{% translate "admin.dossiers.help.modules_kept" %}</p>

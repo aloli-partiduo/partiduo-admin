@@ -287,10 +287,13 @@ module PartiduoAgent
 
   # À blanc : état simulé en mémoire, chaque geste écrit au journal.
   class DrySystem < System
-    # Pièces simulées et leurs dépendances (forme de `status`).
+    # Pièces simulées et leurs dépendances (forme de `status`), codes du
+    # registre : l'extension de facture électronique est `EINV`, qui
+    # requiert `DOCUMENT` (partiduo-einvoicing, manifeste).
     DRY_CATALOG = {
       "ACCOUNTING" => [] of String, "INVOICING" => [] of String, "ANALYTIC" => ["ACCOUNTING"],
-      "STOCK" => ["ACCOUNTING|INVOICING"], "FOLLOWUP" => ["ACCOUNTING|INVOICING"], "EINVOICING" => ["INVOICING"],
+      "STOCK" => ["ACCOUNTING|INVOICING"], "FOLLOWUP" => ["ACCOUNTING|INVOICING"], "DOCUMENT" => [] of String,
+      "EINV" => ["DOCUMENT"],
     }
 
     getter databases = Set(String).new

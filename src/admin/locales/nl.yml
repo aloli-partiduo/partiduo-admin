@@ -85,7 +85,7 @@ nl:
       families:
         keeping:
           legend: "Stelsel en boekhouding"
-          help: "Volledige boekhouding, micro-onderneming of vrij beroep. Ze kunnen samen: de Boekhouding zet de registers dan om in dubbel boekhouden."
+          help: "Volledige boekhouding; micro-onderneming of vrij beroep, het een of het ander. De Boekhouding kan met elk van beide samen: ze zet hun registers dan om in dubbel boekhouden."
         management:
           legend: "Beheer"
           help: "Facturatie, voorraad, opvolging, analytische boekhouding en beheertools."
@@ -104,6 +104,11 @@ nl:
         tools:
           legend: "Hulpmiddelen"
           help: "Bewijsstukken, imports, rapporten, formulieren en sjablonen."
+      choices:
+        scheme:
+          legend: "Belastingregeling"
+          help: "Micro-onderneming of vrij beroep (gecontroleerde aangifte, 2035): twee afzonderlijke regelingen, een dossier houdt er maar één bij."
+          none: "Geen van beide"
       accounting:
         name: "Boekhouding"
         help: "Dubbel boekhouden: dagboeken, grootboek, btw, afsluiting."
@@ -178,6 +183,7 @@ nl:
         incompatible: "Onverenigbaar met %{others}."
         kind_excludes: "Niet toegestaan in een dossier ‘%{kind}’."
         kind_requires: "Vereist voor een dossier ‘%{kind}’."
+        regime_only: "Alleen voor een dossier ‘%{regimes}’."
       other:
         label: "Andere extensies"
         help: "Codes van extensies die niet in de lijst staan, gescheiden door komma's; het dossier controleert ze bij het activeren."
@@ -186,6 +192,7 @@ nl:
         incompatible: "Niet beschikbaar: onverenigbaar met %{others}"
         kind_required: "Vereist voor een dossier ‘%{kind}’"
         unavailable: "Niet toegestaan in een dossier ‘%{kind}’"
+        unavailable_regime: "Niet toegestaan in een dossier ‘%{regime}’"
         checked: "%{piece} aangevinkt: ook %{others}, want vereist."
         unchecked: "Ook uitgevinkt: %{others}."
         confirm: "Als u %{piece} uitvinkt, wordt ook uitgevinkt wat ervan afhangt: %{others}. Doorgaan?"
@@ -814,6 +821,7 @@ nl:
         requires_any: "%{piece} vereist %{others}."
         incompatible: "%{piece} is onverenigbaar met %{others}."
         kind_excludes: "%{piece} is niet toegestaan in een dossier ‘%{kind}’."
+        regime_excludes: "%{piece} is niet toegestaan in een dossier ‘%{regime}’."
         kind_requires: "Een dossier ‘%{kind}’ vereist %{piece}."
       dossier:
         slug: "Ongeldig subdomein: eerst een kleine letter, daarna kleine letters, cijfers, koppeltekens (hoogstens 40 tekens)."
