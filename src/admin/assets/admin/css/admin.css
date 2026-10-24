@@ -156,3 +156,28 @@ fieldset.pd-fieldset legend { font-weight: 600; margin-block-end: .35rem; }
 .pd-auth-realm { margin: 0 0 0 .75rem; padding: .1rem .7rem; border: 2px solid currentColor; border-radius: .5rem;
   font-size: 1.75rem; font-weight: 700; line-height: 1.2; letter-spacing: .04em; text-transform: uppercase;
   color: var(--pd-brand-parti); align-self: center; }
+/* Assistants (D-ADM-018) : fil des étapes numérotées, étape en cours
+   marquée (aria-current), titre de l'étape qui reçoit le focus,
+   navigation Précédent / Suivant, récapitulatif. */
+.pd-steps { display: flex; flex-wrap: wrap; gap: .35rem .5rem; list-style: none; margin: 0 0 1rem; padding: 0; }
+.pd-steps li { display: flex; align-items: center; gap: .4rem; min-height: 2rem; padding: .2rem .7rem;
+  border: 1px solid var(--pd-rule); border-radius: 999px; color: var(--pd-muted); background: var(--pd-surface); font-size: .9rem; }
+.pd-steps li[aria-current="step"] { color: var(--pd-ink); background: var(--pd-row-alt); border-color: var(--pd-focus); font-weight: 600; }
+.pd-steps li.pd-step-done { color: var(--pd-ok); background: var(--pd-ok-bg); }
+.pd-steps a { color: inherit; text-decoration: underline; }
+.pd-step-number { font-variant-numeric: tabular-nums; font-weight: 700; }
+.pd-step-title { scroll-margin-top: 1rem; }
+.pd-step-title:focus { outline: 2px solid var(--pd-focus); outline-offset: 4px; }
+.pd-wizard-nav { display: flex; flex-wrap: wrap; gap: .5rem; justify-content: space-between; margin-block-start: 1.25rem; }
+.pd-wizard-nav .buttons { margin: 0; }
+.pd-admin-rows { display: grid; gap: .75rem; margin-block-end: .75rem; }
+.pd-admin-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr)); gap: .5rem; align-items: end;
+  padding: .5rem .75rem; border: 1px solid var(--pd-rule); border-radius: var(--bulma-radius); }
+.pd-admin-row .field { margin: 0; }
+.pd-summary { display: grid; gap: 1rem; }
+.pd-summary h3 { display: flex; justify-content: space-between; gap: .5rem; font-weight: 600; margin-block-end: .4rem; }
+.pd-admin-remove { display: flex; flex-wrap: wrap; gap: .5rem; align-items: flex-end; }
+.pd-admin-remove .field { margin: 0; }
+.pd-wizard-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(16rem, 1fr)); gap: 1rem; margin-block-end: 1.5rem; }
+/* Bouton par défaut d'une étape (touche Entrée : Suivant), hors de la vue. */
+.pd-default-submit { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); border: 0; padding: 0; }

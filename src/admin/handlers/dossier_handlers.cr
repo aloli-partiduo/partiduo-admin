@@ -49,7 +49,8 @@ module PartiduoAdmin
         admin_email: field("admin_email"), server_id: field("server_id").to_i64?,
         firm_id: user.firm_admin? ? PartiduoAdmin.id?(user.firm_id) : field("firm_id").to_i64?, payer_id: field("payer_id").to_i64?,
         package: Config.dossier_package, backup_schedule: field("backup_schedule").presence || "daily",
-        backup_retention_days: field("backup_retention_days").to_i? || 0, kind: field("kind").presence || "company")
+        backup_retention_days: field("backup_retention_days").to_i? || 0, kind: field("kind").presence || "company",
+        extra_admins: field("extra_admins").split(/[\s,;]+/).reject(&.empty?))
       outcome = Fleet.create_dossier(user, input)
       if outcome.ok?
         flash["success"] = I18n.t("admin.dossiers.created", slug: outcome.value!.slug.to_s)
@@ -109,6 +110,8 @@ module PartiduoAdmin
       fields = [
         FormField.new("admin_email", I18n.t("admin.dossiers.fields.admin_email"), input.admin_email, "email",
           errors: errs(t, "admin_email"), required: true, help: I18n.t("admin.dossiers.help.admin_email")),
+        FormField.new("extra_admins", I18n.t("admin.wizards.admins.others"), input.extra_admins.join("\n"), "textarea",
+          errors: errs(t, "extra_admins"), help: I18n.t("admin.dossiers.help.extra_admins")),
         FormField.new("server_id", I18n.t("admin.dossiers.fields.server"), input.server_id.to_s, "select", servers,
           errs(t, "server_id"), required: true),
       ]
@@ -135,6 +138,7 @@ module PartiduoAdmin
       failed_task = dossier.state == "error" ? Task.filter(dossier_id: dossier.pk, state: "failed").order("-id").first : nil
       managers = user.file_manager? ? [] of User : User.filter(firm_id: dossier.firm_id, role: Config::FILE_MANAGER, active: true).order("email").to_a
       assigned = Assignment.filter(dossier_id: dossier.pk).map(&.user_id)
+      admins = Administrators.list(dossier)
       page("admin/dossier.html", {
         "dossier"          => dossier,
         "backups"          => Backup.filter(dossier_id: dossier.pk).order("-id").to_a.first(30),
@@ -152,6 +156,8 @@ module PartiduoAdmin
         "today"            => Config.now.to_s("%F"),
         "move_servers"     => move_servers(dossier),
         "kind_key"         => "admin.kinds.#{dossier.kind.presence || "company"}",
+        "admin_count"      => admins.size.to_s,
+        "admin_others"     => Math.max(admins.size - 1, 0).to_s,
         "module_labels"    => Catalog.labels(dossier.module_list).join(", "),
         "extension_labels" => Catalog.labels(dossier.extension_list).join(", ").presence,
       })

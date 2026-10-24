@@ -43,6 +43,9 @@ module PartiduoAdmin
         "instance.archive"         => Handler.new { |task, dossier, success, result, now| archived(task, dossier, success, result, now) },
         "instance.delete"          => Handler.new { |task, dossier, success, _, now| deleted(task, dossier, success, now) },
         "instance.admin_invite"    => Handler.new { |task, dossier, success, result, _| invited(task, dossier, success, result) },
+        "instance.admin_add"       => Handler.new { |task, dossier, success, result, _| admin_added(task, dossier, success, result) },
+        "instance.admin_remove"    => Handler.new { |task, dossier, success, result, _| Administrators.removed(task, dossier, result) if success },
+        "instance.admins"          => Handler.new { |task, dossier, success, result, now| Administrators.refreshed(task, dossier, result, now) if success },
         "backup.run"               => Handler.new { |task, dossier, success, result, now| backed_up(task, dossier, success, result, now) },
         "backup.prune"             => Handler.new { |task, _, success, _, now| pruned(task, success, now) },
         "backup.test_restore"      => Handler.new { |task, _, success, _, now| test_restored(task, success, now) },
@@ -70,8 +73,19 @@ module PartiduoAdmin
         dossier.version = result["version"]?.try(&.as_s?) || dossier.version
         dossier.save!
         record_certificate(dossier, result, now)
+        Administrators.after_creation(task, dossier)
         if url = result["invitation_url"]?.try(&.as_s?)
           deliver_invitation(dossier, dossier.admin_email.to_s, url)
+        end
+      end
+
+      # Administrateur ajouté (D-ADM-017) : liste à jour, lien remis par
+      # l'administration quand le serveur ne l'a pas envoyé lui-même.
+      def self.admin_added(task : Task, dossier : Dossier, ok : Bool, result : JSON::Any) : Nil
+        return unless ok
+        Administrators.added(task, dossier, result)
+        if url = result["url"]?.try(&.as_s?)
+          deliver_invitation(dossier, result["email"]?.try(&.as_s?) || task.params_json["email"]?.try(&.as_s?) || "", url)
         end
       end
 
@@ -210,6 +224,7 @@ module PartiduoAdmin
         copy.database = result["database"]?.try(&.as_s?) || copy.database
         copy.version = result["version"]?.try(&.as_s?) || copy.version
         copy.save!
+        Administrators.after_restored_copy(copy)
         record_certificate(copy, result, now)
       end
 

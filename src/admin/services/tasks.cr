@@ -162,13 +162,16 @@ module PartiduoAdmin
 
     # Types soumis à double validation : jamais rejoués sans une nouvelle
     # validation (l'état du dossier a pu changer, D-AFN-010).
-    DOUBLE_VALIDATION = %w[instance.admin_invite instance.delete]
+    DOUBLE_VALIDATION = %w[instance.admin_invite instance.delete instance.admin_add instance.admin_remove]
 
     # Une tâche qui a reçu une clé de données du cabinet ne se rejoue pas :
     # la clé n'est plus nulle part, elle est à fournir de nouveau (D-CHF-005).
+    # L'ajout d'un administrateur déclaré à la création du dossier se rejoue :
+    # il découle de la création, pas d'une demande validée (D-ADM-017).
     def self.retryable?(task : Task) : Bool
-      task.state == "failed" && !DOUBLE_VALIDATION.includes?(task.kind) &&
-        task.params_json["key_provided"]?.try(&.as_bool?) != true
+      return false unless task.state == "failed" && task.params_json["key_provided"]?.try(&.as_bool?) != true
+      !DOUBLE_VALIDATION.includes?(task.kind) ||
+        (task.kind == "instance.admin_add" && task.param("approval_ref").to_s.starts_with?(Administrators::CREATION_PREFIX))
     end
 
     # Rejouer une tâche échouée : même type, mêmes paramètres ; les étapes

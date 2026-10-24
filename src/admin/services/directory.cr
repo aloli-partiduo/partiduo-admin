@@ -16,8 +16,7 @@ module PartiduoAdmin
     # choisit lui-même ses moyens d'authentification (ADR-002).
     def self.invite_user(actor : User?, input : UserInput, now : Time = Config.now) : Outcome(User)
       email = input.email.strip.downcase
-      firm_id = input.role == Config::SUPER_ADMIN ? nil : input.firm_id
-      firm_id = PartiduoAdmin.id?(actor.firm_id) if actor && actor.firm_admin?
+      firm_id = invited_firm_id(actor, input)
       errors = user_errors(actor, input, email, firm_id)
       return Outcome(User).new(nil, errors) unless errors.empty?
       locale = Config::LOCALES.includes?(input.locale) ? input.locale : "fr"
@@ -34,6 +33,18 @@ module PartiduoAdmin
 
     private def self.add(errors : Errors, field : String, key : String) : Nil
       (errors[field] ||= [] of String) << key
+    end
+
+    # Structure d'un utilisateur invité : aucune pour un super-admin, celle
+    # de l'admin de cabinet qui invite.
+    private def self.invited_firm_id(actor : User?, input : UserInput) : Int64?
+      firm_id = input.role == Config::SUPER_ADMIN ? nil : input.firm_id
+      actor && actor.firm_admin? ? PartiduoAdmin.id?(actor.firm_id) : firm_id
+    end
+
+    # Contrôles d'une invitation, sans rien créer (assistants, D-ADM-018).
+    def self.invite_errors(actor : User?, input : UserInput) : Errors
+      user_errors(actor, input, input.email.strip.downcase, invited_firm_id(actor, input))
     end
 
     private def self.user_errors(actor : User?, input : UserInput, email : String, firm_id : Int64?) : Errors
@@ -130,15 +141,32 @@ module PartiduoAdmin
     # vide (D-VAL2-001).
     def self.create_firm(actor : User, name : String, siren : String = "", email : String = "",
                          kind : String = "cabinet") : Outcome(Firm)
-      return Outcome(Firm).failure("base", "admin.errors.forbidden") unless Access.fleet?(actor)
-      return Outcome(Firm).failure("name", "admin.errors.required") if name.strip.empty?
-      return Outcome(Firm).failure("name", "admin.errors.firm.taken") if Firm.filter(name: name.strip).exists?
-      return Outcome(Firm).failure("siren", "admin.errors.siren") unless siren.empty? || Siren.valid?(siren)
-      return Outcome(Firm).failure("kind", "admin.errors.invalid") unless Firm::KINDS.includes?(kind)
-      return Outcome(Firm).failure("kind", "admin.errors.firm.fleet_taken") if kind == "fleet" && Firm.filter(kind: "fleet").exists?
+      errors = firm_errors(actor, name, siren, email, kind)
+      return Outcome(Firm).new(nil, errors) unless errors.empty?
       firm = Firm.create!(name: name.strip, siren: siren, email: email.strip, kind: kind, dual_approval: false)
       Audit.log(actor, "firm.create", target: firm, detail: {"kind" => kind})
       Outcome(Firm).new(firm)
+    end
+
+    # Contrôles d'une structure à créer, sans rien créer (assistants,
+    # D-ADM-018) ; le premier refus seulement, comme le formulaire.
+    def self.firm_errors(actor : User, name : String, siren : String, email : String, kind : String) : Errors
+      errors = Errors.new
+      if !Access.fleet?(actor)
+        add(errors, "base", "admin.errors.forbidden")
+      elsif name.strip.empty?
+        add(errors, "name", "admin.errors.required")
+      elsif Firm.filter(name: name.strip).exists?
+        add(errors, "name", "admin.errors.firm.taken")
+      end
+      add(errors, "siren", "admin.errors.siren") unless siren.empty? || Siren.valid?(siren)
+      add(errors, "email", "admin.errors.email") unless email.strip.empty? || Fleet::EMAIL.matches?(email.strip)
+      if !Firm::KINDS.includes?(kind)
+        add(errors, "kind", "admin.errors.invalid")
+      elsif kind == "fleet" && Firm.filter(kind: "fleet").exists?
+        add(errors, "kind", "admin.errors.firm.fleet_taken")
+      end
+      errors
     end
 
     # --- Donneurs d'ordre ------------------------------------------------------
@@ -169,7 +197,7 @@ module PartiduoAdmin
       Outcome(Payer).new(record)
     end
 
-    private def self.payer_errors(actor : User, input : PayerInput, payer : Payer?, firm_id : Int64?) : Errors
+    def self.payer_errors(actor : User, input : PayerInput, payer : Payer?, firm_id : Int64?) : Errors
       errors = Errors.new
       add(errors, "kind", "admin.errors.invalid") unless Payer::KINDS.includes?(input.kind)
       add(errors, "firm_id", "admin.errors.required") if firm_id.nil? || !Firm.filter(id: firm_id).exists?

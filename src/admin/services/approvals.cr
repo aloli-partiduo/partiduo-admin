@@ -3,8 +3,8 @@
 require "json"
 
 module PartiduoAdmin
-  # Opérations sensibles (ADR-008 D3, D5) : suppression définitive et
-  # recours d'accès. Une personne demande ; selon le réglage de la structure
+  # Opérations sensibles (ADR-008 D3, D5) : suppression définitive, recours
+  # d'accès, ajout et retrait d'un administrateur du dossier (D-ADM-017). Une personne demande ; selon le réglage de la structure
   # du dossier (`ApprovalMode`, D-VAL2-001) :
   #
   # * deux personnes : une *autre* personne habilitée (admin du cabinet du
@@ -38,6 +38,15 @@ module PartiduoAdmin
       return Outcome(Approval).failure("base", "admin.errors.dossier.not_active") unless dossier.state == "active"
       return Outcome(Approval).failure("email", "admin.errors.email") unless Fleet::EMAIL.matches?(email.strip)
       create(user, dossier, "admin_invite", reason, {"email" => email.strip.downcase}, now)
+    end
+
+    # Demande d'une autre opération sensible déjà contrôlée par son service
+    # (administrateurs du dossier, D-ADM-017) : même motif exigé, une seule
+    # demande en attente par type et par dossier, mode de la structure.
+    def self.request(user : User, dossier : Dossier, kind : String, reason : String, params : Hash(String, String),
+                     now : Time = Config.now) : Outcome(Approval)
+      raise ArgumentError.new("demande inconnue : #{kind}") unless Approval::KINDS.includes?(kind)
+      create(user, dossier, kind, reason, params, now)
     end
 
     private def self.create(user : User, dossier : Dossier, kind : String, reason : String,
@@ -147,6 +156,9 @@ module PartiduoAdmin
                params["backups"] = Tasks.any(Backup.filter(dossier_id: dossier.pk).exclude(state: "pruned")
                  .flat_map { |backup| [backup.path.to_s, backup.media_path.to_s] }.reject(&.empty?))
                "instance.delete"
+             when "admin_add", "admin_remove"
+               return Outcome(Task).failure("base", "admin.errors.dossier.not_active") unless dossier.state == "active"
+               Administrators.task_params(approval, params)
              else
                # Recontrôle : le dossier a pu être suspendu ou archivé depuis.
                return Outcome(Task).failure("base", "admin.errors.dossier.not_active") unless dossier.state == "active"

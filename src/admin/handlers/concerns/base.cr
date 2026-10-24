@@ -221,6 +221,10 @@ module PartiduoAdmin
         # Validation à deux : réglage de la structure de l'admin ; pour le
         # super-admin, celui du parc sans cabinet (D-VAL2-001).
         context["nav_approval_firm_id"] = current.firm_admin? ? current.firm_id : (current.super_admin? ? Firm.filter(kind: "fleet").first.try(&.pk) : nil)
+        # Assistants ouverts (D-ADM-018) et administrateurs de la structure
+        # de l'admin de cabinet (D-ADM-017).
+        context["wizard_firm"] = Wizards.allowed?(current, "firm")
+        context["wizard_dossier"] = Wizards.allowed?(current, "company")
         context["open_alerts"] = Alerts.visible(current).count
         context["pending_approvals"] = Approvals.visible(current).filter(state: "pending").count
       end

@@ -1,0 +1,72 @@
+{# SPDX-License-Identifier: AGPL-3.0-or-later. Administrateurs d'un dossier (DECISIONS D-ADM-017) : comptes au profil administrateur dans l'instance, tels que la console les connaît ; ajout, remplacement, retrait ou rétrogradation par une demande (validation à une ou deux personnes, D-VAL2-001), relecture dans l'instance. Jamais zéro administrateur ; le retrait de soi-même est confirmé. #}{% extend "admin/base.html" %}
+{% block title %}{% translate "admin.administrators.dossier_title" %} · {{ dossier.slug }}{% endblock title %}
+{% block crumbs %}<li><a href="{% url 'dossiers' %}">{% translate "admin.dossiers.title" %}</a></li><li><a href="{% url 'dossier' id: dossier.id %}">{{ dossier.slug }}</a></li><li>{% translate "admin.administrators.dossier_title" %}</li>{% endblock crumbs %}
+{% block heading %}{% translate "admin.administrators.dossier_title" %} · {{ dossier.label }}{% endblock heading %}
+{% block actions %}{% if can_refresh %}<form method="post" action="{% url 'dossier_admin_command' id: dossier.id, command: 'refresh' %}">{% csrf_input %}<button class="button" type="submit" aria-describedby="pd-refresh-help">{% translate "admin.administrators.refresh" %}</button></form>{% endif %}{% endblock actions %}
+{% block content %}
+{% include "admin/_base_errors.html" %}
+<section class="pd-panel" aria-labelledby="pd-admins-title">
+  <h2 id="pd-admins-title">{% translate "admin.administrators.list" %}</h2>
+  <p class="help mb-3" id="pd-refresh-help">{% translate "admin.administrators.help.dossier" %}</p>
+  {% if rows %}<div class="table-container" tabindex="0" role="region" aria-labelledby="pd-admins-title"><table class="table is-fullwidth is-striped">
+    <caption class="is-sr-only">{% translate "admin.administrators.list" %}</caption>
+    <thead><tr><th scope="col">{% translate "admin.administrators.position" %}</th><th scope="col">{% translate "admin.users.fields.email" %}</th><th scope="col">{% translate "admin.users.fields.state" %}</th><th scope="col">{% translate "admin.administrators.usable_column" %}</th>{% if manage %}<th scope="col"><span class="is-sr-only">{% translate "admin.actions.title" %}</span></th>{% endif %}</tr></thead>
+    <tbody>{% for row in rows %}<tr>
+      <td class="pd-mono">{{ loop.index }}</td>
+      <th scope="row">{{ row.admin.email }}{% if row.is_self %} <span class="pd-muted">({% translate "admin.administrators.you" %})</span>{% endif %}</th>
+      <td><span class="pd-state pd-state-{{ row.admin.state }}">{% translate row.admin.state_key %}</span></td>
+      <td>{% translate row.admin.usable_key %}{% if row.admin.checked_at %} <span class="pd-muted">({{ row.admin.checked_at|time:"%Y-%m-%d" }})</span>{% endif %}</td>
+      {% if manage %}<td>{% if row.pending %}<span class="pd-muted">{% translate "admin.administrators.pending_note" %}</span>{% elsif row.last %}<span class="pd-muted">{% translate "admin.administrators.last_note" %}</span>{% else %}
+        <form method="post" action="{% url 'dossier_admin_command' id: dossier.id, command: 'remove' %}" class="pd-admin-remove">
+          {% csrf_input %}
+          <input type="hidden" name="email" value="{{ row.admin.email }}">
+          <div class="field"><label class="label" for="pd-removal-{{ loop.index }}">{% translate "admin.administrators.fields.removal" %}</label><div class="select is-small"><select id="pd-removal-{{ loop.index }}" name="removal"><option value="revoke">{% translate "admin.administrators.removals.revoke" %}</option><option value="demote">{% translate "admin.administrators.removals.demote" %}</option></select></div></div>
+          <div class="field"><label class="label" for="pd-remove-reason-{{ loop.index }}">{% translate "admin.reason" %}</label><div class="control"><input class="input is-small" id="pd-remove-reason-{{ loop.index }}" name="reason" required minlength="5"></div></div>
+          {% if row.is_self %}<label class="checkbox"><input type="checkbox" name="self_confirm" value="yes" required> {% translate "admin.administrators.self_confirm" %}</label>{% endif %}
+          <button class="button is-small is-warning is-light" type="submit">{% translate "admin.administrators.remove" %}<span class="is-sr-only"> {{ row.admin.email }}</span></button>
+        </form>{% endif %}</td>{% endif %}
+    </tr>{% endfor %}</tbody>
+  </table></div>{% else %}<p class="pd-muted">{% translate "admin.administrators.none" %}</p>{% endif %}
+</section>
+{% if pending %}
+<section class="pd-panel" aria-labelledby="pd-admins-pending-title">
+  <h2 id="pd-admins-pending-title">{% translate "admin.administrators.pending" %}</h2>
+  <ul>{% for approval in pending %}<li><a href="{% url 'approvals' %}">{{ approval.reference }}</a> — {% translate approval.kind_key %}{% if approval.param_email %} {{ approval.param_email }}{% endif %}{% if approval.param_replaces %} ({% translate "admin.administrators.replacing" %} {{ approval.param_replaces }}){% endif %}{% if approval.removal_key %} — {% translate approval.removal_key %}{% endif %}</li>{% endfor %}</ul>
+</section>
+{% endif %}
+{% if manage %}
+<form method="post" action="{% url 'dossier_admins' id: dossier.id %}" class="pd-panel" novalidate aria-labelledby="pd-admin-new-title">
+  <h2 id="pd-admin-new-title">{% translate "admin.administrators.add_dossier" %}</h2>
+  {% csrf_input %}
+  {% include "admin/_approval_mode_note.html" %}
+  <p class="help mb-3">{% translate "admin.administrators.help.add_dossier" %}</p>
+  <div class="field">
+    <label class="label" for="pd-admin-email">{% translate "admin.users.fields.email" %}<span class="pd-required" aria-hidden="true"> *</span></label>
+    <div class="control"><input class="input" type="email" id="pd-admin-email" name="email" value="{{ email }}" required{% if email_errors %} aria-invalid="true" aria-describedby="pd-admin-email-error"{% endif %}></div>
+    {% if email_errors %}<p class="help is-danger" id="pd-admin-email-error">{% for error in email_errors %}{{ error }} {% endfor %}</p>{% endif %}
+  </div>
+  {% if replaceable %}<div class="field">
+    <label class="label" for="pd-admin-replaces">{% translate "admin.administrators.fields.replaces" %}</label>
+    <div class="select is-fullwidth"><select id="pd-admin-replaces" name="replaces" aria-describedby="pd-admin-replaces-help"><option value="">{% translate "admin.administrators.no_replacement" %}</option>{% for email in replaceable %}<option value="{{ email }}">{{ email }}</option>{% endfor %}</select></div>
+    <p class="help" id="pd-admin-replaces-help">{% translate "admin.administrators.help.dossier_replaces" %}</p>
+  </div>
+  <div class="field">
+    <label class="label" for="pd-admin-replace-removal">{% translate "admin.administrators.fields.replace_removal" %}</label>
+    <div class="select"><select id="pd-admin-replace-removal" name="replace_removal"><option value="revoke">{% translate "admin.administrators.removals.revoke" %}</option><option value="demote">{% translate "admin.administrators.removals.demote" %}</option></select></div>
+  </div>{% endif %}
+  <div class="field">
+    <label class="label" for="pd-admin-reason">{% translate "admin.reason" %}<span class="pd-required" aria-hidden="true"> *</span></label>
+    <div class="control"><textarea class="textarea" id="pd-admin-reason" name="reason" rows="2" required{% if reason_errors %} aria-invalid="true" aria-describedby="pd-admin-reason-error"{% endif %}>{{ reason }}</textarea></div>
+    {% if reason_errors %}<p class="help is-danger" id="pd-admin-reason-error">{% for error in reason_errors %}{{ error }} {% endfor %}</p>{% endif %}
+  </div>
+  <div class="buttons"><button class="button is-primary" type="submit">{% translate "admin.approvals.request" %}</button></div>
+  <p class="help">{% translate "admin.administrators.limit" %} {{ limit }}</p>
+</form>
+{% endif %}
+{% if tasks %}
+<section class="pd-panel" aria-labelledby="pd-admins-tasks-title">
+  <h2 id="pd-admins-tasks-title">{% translate "admin.tasks.recent" %}</h2>
+  {% include "admin/_tasks_table.html" %}
+</section>
+{% endif %}
+{% endblock content %}

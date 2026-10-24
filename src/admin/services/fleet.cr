@@ -39,7 +39,7 @@ module PartiduoAdmin
       modules : Array(String) = ["accounting", "invoicing"], extensions : Array(String) = [] of String,
       admin_email : String = "", server_id : Int64? = nil, firm_id : Int64? = nil, payer_id : Int64? = nil,
       package : String = "app", backup_schedule : String = "daily", backup_retention_days : Int32 = 30,
-      kind : String = "company"
+      kind : String = "company", extra_admins : Array(String) = [] of String
 
     EMAIL = /\A[^@\s'"]+@[^@\s'"]+\.[^@\s'"]+\z/
 
@@ -49,10 +49,35 @@ module PartiduoAdmin
 
     # --- Création -----------------------------------------------------------
 
+    # Contrôles d'une création, sans rien créer : ceux du formulaire, de
+    # chaque étape d'un assistant et de sa validation finale (D-ADM-018).
+    def self.dossier_errors(user : User, input : DossierInput, now : Time = Config.now) : Errors
+      errors = identity_errors(input, input.slug.strip.downcase)
+      administrator_errors(input, errors)
+      references(user, input, now, errors)
+      errors
+    end
+
+    # Autres administrateurs à inviter (D-ADM-017) : adresses valides,
+    # distinctes entre elles et du premier, dans la limite de la liste.
+    private def self.administrator_errors(input : DossierInput, errors : Errors) : Nil
+      seen = Set{input.admin_email.strip.downcase}
+      keys = input.extra_admins.compact_map do |email|
+        address = email.strip.downcase
+        if !EMAIL.matches?(address)
+          "admin.errors.email"
+        elsif !seen.add?(address)
+          "admin.errors.administrators.duplicate"
+        end
+      end
+      keys << "admin.errors.administrators.too_many" if input.extra_admins.size >= Administrators::LIMIT
+      keys.uniq.each { |key| add(errors, "extra_admins", key) }
+    end
+
     def self.create_dossier(user : User, input : DossierInput, now : Time = Config.now) : Outcome(Dossier)
       slug = input.slug.strip.downcase
-      errors = identity_errors(input, slug)
-      server, firm, payer = references(user, input, now, errors)
+      errors = dossier_errors(user, input, now)
+      server, firm, payer = references(user, input, now, Errors.new)
       return Outcome(Dossier).new(nil, errors) unless errors.empty? && server && firm && payer
 
       # Un foyer n'a ni SIREN ni numéro de TVA : ils ne sont pas retenus.
@@ -65,6 +90,9 @@ module PartiduoAdmin
         package: input.package, state: "creating", backup_schedule: input.backup_schedule,
         backup_retention_days: input.backup_retention_days,
       )
+      # Premier administrateur, puis les autres : invités après la création
+      # de l'instance (D-ADM-017).
+      Administrators.declare(dossier, [dossier.admin_email.to_s] + input.extra_admins)
       # Le nom d'abord (ADR-013 D5) : l'exécutant attend qu'il désigne son
       # serveur avant le certificat ; un échec est repris par la
       # planification.
@@ -75,7 +103,7 @@ module PartiduoAdmin
       Tasks.enqueue("instance.create", server, params, user, dossier)
       Audit.log(user, "dossier.create", target: dossier,
         detail: {"modules" => dossier.modules.to_s, "extensions" => dossier.extensions.to_s, "payer" => payer.name.to_s,
-                 "kind" => dossier.kind.to_s})
+                 "kind" => dossier.kind.to_s, "administrators" => (input.extra_admins.size + 1).to_s})
       Outcome(Dossier).new(dossier)
     end
 
@@ -378,6 +406,9 @@ module PartiduoAdmin
         admin_email: dossier.admin_email, server: dossier.server!, firm: dossier.firm!, payer: dossier.payer!,
         package: dossier.package, version: backup.version.presence || dossier.version, state: "creating",
         backup_encryption: dossier.backup_encryption.to_s)
+      # Administrateurs de la sauvegarde : ceux du dossier, en attente de
+      # l'installation de la copie (D-ADM-017).
+      Administrators.declare(copy, Administrators.emails(dossier))
       # Nom de l'instance neuve, avant son certificat (ADR-013 D5).
       Dns.request(copy, user)
       params["new_slug"] = any(slug)

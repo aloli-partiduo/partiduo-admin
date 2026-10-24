@@ -161,7 +161,8 @@ case "$command" in
     shift 4
     check_slug "$slug"
     case "$action" in
-      version | status | migrations | migrate | enable | disable | read-only | admin-invite | backup-plan) ;;
+      version | status | migrations | migrate | enable | disable | read-only | admin-invite | admins | admin-add | \
+        admin-remove | backup-plan) ;;
       *) die "action refusée" ;;
     esac
     # Seule option qui écrit un fichier : sous BACKUP_DIR seulement.

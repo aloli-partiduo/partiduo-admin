@@ -1,0 +1,17 @@
+{# SPDX-License-Identifier: AGPL-3.0-or-later. Assistants des parcours courants (DECISIONS D-ADM-018) : ceux ouverts à l'utilisateur, avec le brouillon à reprendre, puis ceux envisagés. #}{% extend "admin/base.html" %}
+{% block title %}{% translate "admin.wizards.title" %}{% endblock title %}
+{% block crumbs %}<li>{% translate "admin.wizards.title" %}</li>{% endblock crumbs %}
+{% block heading %}{% translate "admin.wizards.title" %}{% endblock heading %}
+{% block content %}
+<p class="mb-4">{% translate "admin.wizards.intro" %}</p>
+{% if items %}<div class="pd-wizard-cards">{% for item in items %}<section class="pd-panel" aria-labelledby="pd-wizard-{{ item.kind }}">
+  <h2 id="pd-wizard-{{ item.kind }}">{% translate item.title_key %}</h2>
+  <p class="mb-3">{% translate item.help_key %}</p>
+  {% if item.draft %}<p class="help mb-3">{% translate "admin.wizards.resume_note" step: item.step, total: item.steps %}</p>{% endif %}
+  <a class="button is-primary" href="{% url 'wizard' kind: item.kind %}">{% if item.draft %}{% translate "admin.wizards.resume" %}{% else %}{% translate "admin.wizards.start" %}{% endif %}<span class="is-sr-only"> — {% translate item.title_key %}</span></a>
+</section>{% endfor %}</div>{% else %}<p class="pd-muted mb-4">{% translate "admin.wizards.none" %}</p>{% endif %}
+<section class="pd-panel" aria-labelledby="pd-wizards-proposed">
+  <h2 id="pd-wizards-proposed">{% translate "admin.wizards.proposed_title" %}</h2>
+  <ul>{% for key in proposed %}<li>{% translate key %}</li>{% endfor %}</ul>
+</section>
+{% endblock content %}

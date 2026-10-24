@@ -28,7 +28,7 @@
       <dt>{% translate "admin.dossiers.fields.database" %}</dt><dd class="pd-mono">{{ dossier.database|default:"—" }}</dd>
       <dt>{% translate "admin.dossiers.fields.firm" %}</dt><dd>{{ dossier.firm_name }}</dd>
       <dt>{% translate "admin.dossiers.fields.payer" %}</dt><dd>{{ dossier.payer_name }}</dd>
-      <dt>{% translate "admin.dossiers.fields.admin_email" %}</dt><dd>{{ dossier.admin_email }}</dd>
+      <dt>{% translate "admin.administrators.title" %}</dt><dd>{{ dossier.admin_email }}{% if admin_count != "1" %} <span class="pd-muted">(+{{ admin_others }})</span>{% endif %} · <a href="{% url 'dossier_admins' id: dossier.id %}">{% translate "admin.administrators.manage" %}<span class="is-sr-only"> — {{ dossier.slug }}</span></a></dd>
       {% if dossier.retention_until %}<dt>{% translate "admin.dossiers.fields.retention_until" %}</dt><dd>{{ dossier.retention_until|time:"%Y-%m-%d" }}</dd>{% endif %}
     </dl>
   </section>

@@ -2,6 +2,7 @@
 {% block title %}{% translate "admin.firms.title" %}{% endblock title %}
 {% block crumbs %}<li>{% translate "admin.firms.title" %}</li>{% endblock crumbs %}
 {% block heading %}{% translate "admin.firms.title" %}{% endblock heading %}
+{% block actions %}{% if wizard_firm %}<a class="button is-primary" href="{% url 'wizard' kind: 'firm' %}">{% translate "admin.wizards.firm.new" %}</a>{% endif %}{% endblock actions %}
 {% block content %}
 <form method="get" action="{% url 'firms' %}" class="pd-inline mb-4" role="search">
   <div class="field"><label class="label" for="pd-q">{% translate "admin.search" %}</label><div class="control"><input class="input" id="pd-q" name="q" type="search" value="{{ q }}" aria-describedby="pd-q-help"></div><p class="help" id="pd-q-help">{% translate "admin.firms.search_help" %}</p></div>
@@ -10,11 +11,12 @@
 </form>
 {% if firms %}<div class="table-container mb-2" tabindex="0" role="region" aria-labelledby="pd-firms-caption"><table class="table is-fullwidth is-striped">
   <caption id="pd-firms-caption" class="is-sr-only">{% translate "admin.firms.title" %}</caption>
-  <thead><tr><th scope="col">{% translate "admin.firms.name" %}</th><th scope="col">{% translate "admin.firms.kind" %}</th><th scope="col" class="pd-hide-s">{% translate "admin.payers.fields.siren" %}</th><th scope="col">{% translate "admin.dual_approval.title" %}</th><th scope="col">{% translate "admin.encryption.title" %}</th></tr></thead>
+  <thead><tr><th scope="col">{% translate "admin.firms.name" %}</th><th scope="col">{% translate "admin.firms.kind" %}</th><th scope="col" class="pd-hide-s">{% translate "admin.payers.fields.siren" %}</th><th scope="col">{% translate "admin.administrators.title" %}</th><th scope="col">{% translate "admin.dual_approval.title" %}</th><th scope="col">{% translate "admin.encryption.title" %}</th></tr></thead>
   <tbody>{% for row in firms %}<tr>
     <th scope="row">{{ row.firm.name }}{% if row.firm.email %}<br><span class="pd-muted">{{ row.firm.email }}</span>{% endif %}</th>
     <td>{% translate row.firm.kind_key %}</td>
     <td class="pd-mono pd-hide-s">{{ row.firm.siren|default:"—" }}</td>
+    <td><a href="{% url 'firm_admins' id: row.firm.id %}">{{ row.admins }}<span class="is-sr-only"> {% translate "admin.administrators.title" %} — {{ row.firm.name }}</span></a></td>
     <td><a href="{% url 'firm_approval_mode' id: row.firm.id %}">{% translate row.mode_key %}<span class="is-sr-only"> — {{ row.firm.name }}</span></a> <span class="pd-muted">({{ row.team }})</span></td>
     <td><a href="{% url 'firm_backups' id: row.firm.id %}">{% translate row.firm.backup_encryption_key %}<span class="is-sr-only"> — {{ row.firm.name }}</span></a></td>
   </tr>{% endfor %}</tbody>
@@ -23,6 +25,7 @@
 <p class="help mb-4">{% translate "admin.firms.team_note" %}</p>{% else %}<p class="pd-muted mb-4">{% translate "admin.firms.none" %}</p>{% endif %}
 <form method="post" action="{% url 'firms' %}" class="pd-panel" novalidate>
   <h2 class="title is-6">{% translate "admin.firms.new" %}</h2>
+  <p class="help mb-2">{% translate "admin.wizards.advanced_firm" %}</p>
   {% csrf_input %}
   {% if errors %}<div class="notification is-danger is-light" role="alert">{% for field, messages in errors %}{% for message in messages %}<p>{{ message }}</p>{% endfor %}{% endfor %}</div>{% endif %}
   <div class="pd-inline">

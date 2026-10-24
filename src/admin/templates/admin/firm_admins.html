@@ -1,0 +1,45 @@
+{# SPDX-License-Identifier: AGPL-3.0-or-later. Administrateurs d'une structure (DECISIONS D-ADM-017) : liste, changement de rôle, retrait (rôle de gestionnaire de dossiers), ajout par invitation et remplacement. Jamais zéro administrateur ; le retrait de soi-même est confirmé. #}{% extend "admin/base.html" %}
+{% block title %}{% translate "admin.administrators.firm_title" %} · {{ firm.name }}{% endblock title %}
+{% block crumbs %}{% if nav_fleet %}<li><a href="{% url 'firms' %}">{% translate "admin.firms.title" %}</a></li>{% endif %}<li>{{ firm.name }}</li>{% endblock crumbs %}
+{% block heading %}{% translate "admin.administrators.firm_title" %} · {{ firm.name }}{% endblock heading %}
+{% block content %}
+{% include "admin/_base_errors.html" %}
+<section class="pd-panel" aria-labelledby="pd-admins-title">
+  <h2 id="pd-admins-title">{% translate "admin.administrators.list" %}</h2>
+  <p class="help mb-3">{% if is_fleet %}{% translate "admin.administrators.help.fleet" %}{% else %}{% translate "admin.administrators.help.firm" %}{% endif %}</p>
+  {% if rows %}<div class="table-container" tabindex="0" role="region" aria-labelledby="pd-admins-title"><table class="table is-fullwidth is-striped">
+    <caption class="is-sr-only">{% translate "admin.administrators.list" %}</caption>
+    <thead><tr><th scope="col">{% translate "admin.administrators.position" %}</th><th scope="col">{% translate "admin.users.fields.email" %}</th><th scope="col">{% translate "admin.users.fields.name" %}</th><th scope="col">{% translate "admin.users.fields.state" %}</th><th scope="col"><span class="is-sr-only">{% translate "admin.actions.title" %}</span></th></tr></thead>
+    <tbody>{% for row in rows %}<tr>
+      <td class="pd-mono">{{ loop.index }}</td>
+      <th scope="row">{{ row.user.email }}{% if row.is_self %} <span class="pd-muted">({% translate "admin.administrators.you" %})</span>{% endif %}</th>
+      <td>{{ row.user.display_name }}</td>
+      <td>{% if row.user.active %}{% translate "admin.users.active" %}{% else %}{% translate "admin.users.inactive" %}{% endif %}</td>
+      <td>{% if row.last %}<span class="pd-muted">{% translate "admin.administrators.last_note" %}</span>{% elsif row.demotable %}
+        <form method="post" action="{% url 'firm_admin_command' id: firm.id, user_id: row.user.id, command: 'demote' %}" class="pd-inline">
+          {% csrf_input %}
+          {% if row.is_self %}<label class="checkbox"><input type="checkbox" name="self_confirm" value="yes" required> {% translate "admin.administrators.self_confirm" %}</label>{% endif %}
+          <button class="button is-small is-warning is-light" type="submit">{% translate "admin.administrators.demote_firm" %}<span class="is-sr-only"> {{ row.user.email }}</span></button>
+        </form>{% endif %}</td>
+    </tr>{% endfor %}</tbody>
+  </table></div>{% else %}<p class="pd-muted">{% translate "admin.administrators.none" %}</p>{% endif %}
+</section>
+{% if members %}
+<section class="pd-panel" aria-labelledby="pd-members-title">
+  <h2 id="pd-members-title">{% translate "admin.administrators.members" %}</h2>
+  <ul>{% for member in members %}<li class="mb-1">{{ member.email }} <span class="pd-muted">{{ member.display_name }}</span>
+    <form method="post" action="{% url 'firm_admin_command' id: firm.id, user_id: member.id, command: 'promote' %}" class="pd-inline">{% csrf_input %}<button class="button is-small" type="submit">{% translate "admin.administrators.promote" %}<span class="is-sr-only"> {{ member.email }}</span></button></form>
+  </li>{% endfor %}</ul>
+</section>
+{% endif %}
+{% if can_add %}
+<form method="post" action="{% url 'firm_admins' id: firm.id %}" class="pd-panel" novalidate aria-labelledby="pd-admin-new-title">
+  <h2 id="pd-admin-new-title">{% translate "admin.administrators.add_firm" %}</h2>
+  {% csrf_input %}
+  <p class="help mb-3">{% translate "admin.administrators.help.invite" %}</p>
+  {% for field in fields %}{% include "admin/_field.html" %}{% endfor %}
+  <label class="checkbox mb-3"><input type="checkbox" name="self_confirm" value="yes"> {% translate "admin.administrators.self_confirm_replace" %}</label>
+  <div class="buttons"><button class="button is-primary" type="submit">{% translate "admin.users.invite" %}</button></div>
+</form>
+{% else %}<p class="help">{% translate "admin.administrators.help.independent" %}</p>{% endif %}
+{% endblock content %}

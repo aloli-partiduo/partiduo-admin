@@ -204,6 +204,190 @@ console aurait laissé passer.
   de régime ; les plateformes le font à l'exécution
   (`Adapter#regimes`).
 
+=== D-ADM-017 — Plusieurs administrateurs par dossier et par cabinet (24 octobre 2026)
+
+Demande de l'utilisateur : il n'y a qu'un administrateur par dossier et par
+cabinet ; il faut pouvoir en déclarer plusieurs et les changer (ajouter,
+retirer, remplacer). Version 0.1.55, contrat d'instance 1.4.0
+(partiduo-app 0.1.50), protocole de l'exécutant 3.2.0.
+
+*Contexte.* Un dossier ne connaissait que `admin_email`, l'adresse invitée
+à sa création ; l'administration n'avait ensuite que le recours d'accès
+(`admin-invite`), qui réinvite un administrateur *existant* et refuse toute
+autre adresse (D-AFN-003 de partiduo-app : « la plateforme ne crée pas
+d'administrateur »). Un cabinet pouvait déjà compter plusieurs admins (rôle
+`firm_admin`), mais aucun écran ne les montrait ni ne changeait leur rôle.
+
+*Choix — dossier.*
+
+* *Modèle* : `DossierAdmin` (migration 0011), un administrateur par ligne
+  (`dossier`, `email`, unique par dossier), état `pending` (déclaré, pas
+  encore dans l'instance) ou `active` (présent d'après la dernière tâche ou
+  la dernière relecture), `usable` (moyen d'authentification enrôlé, relu)
+  et `checked_at`. Ordre d'ajout : le premier est celui de la création.
+  `Dossier#admin_email` suit le premier actif (adresse proposée au recours
+  d'accès). *Reprise* : chaque dossier existant garde son administrateur
+  actuel, premier de la liste, actif (en attente si sa création n'a pas
+  abouti). Au plus dix administrateurs par dossier.
+* *Dans l'instance*, un administrateur est un compte au profil
+  administrateur. Trois actions du CLI d'instance (contrat 1.4.0) :
+  `admins` (liste, sans secret), `admin-add EMAIL` (compte créé et invité,
+  ou profil administrateur donné à un compte existant ; jamais un compte
+  révoqué par la société), `admin-remove EMAIL --removal revoke|demote`
+  (accès révoqué, ou profil comptable ; *jamais le dernier administrateur
+  actif*, l'instance le refuse elle-même). Motif et trace de la validation
+  exigés comme pour `admin-invite`, journal de l'instance
+  `instance.admin_add`, `instance.admin_remove`.
+* *Exécutant* (protocole 3.2.0, ajouts) : `instance.admins`,
+  `instance.admin_add` (avec `replaces` et `replace_removal` pour un
+  remplacement : ajout puis retrait, dans cet ordre, l'instance refusant
+  de retirer le dernier), `instance.admin_remove` ; refus avant tout geste
+  d'une instance au contrat antérieur à 1.4.0 (`ADMINS_MINOR`) ; actions
+  admises par l'enveloppe `partiduo-agent-instance`.
+* *Opérations sensibles* : ajouter, retirer, rétrograder ou remplacer
+  passent par une demande (`Approval`, types `admin_add` et
+  `admin_remove`), comme le recours d'accès et la suppression définitive :
+  la validation à deux de la structure (D-VAL2-001) s'applique — une autre
+  personne habilitée valide en mode `dual` ; en mode `single`, le demandeur
+  habilité confirme seul après ré-authentification forte et case cochée
+  (D-VAL2-004). Une seule demande en attente par type et par dossier. Les
+  tâches validées ne se rejouent pas (comme `admin_invite`, D-AFN-010).
+* *Création* : les autres administrateurs se déclarent à la création
+  (formulaire : « Autres administrateurs » ; assistants) ; une fois
+  l'instance créée, l'exécutant les ajoute (`instance.admin_add`), au nom
+  de qui a créé le dossier, en mode `single`, référence `CR-<dossier>`. La
+  création vaut décision, comme pour le premier administrateur, invité
+  sans demande depuis toujours ; ces tâches-là se rejouent après un échec.
+* *Relecture* (`instance.admins`, ouverte aussi au gestionnaire du
+  dossier) : la société garde la main sur les accès de son dossier
+  (ADR-002 D3) ; la relecture reprend ce qu'elle a changé elle-même
+  (administrateur révoqué ou ajouté dans son écran des utilisateurs). Les
+  ajouts encore en attente ne sont pas touchés.
+* *Droits* : relire, tout utilisateur du dossier ; ajouter, retirer,
+  remplacer, l'admin du cabinet et le super-admin (`:administrators`).
+* *Écran* `/dossiers/<id>/admins` : liste numérotée, état, moyen de
+  connexion, retrait (révoquer ou rétrograder, motif), ajout ou
+  remplacement, demandes en attente, tâches ; lien depuis la fiche.
+
+*Choix — cabinet.*
+
+* Les admins d'une structure sont ses utilisateurs au rôle `firm_admin` :
+  pas de nouveau modèle. Écran `/firms/<id>/admins` (super-admin pour toute
+  structure, admin de cabinet pour la sienne ; lien dans la liste des
+  structures et le menu) : liste, ajout par invitation (même chemin que
+  l'écran des utilisateurs), *retrait* (le rôle devient gestionnaire de
+  dossiers, le compte reste), promotion d'un gestionnaire, remplacement
+  (invitation du nouveau, puis retrait de l'ancien ; rien n'est changé si
+  l'invitation est refusée).
+* *Jamais zéro* : le dernier admin actif d'un cabinet ou d'un gestionnaire
+  indépendant ne se retire pas, ne se rétrograde pas et ne se désactive
+  pas (écran des utilisateurs compris) ; le parc sans cabinet a ses
+  super-admins. Un gestionnaire indépendant reste une personne
+  (D-VAL2-002).
+* *Journal* : `user.invite`, `user.role` (avant, après) ; la validation à
+  deux se désactive d'elle-même si l'équipe retombe à une personne
+  (D-VAL2-003).
+
+*Règles communes.* Le retrait de soi-même est confirmé (case à cocher,
+refus sinon) ; chaque changement passe au journal d'audit
+(`approval.request`, `approval.confirm_alone` ou `approval.approve`,
+`task.enqueue`, `administrators.added`, `administrators.removed`,
+`administrators.refreshed`, `administrators.refresh`, `user.role`).
+
+*Pourquoi une demande validée pour un dossier, pas pour un cabinet.* Dans un
+dossier, l'administration donne ou retire des droits *dans les données
+d'une société* : c'est l'opération que D-VAL2 protège (recours d'accès).
+Dans un cabinet, il s'agit des utilisateurs de la console elle-même, que
+l'admin du cabinet gère déjà seul (invitation, désactivation) ; une demande
+exigerait un dossier (`Approval#dossier`, obligatoire) et changerait le
+modèle des validations pour un geste réversible.
+
+*Alternatives écartées.*
+
+* Élargir `admin-invite` aux adresses inconnues : il redeviendrait ce que
+  D-AFN-003 a retiré, sous le nom d'un recours ; une action dédiée, tracée
+  comme telle, est plus lisible.
+* Liste tenue par la seule console, sans relecture : elle divergerait dès
+  que la société change ses accès elle-même.
+* Supprimer le compte retiré : l'instance garde comptes et traces ; la
+  révocation suffit et se lève par la société.
+
+*À soumettre.* `admin-add` donne des droits que la société n'a pas donnés
+elle-même dans son dossier, ce que D-AFN-003 et D-CLI-005 refusaient : la
+décision est prise par le cabinet (ou le super-admin) qui administre le
+dossier, validée et tracée dans les deux journaux. ADR-008 D3 est amendé en
+ce sens ; à confirmer au regard d'ADR-002 D3. La validation à deux ne
+couvre pas les changements d'admins d'un cabinet.
+
+=== D-ADM-018 — Assistants des parcours courants (24 octobre 2026)
+
+Demande de l'utilisateur : des assistants pas à pas pour les parcours
+courants (déclarer un cabinet, créer un entrepreneur, créer un foyer…).
+Version 0.1.55.
+
+*Choix.*
+
+* *Trois assistants* (`/wizards/<parcours>`, liste `/wizards`) :
+  déclarer un cabinet (identité, administrateurs, options, récapitulatif) ;
+  créer un entrepreneur (identité, activité, modules, rattachement,
+  administrateurs, récapitulatif) ; créer un foyer (identité, modules,
+  rattachement, administrateurs, récapitulatif). Proposés depuis le tableau
+  de bord, la liste des dossiers (« Nouvel entrepreneur », « Nouveau
+  foyer ») et celle des structures (« Nouveau cabinet ») ; les formulaires
+  existants restent pour les usages avancés (« Formulaire complet »).
+* *Étapes* : numérotées (« Étape 2 sur 6 : Modules »), fil des étapes
+  (`aria-current="step"`, liens vers les étapes déjà atteintes),
+  Précédent, Suivant, Abandonner ; récapitulatif par étape avec « Modifier »
+  avant « Valider et créer ». Suivant ne passe qu'une étape sans erreur ;
+  Précédent garde les saisies sans les juger. La touche Entrée vaut
+  Suivant (bouton par défaut hors de la vue).
+* *État côté serveur* : `WizardDraft` (migration 0011), un brouillon par
+  utilisateur et par parcours : étape en cours, étape la plus avancée,
+  saisies en JSON. Un assistant interrompu reprend où il en était, depuis
+  n'importe quel navigateur du même compte ; le brouillon est effacé à la
+  validation ou à l'abandon. *Rien d'autre n'est créé avant la validation
+  finale.*
+* *Aucune règle dupliquée* : chaque étape est jugée par les contrôles des
+  services des formulaires, appelés sans rien créer
+  (`Fleet.dossier_errors`, `Directory.firm_errors`,
+  `Directory.invite_errors`, `Directory.payer_errors`), leurs erreurs
+  rangées sous l'étape de leur champ ; la validation appelle
+  `Directory.create_firm`, `Directory.invite_user`,
+  `BackupEncryption.set_firm_mode`, `Directory.save_payer`,
+  `Fleet.create_dossier`, dans une transaction (un donneur d'ordre nouveau
+  n'est pas gardé si le dossier est refusé). Le récapitulatif montre une
+  saisie devenue fausse entre-temps (sous-domaine pris) avec son étape.
+* *Entrepreneur* : l'activité (micro-entreprise, profession libérale,
+  société au réel) propose les modules de départ, choisis ensuite par
+  familles avec le catalogue (`PieceForm`, `pieces.js`, D-ADM-016 et
+  D-ADM-019) ; les profils réservés à un régime ne sont proposés qu'à lui.
+  Donneur d'ordre : existant, ou nouveau — l'entrepreneur ou le foyer
+  lui-même, à son adresse.
+* *Cabinet* : nature (cabinet ou gestionnaire indépendant, une seule
+  personne), un ou plusieurs administrateurs (adresse, prénom, nom,
+  langue ; « Ajouter une ligne » sans JavaScript), chiffrement des
+  sauvegardes par défaut. La validation à deux n'y est pas proposée : elle
+  se règle par l'admin de la structure (D-VAL2-001).
+* *Interface* : HTMX d'abord (`hx-boost` sur le formulaire de l'étape,
+  contenu remplacé, étape refusée remplacée aussi), sauf l'étape des
+  modules, servie en page entière pour `pieces.js` ; tout fonctionne sans
+  JavaScript (formulaire et redirection). Titre de l'étape annoncé : titre
+  de la page et `h2` focalisé (`autofocus`, puis `wizard.js` après chaque
+  étape servie par HTMX).
+* *Droits* : déclarer un cabinet, le super-admin ; créer un dossier, qui
+  peut en créer dans une structure active.
+
+*Assistants proposés, non réalisés* : ajouter un serveur (nom, domaine,
+jeton, clé de signature, premier contrôle), restaurer un dossier (date,
+sauvegarde, clé, destination), déplacer un dossier (ADR-013 D7 : suspension,
+bascule du nom, restauration, reprise), archiver un dossier en fin de vie,
+inviter un utilisateur et lui confier des dossiers.
+
+*Alternatives écartées.* État dans la session du navigateur (perdu d'un
+poste à l'autre, limité en taille) ; formulaire unique découpé en
+JavaScript (inutilisable sans script, contrôles faits une seule fois à la
+fin).
+
 === D-ADM-019 — Exclusions adoptées le 24 octobre 2026 : choix exclusif, type et régime au catalogue
 
 *Constat.* Les quatre exclusions que D-ADM-016 proposait de soumettre ont

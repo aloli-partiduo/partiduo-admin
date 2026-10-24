@@ -1,0 +1,58 @@
+{# SPDX-License-Identifier: AGPL-3.0-or-later. Étape d'un assistant (DECISIONS D-ADM-018) : fil des étapes numérotées, titre de l'étape annoncé et focalisé, champs de l'étape, Précédent et Suivant, récapitulatif avant la validation. Sans JavaScript : formulaire classique ; avec HTMX, l'étape remplace le contenu (wizard.js place le focus). Rien n'est créé avant la validation finale. #}{% extend "admin/base.html" %}
+{% block title %}{% translate "admin.wizards.step_of" number: number, total: total %} : {% translate step_key %} · {% translate title_key %}{% endblock title %}
+{% block crumbs %}<li><a href="{% url 'wizards' %}">{% translate "admin.wizards.title" %}</a></li><li>{% translate title_key %}</li>{% endblock crumbs %}
+{% block heading %}{% translate title_key %}{% endblock heading %}
+{% block content %}
+<script src="{% asset 'admin/js/wizard.js' %}" defer></script>
+{% if step == "modules" %}<script src="{% asset 'admin/js/pieces.js' %}" defer></script>{% endif %}
+<nav aria-label="{% translate 'admin.wizards.track' %}">
+  <ol class="pd-steps">{% for item in track %}<li{% if item.current %} aria-current="step"{% elsif item.done %} class="pd-step-done"{% endif %}><span class="pd-step-number">{{ item.number }}</span> {% if item.link %}<a href="{{ item.link }}">{% translate item.key %}</a>{% else %}<span>{% translate item.key %}</span>{% endif %}{% if item.done %}<span class="is-sr-only"> — {% translate "admin.wizards.done" %}</span>{% endif %}</li>{% endfor %}</ol>
+</nav>
+<form method="post" action="{% url 'wizard' kind: kind %}" class="pd-panel" novalidate data-pd-wizard{% if step == "modules" %} data-pd-pieces-form{% endif %}{% if boost %} hx-boost="true" hx-target="#pd-content" hx-select="#pd-content" hx-swap="outerHTML show:window:top"{% endif %} aria-labelledby="pd-step-title">
+  {% csrf_input %}
+  <input type="hidden" name="step" value="{{ number }}">
+  {% if not last %}<button class="pd-default-submit" type="submit" name="nav" value="next" tabindex="-1" aria-hidden="true">{% translate "admin.wizards.next" %}</button>{% endif %}
+  <h2 class="pd-subtitle pd-step-title" id="pd-step-title" tabindex="-1" autofocus data-pd-step-focus>{% translate "admin.wizards.step_of" number: number, total: total %} : {% translate step_key %}</h2>
+  <p class="help mb-4" id="pd-step-help">{% translate step_help %}</p>
+  {% include "admin/_base_errors.html" %}
+  {% if fields %}{% for field in fields %}{% include "admin/_field.html" %}{% endfor %}{% endif %}
+
+  {% if step == "modules" %}{% include "admin/_pieces.html" %}{% endif %}
+
+  {% if admin_rows %}<fieldset class="pd-fieldset" aria-describedby="pd-step-help{% if admin_errors %} pd-admins-error{% endif %}">
+    <legend>{% translate "admin.wizards.admins.firm_legend" %}</legend>
+    {% if admin_errors %}<p class="help is-danger" id="pd-admins-error">{% for error in admin_errors %}{{ error }} {% endfor %}</p>{% endif %}
+    <div class="pd-admin-rows">{% for row in admin_rows %}<div class="pd-admin-row" role="group" aria-labelledby="pd-admin-row-{{ row.index }}">
+      <span class="is-sr-only" id="pd-admin-row-{{ row.index }}">{% translate "admin.administrators.ordinal" %} {{ row.index }}</span>
+      <div class="field"><label class="label" for="pd-admin-email-{{ row.index }}">{% translate "admin.users.fields.email" %} {{ row.index }}{% if row.index == "1" %}<span class="pd-required" aria-hidden="true"> *</span>{% endif %}</label><div class="control"><input class="input" type="email" id="pd-admin-email-{{ row.index }}" name="admin_email" value="{{ row.email }}"{% if row.index == "1" %} required{% endif %}{% if row.has_errors %} aria-invalid="true" aria-describedby="pd-admin-error-{{ row.index }}"{% endif %}></div></div>
+      <div class="field"><label class="label" for="pd-admin-first-{{ row.index }}">{% translate "admin.users.fields.first_name" %}</label><div class="control"><input class="input" id="pd-admin-first-{{ row.index }}" name="admin_first_name" value="{{ row.first_name }}"></div></div>
+      <div class="field"><label class="label" for="pd-admin-last-{{ row.index }}">{% translate "admin.users.fields.last_name" %}</label><div class="control"><input class="input" id="pd-admin-last-{{ row.index }}" name="admin_last_name" value="{{ row.last_name }}"></div></div>
+      <div class="field"><label class="label" for="pd-admin-locale-{{ row.index }}">{% translate "admin.users.fields.locale" %}</label><div class="select is-fullwidth"><select id="pd-admin-locale-{{ row.index }}" name="admin_locale">{% for option in row.locales %}<option value="{{ option.value }}"{% if option.selected %} selected{% endif %}>{{ option.label }}</option>{% endfor %}</select></div></div>
+      {% if row.has_errors %}<p class="help is-danger" id="pd-admin-error-{{ row.index }}">{% for error in row.errors %}{{ error }} {% endfor %}</p>{% endif %}
+    </div>{% endfor %}</div>
+    <button class="button is-small" type="submit" name="nav" value="more">{% translate "admin.wizards.admins.more" %}</button>
+  </fieldset>{% endif %}
+
+  {% if extra_admins %}<fieldset class="pd-fieldset" aria-describedby="pd-extra-help{% if admin_errors %} pd-admins-error{% endif %}">
+    <legend>{% translate "admin.wizards.admins.others" %}</legend>
+    <p class="help" id="pd-extra-help">{% translate "admin.wizards.admins.others_help" %}</p>
+    {% if admin_errors %}<p class="help is-danger" id="pd-admins-error">{% for error in admin_errors %}{{ error }} {% endfor %}</p>{% endif %}
+    {% for extra in extra_admins %}<div class="field"><label class="label" for="pd-extra-{{ extra.index }}">{% translate "admin.wizards.admins.other" %} {{ extra.index }}</label><div class="control"><input class="input" type="email" id="pd-extra-{{ extra.index }}" name="extra_admins" value="{{ extra.email }}"></div></div>{% endfor %}
+    <button class="button is-small" type="submit" name="nav" value="more">{% translate "admin.wizards.admins.more" %}</button>
+  </fieldset>{% endif %}
+
+  {% if summary %}<div class="pd-summary">{% for section in summary %}<section aria-labelledby="pd-summary-{{ section.number }}">
+    <h3 id="pd-summary-{{ section.number }}"><span>{{ section.number }}. {% translate section.key %}</span> <a href="{{ section.link }}">{% translate "admin.wizards.edit" %}<span class="is-sr-only"> — {% translate section.key %}</span></a></h3>
+    <dl class="pd-dl">{% for entry in section.items %}<dt>{{ entry.label }}</dt><dd>{{ entry.value }}</dd>{% endfor %}</dl>
+  </section>{% endfor %}</div>
+  <p class="notification is-info is-light mt-4">{% translate "admin.wizards.nothing_yet" %}</p>{% endif %}
+
+  <div class="pd-wizard-nav">
+    <div class="buttons">
+      {% if not first %}<button class="button" type="submit" name="nav" value="previous">{% translate "admin.wizards.previous" %}</button>{% endif %}
+      {% if last %}<button class="button is-primary" type="submit" name="nav" value="finish">{% translate "admin.wizards.finish" %}</button>{% else %}<button class="button is-primary" type="submit" name="nav" value="next">{% translate "admin.wizards.next" %}</button>{% endif %}
+    </div>
+    <button class="button is-light" type="submit" name="nav" value="cancel" formnovalidate>{% translate "admin.wizards.cancel" %}</button>
+  </div>
+</form>
+{% endblock content %}

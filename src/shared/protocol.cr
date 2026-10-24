@@ -19,8 +19,12 @@ module PartiduoAdmin
     # dans le stockage ; `signers` des paramètres, `server`, `manifest`,
     # `signature`, `signing_key`, `capsule` et `kept` du résultat, D-CHF-021 ;
     # 3.1.0 : type de dossier `kind` des paramètres de `instance.create`,
-    # A-PER-5, D-FOY-010).
-    API_VERSION = "3.1.0"
+    # A-PER-5, D-FOY-010 ;
+    # 3.2.0 : types `instance.admins`, `instance.admin_add` et
+    # `instance.admin_remove` — administrateurs d'un dossier, paramètres
+    # `removal`, `replaces`, `replace_removal`, résultat `admins`,
+    # `promoted`, `changed`, `removed`, `remaining_admins`, D-ADM-017).
+    API_VERSION = "3.2.0"
 
     # Types de dossier (ADR-011 A3) : `company` (entreprise, micro-entreprise,
     # profession libérale) ou `household` (foyer), transmis à
@@ -33,7 +37,7 @@ module PartiduoAdmin
     end
 
     # Mode de validation d'une opération sensible (`instance.delete`,
-    # `instance.admin_invite`) : `single`, une personne qui a confirmé seule
+    # `instance.admin_invite`, `instance.admin_add`, `instance.admin_remove`) : `single`, une personne qui a confirmé seule
     # après ré-authentification ; `dual`, deux personnes distinctes. Absent
     # (administration antérieure à 1.2.0) : `dual`.
     APPROVAL_MODES = %w[single dual]
@@ -42,6 +46,15 @@ module PartiduoAdmin
     # --approval-mode single|dual` et un seul nom en mode `single`
     # (contrat 1.1.0, B-VAL2-001 levé).
     APPROVAL_MODE_MINOR = 1
+
+    # Mineure du contrat `manage instance` qui porte `admins`, `admin-add`
+    # et `admin-remove` (contrat 1.4.0, D-ADM-017) : une instance plus
+    # ancienne refuse ces gestes, l'exécutant le dit avant tout appel.
+    ADMINS_MINOR = 4
+
+    # Retrait d'un administrateur du dossier : accès révoqué (`revoke`) ou
+    # profil sans droits d'administration (`demote`).
+    ADMIN_REMOVALS = %w[revoke demote]
 
     # Version majeure du contrat `manage instance` de partiduo-app que
     # l'exécutant sait parler (doc/api/instance-cli.adoc de partiduo-app).
@@ -58,6 +71,9 @@ module PartiduoAdmin
       instance.restore_archive
       instance.delete
       instance.admin_invite
+      instance.admins
+      instance.admin_add
+      instance.admin_remove
       backup.run
       backup.prune
       backup.test_restore

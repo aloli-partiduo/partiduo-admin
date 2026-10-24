@@ -194,6 +194,9 @@ module PartiduoAgent
       "instance.restore_archive" => Plan.new { |ctx| restore_archive(ctx) },
       "instance.delete"          => Plan.new { |ctx| delete(ctx) },
       "instance.admin_invite"    => Plan.new { |ctx| admin_invite(ctx) },
+      "instance.admins"          => Plan.new { |ctx| admins(ctx) },
+      "instance.admin_add"       => Plan.new { |ctx| admin_add(ctx) },
+      "instance.admin_remove"    => Plan.new { |ctx| admin_remove(ctx) },
       "backup.run"               => Plan.new { |ctx| backup(ctx, ctx.param("kind").presence || "manual") },
       "backup.prune"             => Plan.new { |ctx| prune(ctx) },
       "backup.test_restore"      => Plan.new { |ctx| test_restore(ctx) },
@@ -535,6 +538,95 @@ module PartiduoAgent
       elsif url
         ctx.result["url"] = JSON::Any.new(url)
       end
+    end
+
+    # --- Administrateurs du dossier (D-ADM-017, contrat d'instance 1.4.0) ----
+
+    # Les gestes sur les administrateurs exigent le contrat 1.4.0 : une
+    # instance plus ancienne est refusée avant tout geste, elle est à mettre
+    # à jour.
+    def self.require_admins_contract(ctx : Context) : Nil
+      contract = check_contract(ctx)
+      return if contract_at_least?(contract, 1, PartiduoAdmin::Protocol::ADMINS_MINOR)
+      raise StepError.new("contrat d'instance #{contract} : les administrateurs du dossier exigent le contrat " \
+                          "1.#{PartiduoAdmin::Protocol::ADMINS_MINOR}.0 (mettre l'instance à jour)", "refused")
+    end
+
+    # Liste relue dans l'instance : comptes au profil administrateur.
+    def self.admins(ctx : Context) : Nil
+      require_admins_contract(ctx)
+      data = ctx.instance!("admins")
+      ctx.result["admins"] = data["admins"]? || JSON::Any.new([] of JSON::Any)
+      ctx.result["usable_admins"] = data["usable_admins"] if data["usable_admins"]?
+    end
+
+    # Arguments de la trace de la validation : motif, référence, mode,
+    # personnes (mêmes contrôles qu'un recours d'accès).
+    def self.approval_arguments(ctx : Context) : Array(String)
+      approvers = checked_approvers(ctx)
+      ["--reason", ctx.value_arg("reason"), "--approval-ref", ctx.value_arg("approval_ref"),
+       "--approval-mode", approval_mode(ctx), "--approvers", approvers.join(',')]
+    end
+
+    # Ajout d'un administrateur, puis, pour un remplacement (`replaces`),
+    # retrait de l'ancien : l'instance refuserait de retirer le dernier.
+    # Le lien d'invitation est gardé au journal de reprise le temps de la
+    # tâche, et remis par le serveur quand il le peut (D-CRA-003).
+    def self.admin_add(ctx : Context) : Nil
+      require_admins_contract(ctx)
+      ctx.log("administrateur ajouté — #{approval_line(ctx)}")
+      email = ctx.value_arg("email")
+      ctx.step("ajout #{email}") do
+        data = ctx.instance!("admin-add", [email] + approval_arguments(ctx))
+        %w[email user_created promoted usable_admins signup_code connect_account].each do |key|
+          ctx.journal["add_#{key}"] = (data[key]?.try(&.raw) || "").to_s
+        end
+        if url = data["url"]?.try(&.as_s?)
+          ctx.journal["invitation_url"] = url
+        end
+      end
+      %w[email signup_code].each { |key| ctx.set(key, ctx.journal["add_#{key}"]? || "") }
+      %w[user_created promoted connect_account].each { |key| ctx.set(key, ctx.journal["add_#{key}"]? == "true") }
+      ctx.set("usable_admins", (ctx.journal["add_usable_admins"]? || "0").to_i? || 0)
+      deliver_admin_invitation(ctx, ctx.journal["add_email"]?.presence || email)
+      replaced = ctx.param("replaces")
+      admin_remove(ctx, replaced, ctx.param("replace_removal").presence || "revoke", "remplacement") unless replaced.empty?
+    end
+
+    private def self.deliver_admin_invitation(ctx : Context, email : String) : Nil
+      url = ctx.journal["invitation_url"]? || return
+      if ctx.system.mailer?
+        ctx.step("invitation #{email}") { ctx.system.deliver_invitation(email, ctx.host, url, ctx.param("locale")) }
+        ctx.set("invitation_delivered", "server")
+      else
+        ctx.result["url"] = JSON::Any.new(url)
+      end
+    end
+
+    # Retrait d'un administrateur : accès révoqué (`revoke`) ou profil
+    # comptable (`demote`).
+    def self.admin_remove(ctx : Context) : Nil
+      require_admins_contract(ctx)
+      ctx.log("administrateur retiré — #{approval_line(ctx)}")
+      admin_remove(ctx, ctx.value_arg("email"), ctx.param("removal"), "retrait")
+    end
+
+    private def self.admin_remove(ctx : Context, email : String, removal : String, label : String) : Nil
+      unless PartiduoAdmin::Protocol::ADMIN_REMOVALS.includes?(removal)
+        raise StepError.new("mode de retrait refusé : #{removal}", "usage")
+      end
+      if email.starts_with?('-') || email.includes?('\n') || email.includes?(',')
+        raise StepError.new("valeur refusée pour l'adresse à retirer", "usage")
+      end
+      ctx.step("#{label} #{email}") do
+        data = ctx.instance!("admin-remove", [email, "--removal", removal] + approval_arguments(ctx))
+        ctx.journal["removed_changed"] = (data["changed"]?.try(&.as_bool?) || false).to_s
+        ctx.journal["remaining_admins"] = (data["remaining_admins"]?.try(&.as_i?) || 0).to_s
+      end
+      ctx.set("removed", email)
+      ctx.set("removal", removal)
+      ctx.set("changed", ctx.journal["removed_changed"]? == "true")
+      ctx.set("remaining_admins", (ctx.journal["remaining_admins"]? || "0").to_i? || 0)
     end
 
     # --- Sauvegardes -------------------------------------------------------------

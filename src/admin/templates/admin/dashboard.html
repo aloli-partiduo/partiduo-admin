@@ -1,6 +1,7 @@
 {# SPDX-License-Identifier: AGPL-3.0-or-later. Tableau de bord du parc : dossiers par état, alertes, quota Let's Encrypt, validations en attente, dernières tâches. #}{% extend "admin/base.html" %}
 {% block title %}{% translate "admin.dashboard.title" %}{% endblock title %}
 {% block heading %}{% translate "admin.dashboard.title" %}{% endblock heading %}
+{% block actions %}{% if wizard_firm %}<a class="button" href="{% url 'wizard' kind: 'firm' %}">{% translate "admin.wizards.firm.new" %}</a>{% endif %}{% if wizard_dossier %}<a class="button is-primary" href="{% url 'wizard' kind: 'company' %}">{% translate "admin.wizards.company.new" %}</a><a class="button" href="{% url 'wizard' kind: 'household' %}">{% translate "admin.wizards.household.new" %}</a>{% endif %}{% endblock actions %}
 {% block content %}
 <section aria-labelledby="pd-counts-title" class="mb-5">
   <h2 id="pd-counts-title" class="is-sr-only">{% translate "admin.dossiers.title" %}</h2>

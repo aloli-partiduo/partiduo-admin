@@ -403,7 +403,7 @@ module PartiduoAdmin
   class Approval < Marten::Model
     MODES = %w[single dual]
 
-    KINDS  = %w[delete admin_invite]
+    KINDS  = %w[delete admin_invite admin_add admin_remove]
     STATES = %w[pending approved rejected expired]
 
     field :id, :big_int, primary_key: true, auto: true
@@ -440,6 +440,24 @@ module PartiduoAdmin
     # `nil` si absente : une chaîne vide est vraie dans un gabarit.
     def param_email : String?
       param("email").presence
+    end
+
+    # Administrateur remplacé et mode de retrait (D-ADM-017), `nil` sinon.
+    def param_replaces : String?
+      param("replaces").presence
+    end
+
+    # Phrase de la confirmation seule (D-VAL2-004), avant l'adresse.
+    def confirm_key : String
+      case kind
+      when "admin_add"    then "admin.administrators.confirm.add"
+      when "admin_remove" then "admin.administrators.confirm.remove"
+      else                     "admin.dual_approval.confirm_access"
+      end
+    end
+
+    def removal_key : String?
+      param("removal").presence.try { |removal| "admin.administrators.removals.#{removal}" }
     end
   end
 

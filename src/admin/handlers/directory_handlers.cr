@@ -41,7 +41,7 @@ module PartiduoAdmin
       firms, pager = paginate(scope, {"q" => search, "kind" => kind})
       rows = firms.map do |firm|
         {"firm" => firm, "mode_key" => "admin.dual_approval.modes.#{ApprovalMode.mode(firm)}",
-         "team" => ApprovalMode.team_size(firm)}
+         "team" => ApprovalMode.team_size(firm), "admins" => Administrators.firm_admins(firm).size}
       end
       {rows, pager}
     end
@@ -132,6 +132,12 @@ module PartiduoAdmin
       target = Access.users(user).filter(id: id_param).first
       raise Access::Denied.new("user") if target.nil?
       codes = [] of String
+      # Le dernier admin actif d'une structure ne se désactive pas
+      # (D-ADM-017) : un autre doit d'abord être déclaré.
+      if params["command"].to_s == "disable" && Administrators.last_firm_admin?(target)
+        flash["danger"] = I18n.t("admin.errors.administrators.last")
+        return go("/users")
+      end
       done = case params["command"].to_s
              when "reinvite" then Directory.reinvite(user, target, codes: codes)
              when "disable"  then Directory.set_active(user, target, false)

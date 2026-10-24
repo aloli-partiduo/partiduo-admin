@@ -37,6 +37,9 @@ Marten.routes.draw do
   path "/dossiers/<id:int>/requests/<kind:str>", PartiduoAdmin::DossierApprovalRequestHandler, name: "dossier_request"
   path "/dossiers/<id:int>/assign", PartiduoAdmin::DossierAssignHandler, name: "dossier_assign"
   path "/dossiers/<id:int>/encryption", PartiduoAdmin::DossierEncryptionHandler, name: "dossier_encryption"
+  # Administrateurs d'un dossier (D-ADM-017).
+  path "/dossiers/<id:int>/admins", PartiduoAdmin::DossierAdminsHandler, name: "dossier_admins"
+  path "/dossiers/<id:int>/admins/<command:str>", PartiduoAdmin::DossierAdminCommandHandler, name: "dossier_admin_command"
   path "/backups/<id:int>/test", PartiduoAdmin::BackupTestHandler, name: "backup_test"
   path "/backups/<id:int>/unlock", PartiduoAdmin::BackupUnlockHandler, name: "backup_unlock"
   path "/backups/<id:int>/capsule", PartiduoAdmin::BackupCapsuleHandler, name: "backup_capsule"
@@ -51,6 +54,10 @@ Marten.routes.draw do
   path "/alerts/<id:int>/close", PartiduoAdmin::AlertCloseHandler, name: "alert_close"
   path "/audit", PartiduoAdmin::AuditHandler, name: "audit"
 
+  # Assistants des parcours courants (D-ADM-018).
+  path "/wizards", PartiduoAdmin::WizardsHandler, name: "wizards"
+  path "/wizards/<kind:str>", PartiduoAdmin::WizardHandler, name: "wizard"
+
   # Référentiels.
   path "/payers", PartiduoAdmin::PayersHandler, name: "payers"
   path "/payers/new", PartiduoAdmin::PayerFormHandler, name: "payer_new"
@@ -60,6 +67,9 @@ Marten.routes.draw do
   path "/firms/<id:int>/backups", PartiduoAdmin::FirmBackupsHandler, name: "firm_backups"
   path "/firms/<id:int>/backups/key", PartiduoAdmin::FirmBackupKeyHandler, name: "firm_backup_key"
   path "/firms/<id:int>/approval-mode", PartiduoAdmin::FirmApprovalModeHandler, name: "firm_approval_mode"
+  # Administrateurs d'une structure (D-ADM-017).
+  path "/firms/<id:int>/admins", PartiduoAdmin::FirmAdminsHandler, name: "firm_admins"
+  path "/firms/<id:int>/admins/<user_id:int>/<command:str>", PartiduoAdmin::FirmAdminCommandHandler, name: "firm_admin_command"
   path "/users", PartiduoAdmin::UsersHandler, name: "users"
   path "/users/new", PartiduoAdmin::UserNewHandler, name: "user_new"
   path "/users/<id:int>/<command:str>", PartiduoAdmin::UserCommandHandler, name: "user_command"

@@ -9,7 +9,7 @@
   <thead><tr><th scope="col">{% translate "admin.approvals.reference" %}</th><th scope="col">{% translate "admin.approvals.kind" %}</th><th scope="col">{% translate "admin.tasks.dossier" %}</th><th scope="col">{% translate "admin.reason" %}</th><th scope="col">{% translate "admin.approvals.requested_by" %}</th><th scope="col">{% translate "admin.dual_approval.mode" %}</th><th scope="col">{% translate "admin.approvals.state" %}</th><th scope="col"><span class="is-sr-only">{% translate "admin.actions.title" %}</span></th></tr></thead>
   <tbody>{% for row in rows %}<tr>
     <td class="pd-mono">{{ row.approval.reference }}</td>
-    <td>{% translate row.approval.kind_key %}{% if row.approval.param_email %} {{ row.approval.param_email }}{% endif %}</td>
+    <td>{% translate row.approval.kind_key %}{% if row.approval.param_email %} {{ row.approval.param_email }}{% endif %}{% if row.approval.param_replaces %} ({% translate "admin.administrators.replacing" %} {{ row.approval.param_replaces }}){% endif %}{% if row.approval.removal_key %} — {% translate row.approval.removal_key %}{% endif %}</td>
     <td><a href="{% url 'dossier' id: row.approval.dossier.id %}">{{ row.approval.dossier.slug }}</a></td>
     <td>{{ row.approval.reason }}</td>
     <td>{{ row.approval.requested_by.email }}</td>
