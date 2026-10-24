@@ -73,7 +73,7 @@ describe "Interface de l'administration" do
     browser = AdminSpec::Browser.new(token: AdminSpec.session(AdminSpec.user(PartiduoAdmin::Config::FIRM_ADMIN, firm)))
     form = browser.get("/dossiers/new")
     form.status.should eq(200)
-    form.html.should contain(%(<legend>Modules))
+    form.html.should contain(%(<legend>Régime et tenue des comptes</legend>))
     data = {"slug" => "formulaire", "label" => "Formulaire SAS", "regime" => "fr", "locale" => "fr",
             "modules" => ["accounting", "invoicing"], "admin_email" => "gerant@formulaire.fr",
             "server_id" => server.pk.to_s, "payer_id" => "", "backup_schedule" => "daily", "backup_retention_days" => "30"}

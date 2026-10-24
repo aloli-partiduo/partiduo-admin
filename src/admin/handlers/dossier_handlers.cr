@@ -42,10 +42,10 @@ module PartiduoAdmin
 
     def post
       require_admin!
+      modules, extensions = PieceForm.split(fields("modules"), fields("extensions"))
       input = Fleet::DossierInput.new(
         slug: field("slug"), label: field("label"), regime: field("regime"), locale: field("locale").presence || "fr",
-        siren: field("siren").gsub(/\s/, ""), vat_number: field("vat_number"), modules: fields("modules"),
-        extensions: field("extensions").split(/[\s,]+/).map(&.strip.downcase).reject(&.empty?),
+        siren: field("siren").gsub(/\s/, ""), vat_number: field("vat_number"), modules: modules, extensions: extensions,
         admin_email: field("admin_email"), server_id: field("server_id").to_i64?,
         firm_id: user.firm_admin? ? PartiduoAdmin.id?(user.firm_id) : field("firm_id").to_i64?, payer_id: field("payer_id").to_i64?,
         package: Config.dossier_package, backup_schedule: field("backup_schedule").presence || "daily",
@@ -60,29 +60,53 @@ module PartiduoAdmin
 
     private def form(input : Fleet::DossierInput, errors : Fleet::Errors, status : Int32 = 200)
       t = translate(errors)
-      opt = ->(value : String, label : String, current : String) { FormField::Option.new(value, label, value == current) }
-      firms = Access.firms(user).filter(active: true).order("name").map { |firm| opt.call(firm.pk.to_s, firm.name.to_s, input.firm_id.to_s) }
-      payers = Access.payers(user).order("name").map { |payer| opt.call(payer.pk.to_s, "#{payer.name} (#{payer.firm_name})", input.payer_id.to_s) }
-      servers = Server.filter(active: true).order("name").map { |server| opt.call(server.pk.to_s, "#{server.name} — #{server.domain}", input.server_id.to_s) }
-      modules = Protocol::MODULES.map { |code| FormField::Option.new(code, I18n.t("admin.modules.#{code}"), input.modules.includes?(code)) }
-      fields = [
+      page("admin/dossier_new.html", {
+        "identity"     => identity_fields(input, t),
+        "choices"      => choice_fields(input, t),
+        "families"     => PieceForm.families(nil, input.modules + input.extensions, t),
+        "other"        => other_field(input.extensions, t),
+        "fields"       => assignment_fields(input, t),
+        "base_errors"  => errs(t, "base") + errs(t, "package"),
+        "package_key"  => "admin.packages.#{Config.dossier_package}",
+        "pieces"       => picker(""),
+        "piece_errors" => piece_errors(t),
+      }, status: status)
+    end
+
+    private def option(value : String, label : String, current : String, help : String = "") : FormField::Option
+      FormField::Option.new(value, label, value == current, help)
+    end
+
+    private def identity_fields(input : Fleet::DossierInput, t : Hash(String, Array(String))) : Array(FormField)
+      [
         FormField.new("slug", I18n.t("admin.dossiers.fields.slug"), input.slug, errors: errs(t, "slug"), required: true,
           help: I18n.t("admin.dossiers.help.slug", domain: Config.domain)),
         FormField.new("label", I18n.t("admin.dossiers.fields.label"), input.label, errors: errs(t, "label"), required: true),
-        # Type de dossier (A-PER-5) : entreprise ou foyer, jamais modifié.
-        FormField.new("kind", I18n.t("admin.dossiers.fields.kind"), input.kind, "select",
-          Protocol::DOSSIER_KINDS.map { |code| opt.call(code, I18n.t("admin.kinds.#{code}"), input.kind) },
-          errs(t, "kind"), required: true, help: I18n.t("admin.dossiers.help.kind")),
-        FormField.new("regime", I18n.t("admin.dossiers.fields.regime"), input.regime, "select",
-          [opt.call("fr", I18n.t("admin.regimes.fr"), input.regime), opt.call("be", I18n.t("admin.regimes.be"), input.regime)],
-          errs(t, "regime"), required: true),
         FormField.new("locale", I18n.t("admin.dossiers.fields.locale"), input.locale, "select",
-          Config::LOCALES.map { |code| opt.call(code, I18n.t("admin.languages.#{code}"), input.locale) }, errs(t, "locale")),
+          Config::LOCALES.map { |code| option(code, I18n.t("admin.languages.#{code}"), input.locale) }, errs(t, "locale")),
         FormField.new("siren", I18n.t("admin.dossiers.fields.siren"), input.siren, errors: errs(t, "siren")),
         FormField.new("vat_number", I18n.t("admin.dossiers.fields.vat_number"), input.vat_number),
-        FormField.new("modules", I18n.t("admin.dossiers.fields.modules"), "", "checkboxes", modules, errs(t, "modules"), required: true),
-        FormField.new("extensions", I18n.t("admin.dossiers.fields.extensions"), input.extensions.join(", "),
-          errors: errs(t, "extensions"), help: I18n.t("admin.dossiers.help.extensions")),
+      ]
+    end
+
+    # Choix uniques, en boutons radio : type de dossier (A-PER-5, jamais
+    # modifié ensuite) et régime fiscal.
+    private def choice_fields(input : Fleet::DossierInput, t : Hash(String, Array(String))) : Array(FormField)
+      [
+        FormField.new("kind", I18n.t("admin.dossiers.fields.kind"), input.kind, "radios",
+          Protocol::DOSSIER_KINDS.map { |code| option(code, I18n.t("admin.kinds.#{code}"), input.kind, I18n.t("admin.dossiers.help.kinds.#{code}")) },
+          errs(t, "kind"), required: true, help: I18n.t("admin.dossiers.help.kind")),
+        FormField.new("regime", I18n.t("admin.dossiers.fields.regime"), input.regime, "radios",
+          %w[fr be].map { |code| option(code, I18n.t("admin.regimes.#{code}"), input.regime) },
+          errs(t, "regime"), required: true, help: I18n.t("admin.dossiers.help.regime")),
+      ]
+    end
+
+    private def assignment_fields(input : Fleet::DossierInput, t : Hash(String, Array(String))) : Array(FormField)
+      firms = Access.firms(user).filter(active: true).order("name").map { |firm| option(firm.pk.to_s, firm.name.to_s, input.firm_id.to_s) }
+      payers = Access.payers(user).order("name").map { |payer| option(payer.pk.to_s, "#{payer.name} (#{payer.firm_name})", input.payer_id.to_s) }
+      servers = Server.filter(active: true).order("name").map { |server| option(server.pk.to_s, "#{server.name} — #{server.domain}", input.server_id.to_s) }
+      fields = [
         FormField.new("admin_email", I18n.t("admin.dossiers.fields.admin_email"), input.admin_email, "email",
           errors: errs(t, "admin_email"), required: true, help: I18n.t("admin.dossiers.help.admin_email")),
         FormField.new("server_id", I18n.t("admin.dossiers.fields.server"), input.server_id.to_s, "select", servers,
@@ -93,14 +117,13 @@ module PartiduoAdmin
           errs(t, "firm_id"), required: true, help: firms.empty? ? I18n.t("admin.dossiers.help.no_firm") : "")
       end
       fields << FormField.new("payer_id", I18n.t("admin.dossiers.fields.payer"), input.payer_id.to_s, "select",
-        [opt.call("", I18n.t("admin.choose"), "x")] + payers, errs(t, "payer_id"), required: true,
+        [option("", I18n.t("admin.choose"), "x")] + payers, errs(t, "payer_id"), required: true,
         help: I18n.t(payers.empty? ? "admin.dossiers.help.no_payer" : "admin.dossiers.help.payer"))
       fields << FormField.new("backup_schedule", I18n.t("admin.dossiers.fields.backup_schedule"), input.backup_schedule, "select",
-        Dossier::SCHEDULES.map { |code| opt.call(code, I18n.t("admin.schedules.#{code}"), input.backup_schedule) })
+        Dossier::SCHEDULES.map { |code| option(code, I18n.t("admin.schedules.#{code}"), input.backup_schedule) })
       fields << FormField.new("backup_retention_days", I18n.t("admin.dossiers.fields.backup_retention_days"),
         input.backup_retention_days.to_s, "number", errors: errs(t, "backup_retention_days"))
-      page("admin/dossier_new.html", {"fields" => fields, "base_errors" => errs(t, "base") + errs(t, "package"),
-                                      "package_key" => "admin.packages.#{Config.dossier_package}"}, status: status)
+      fields
     end
   end
 
@@ -129,6 +152,8 @@ module PartiduoAdmin
         "today"            => Config.now.to_s("%F"),
         "move_servers"     => move_servers(dossier),
         "kind_key"         => "admin.kinds.#{dossier.kind.presence || "company"}",
+        "module_labels"    => Catalog.labels(dossier.module_list).join(", "),
+        "extension_labels" => Catalog.labels(dossier.extension_list).join(", ").presence,
       })
     end
 
@@ -172,6 +197,9 @@ module PartiduoAdmin
     end
   end
 
+  # Modules et extensions d'un dossier actif (ADR-006 D2 : désactiver
+  # conserve les données), choisis par familles (D-ADM-016) : seules les
+  # pièces admises par le type du dossier sont proposées.
   class DossierModulesHandler < ScreenHandler
     def get
       dossier = dossier!
@@ -181,8 +209,7 @@ module PartiduoAdmin
 
     def post
       dossier = dossier!
-      modules = fields("modules")
-      extensions = field("extensions").split(/[\s,]+/).map(&.strip.downcase).reject(&.empty?)
+      modules, extensions = PieceForm.split(fields("modules"), fields("extensions"))
       outcome = Fleet.change_modules(user, dossier, modules, extensions)
       if outcome.ok?
         flash["success"] = I18n.t("admin.tasks.enqueued")
@@ -193,14 +220,16 @@ module PartiduoAdmin
 
     private def form(dossier : Dossier, modules : Array(String), extensions : Array(String), errors : Fleet::Errors, status = 200)
       t = translate(errors)
-      fields = [
-        FormField.new("modules", I18n.t("admin.dossiers.fields.modules"), "", "checkboxes",
-          Protocol::MODULES.map { |code| FormField::Option.new(code, I18n.t("admin.modules.#{code}"), modules.includes?(code)) },
-          errs(t, "modules"), required: true, help: I18n.t("admin.dossiers.help.modules_kept")),
-        FormField.new("extensions", I18n.t("admin.dossiers.fields.extensions"), extensions.join(", "),
-          errors: errs(t, "extensions"), help: I18n.t("admin.dossiers.help.extensions")),
-      ]
-      page("admin/dossier_modules.html", {"dossier" => dossier, "fields" => fields, "base_errors" => errs(t, "base")}, status: status)
+      kind = dossier.kind.presence || "company"
+      page("admin/dossier_modules.html", {
+        "dossier"      => dossier,
+        "kind_key"     => "admin.kinds.#{kind}",
+        "families"     => PieceForm.families(kind, modules + extensions, t),
+        "other"        => other_field(extensions, t),
+        "piece_errors" => piece_errors(t),
+        "base_errors"  => errs(t, "base"),
+        "pieces"       => picker(kind, dossier.module_list + dossier.extension_list),
+      }, status: status)
     end
   end
 

@@ -50,7 +50,7 @@ describe "Type de dossier (A-PER-5)" do
     PartiduoAdmin::Fleet.create_dossier(root, kind_input(firm, server, payer, "type-x", "association")).errors["kind"]
       .should eq(["admin.errors.dossier.kind"])
     PartiduoAdmin::Fleet.create_dossier(root, kind_input(firm, server, payer, "foyer-x", "household", ["accounting", "invoicing"]))
-      .errors["modules"].should eq(["admin.errors.dossier.household_modules"])
+      .errors["family.management"].should eq(["pieces:kind_excludes|piece=invoicing|others=|kind=household"])
     PartiduoAdmin::Fleet.create_dossier(root, kind_input(firm, server, payer, "foyer-y", "household", [] of String))
       .errors["modules"].should_not be_empty
     PartiduoAdmin::Dossier.filter(slug__in: %w[type-x foyer-x foyer-y]).exists?.should be_false
@@ -64,8 +64,8 @@ describe "Type de dossier (A-PER-5)" do
     dossier.modules = "accounting"
     dossier.save!
     PartiduoAdmin::Fleet.change_modules(AdminSpec.super_admin, dossier, ["accounting", "analytic"], [] of String)
-      .errors["modules"].should eq(["admin.errors.dossier.household_modules"])
-    PartiduoAdmin::Fleet.change_modules(AdminSpec.super_admin, dossier, ["accounting"], ["perso"]).ok?.should be_true
+      .errors["family.management"].should eq(["pieces:kind_excludes|piece=analytic|others=|kind=household"])
+    PartiduoAdmin::Fleet.change_modules(AdminSpec.super_admin, dossier, ["accounting"], ["perso", "bankimport"]).ok?.should be_true
   end
 
   it "propose le type au formulaire, le crée et l'affiche sur la fiche, en fr, en et nl" do
@@ -75,13 +75,13 @@ describe "Type de dossier (A-PER-5)" do
     browser = AdminSpec::Browser.new(token: AdminSpec.session(AdminSpec.user(PartiduoAdmin::Config::FIRM_ADMIN, firm)))
     form = browser.get("/dossiers/new").html
     form.should contain(%(name="kind"))
-    form.should contain(%(<option value="household">Foyer</option>))
+    form.should contain(%(<input type="radio" name="kind" value="household" required><span><strong>Foyer</strong>))
     data = {"slug" => "foyer-form", "label" => "Foyer Durand", "regime" => "fr", "locale" => "fr", "kind" => "household",
             "modules" => ["accounting", "invoicing"], "admin_email" => "durand@foyer.fr",
             "server_id" => server.pk.to_s, "payer_id" => payer.pk.to_s, "backup_schedule" => "daily", "backup_retention_days" => "30"}
     refused = browser.post("/dossiers/new", data)
     refused.status.should eq(422)
-    refused.html.should contain("Un dossier foyer n'a que la Comptabilité parmi les modules.")
+    refused.html.should contain("«\u00a0Facturation\u00a0» n'est pas admis dans un dossier «\u00a0Foyer\u00a0».")
     created = browser.post("/dossiers/new", data.merge({"modules" => ["accounting"]}))
     created.status.should eq(302)
     dossier = PartiduoAdmin::Dossier.get!(slug: "foyer-form")

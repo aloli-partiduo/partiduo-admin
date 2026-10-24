@@ -78,14 +78,119 @@ en:
     packages:
       app: "partiduo-app (production)"
       devel: "partiduo-app-devel (development)"
-    modules:
-      accounting: "Accounting"
-      invoicing: "Invoicing"
-      analytic: "Analytics"
-      stock: "Stock"
-      followup: "Follow-up"
-      micro: "Micro-enterprise"
-      liberal: "Liberal professions (2035)"
+    pieces:
+      quoted: "“%{name}”"
+      or: "%{first} or %{last}"
+      kind_fixed: "set at creation."
+      families:
+        keeping:
+          legend: "Regime and bookkeeping"
+          help: "Full accounting, micro-enterprise or liberal profession. They can be combined: Accounting then turns the registers into double entry."
+        management:
+          legend: "Management"
+          help: "Invoicing, stock, follow-up, analytics and management tools."
+        declarations:
+          legend: "Online tax returns"
+          help: "Filing of tax and social security returns."
+        einvoicing:
+          legend: "E-invoicing"
+          help: "Approved platforms and Chorus Pro. Several platforms may be active; the company file connects to one."
+        banking:
+          legend: "Bank and payments"
+          help: "Bank statements and SEPA payments."
+        household:
+          legend: "Household"
+          help: "Personal finances of a household."
+        tools:
+          legend: "Tools"
+          help: "Receipts, imports, reports, forms and templates."
+      accounting:
+        name: "Accounting"
+        help: "Double entry: journals, general ledger, VAT, closing."
+      micro:
+        name: "Micro-enterprise"
+        help: "Receipts book, purchase register, turnover to declare, thresholds."
+      liberal:
+        name: "Liberal profession (2035)"
+        help: "Cash receipts and expenses, fixed assets, 2035 return."
+      invoicing:
+        name: "Invoicing"
+        help: "Quotes, invoices, credit notes, payments and reminders."
+      stock:
+        name: "Stock"
+        help: "Items and stock movements."
+      followup:
+        name: "Follow-up"
+        help: "Actions, reminders and tags attached to cards."
+      analytic:
+        name: "Analytics"
+        help: "Analytic plans, distribution of entries and reports."
+      amortis:
+        name: "Fixed assets and depreciation"
+        help: "Fixed asset register, depreciation schedules and charges."
+      crm:
+        name: "Customer relations"
+        help: "Sales follow-up of customers and prospects."
+      teledec:
+        name: "TELEDEC"
+        help: "Tax returns (statutory returns, VAT, 2035) filed through TELEDEC."
+      urssaf:
+        name: "URSSAF"
+        help: "Third-party filing of the micro-entrepreneur's URSSAF returns."
+      einv:
+        name: "E-invoicing"
+        help: "Sending and receiving e-invoices, e-reporting."
+      superpdp:
+        name: "SUPER PDP"
+        help: "Connection to the SUPER PDP approved platform."
+      esalink:
+        name: "EsaLink"
+        help: "Connection to the EsaLink approved platform."
+      choruspro:
+        name: "Chorus Pro"
+        help: "Invoices to public-sector customers."
+      bankimport:
+        name: "Bank statement import"
+        help: "Imported bank statements, categorisation rules."
+      sepa:
+        name: "SEPA payments"
+        help: "Transfers and direct debits through SEPA files."
+      perso:
+        name: "Household finances"
+        help: "Accounts, budgets and wealth of a household; only acts in a household file."
+      document:
+        name: "Receipts"
+        help: "Incoming documents to process and attach."
+      import:
+        name: "Transaction import"
+        help: "Bulk import of transactions."
+      reports:
+        name: "Advanced reports and listings"
+        help: "Configurable reports and listings."
+      form:
+        name: "Forms"
+        help: "Public forms by token."
+      modeles:
+        name: "Document templates"
+        help: "Multi-format invoice templates."
+      notes:
+        requires: "Requires %{others}."
+        incompatible: "Incompatible with %{others}."
+        kind_excludes: "Not allowed in a “%{kind}” file."
+        kind_requires: "Required for a “%{kind}” file."
+      other:
+        label: "Other extensions"
+        help: "Codes of extensions missing from the list, comma-separated; the company file checks them when enabling."
+      js:
+        required_by: "Required by %{others}"
+        incompatible: "Unavailable: incompatible with %{others}"
+        kind_required: "Required for a “%{kind}” file"
+        unavailable: "Not allowed in a “%{kind}” file"
+        checked: "%{piece} checked: %{others} too, as required."
+        unchecked: "Also unchecked: %{others}."
+        confirm: "Unchecking %{piece} will also uncheck what depends on it: %{others}. Continue?"
+        enable: "To enable: %{others}."
+        disable: "To disable: %{others} — their data is kept, read-only."
     login:
       connect_button: "Sign in with my Partiduo account"
       connect_help: "One account for the administration and all your files: passkey, authenticator app and recovery codes are held by connect."
@@ -179,6 +284,9 @@ en:
       managers: "File managers"
       assign: "Assign"
       unassign: "Remove"
+      sections:
+        identity: "Identity"
+        assignment: "Assignment and backups"
       fields:
         slug: "Subdomain"
         label: "Company name"
@@ -204,8 +312,11 @@ en:
         retention_until: "Kept until"
       help:
         slug: "Lower case letters, digits and hyphens; the file will be served at <subdomain>.%{domain}."
-        kind: "Business (including micro-enterprise and liberal profession) or household; cannot change after creation. A household has Accounting only, and neither SIREN nor VAT number."
-        extensions: "Comma-separated codes (einvoicing, superpdp…)."
+        kind: "Cannot change after creation."
+        kinds:
+          company: "Company, micro-enterprise or liberal profession."
+          household: "Household finances: Accounting required, no business module, neither SIREN nor VAT number."
+        regime: "Country of the chart of accounts and taxation of the company file."
         admin_email: "Receives the file administrator invitation."
         payer: "Who orders and pays for the file: required."
         package: "FreeBSD package that will serve the company file; beryl updates it on every server, and the company file migrates itself when it starts."
@@ -698,12 +809,17 @@ en:
         unknown: "Unknown passkey."
         origin: "Origin refused."
         already_registered: "This passkey is already registered."
+      pieces:
+        requires: "%{piece} requires %{others}."
+        requires_any: "%{piece} requires %{others}."
+        incompatible: "%{piece} is incompatible with %{others}."
+        kind_excludes: "%{piece} is not allowed in a “%{kind}” file."
+        kind_requires: "A “%{kind}” file requires %{piece}."
       dossier:
         slug: "Invalid subdomain: a lower case letter first, then lower case letters, digits, hyphens (40 characters at most)."
         slug_taken: "This subdomain is already taken."
         regime: "Unknown tax regime."
         kind: "Unknown file type."
-        household_modules: "A household file has Accounting only among the modules."
         locale: "Unknown language."
         modules: "Choose at least one of the official modules."
         extensions: "Invalid extension code."

@@ -104,16 +104,20 @@ module PartiduoAdmin
       errors
     end
 
-    # Type de dossier : déclaré ; un foyer n'a que la Comptabilité parmi les
-    # modules officiels (le cœur refuserait le provisionnement : mieux vaut
-    # le dire au formulaire). Les extensions restent libres : celles
-    # d'entreprise sont écartées par le cœur (`incompatible_with`).
+    # Type de dossier déclaré, puis règles des pièces choisies pour ce type
+    # (`Catalog`, D-ADM-016 : exclusions et pièces requises du type,
+    # dépendances, incompatibilités) : le cœur refuserait le
+    # provisionnement, mieux vaut le dire au formulaire.
     private def self.kind_errors(input : DossierInput, errors : Errors) : Nil
       if !Protocol.valid_dossier_kind?(input.kind)
         add(errors, "kind", "admin.errors.dossier.kind")
-      elsif input.kind == "household" && input.modules.uniq.sort! != Protocol::HOUSEHOLD_MODULES
-        add(errors, "modules", "admin.errors.dossier.household_modules")
+      elsif valid_modules?(input.modules)
+        piece_errors(input.kind, input.modules + input.extensions, errors)
       end
+    end
+
+    private def self.piece_errors(kind : String, codes : Array(String), errors : Errors) : Nil
+      Catalog.errors(kind, codes).each { |field, keys| keys.each { |key| add(errors, field, key) } }
     end
 
     private def self.schedule_errors(input : DossierInput, errors : Errors) : Nil
@@ -158,10 +162,10 @@ module PartiduoAdmin
       return Outcome(Task).failure("base", "admin.errors.forbidden") unless Access.can?(user, :modules, dossier)
       return Outcome(Task).failure("base", "admin.errors.dossier.not_active") unless dossier.state == "active"
       return Outcome(Task).failure("modules", "admin.errors.dossier.modules") unless valid_modules?(modules)
-      if dossier.kind == "household" && modules.uniq.sort! != Protocol::HOUSEHOLD_MODULES
-        return Outcome(Task).failure("modules", "admin.errors.dossier.household_modules")
-      end
       return Outcome(Task).failure("extensions", "admin.errors.dossier.extensions") unless valid_extensions?(extensions)
+      errors = Errors.new
+      piece_errors(dossier.kind.presence || "company", modules + extensions, errors)
+      return Outcome(Task).new(nil, errors) unless errors.empty?
       # Extensions retirées avant les modules (une extension requiert un
       # module, jamais l'inverse), modules ajoutés avant les extensions ;
       # l'exécutant affine l'ordre selon les dépendances que rend l'instance

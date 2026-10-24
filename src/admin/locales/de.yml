@@ -78,14 +78,119 @@ de:
     packages:
       app: "partiduo-app (Produktion)"
       devel: "partiduo-app-devel (Entwicklung)"
-    modules:
-      accounting: "Buchhaltung"
-      invoicing: "Fakturierung"
-      analytic: "Kostenrechnung"
-      stock: "Lager"
-      followup: "Nachverfolgung"
-      micro: "Kleinstunternehmen"
-      liberal: "Freie Berufe (2035)"
+    pieces:
+      quoted: "„%{name}“"
+      or: "%{first} oder %{last}"
+      kind_fixed: "bei der Anlage festgelegt."
+      families:
+        keeping:
+          legend: "Besteuerung und Buchführung"
+          help: "Vollständige Buchhaltung, Kleinstunternehmen oder freier Beruf. Sie lassen sich kombinieren: Die Buchhaltung übernimmt dann die Register in doppelter Buchführung."
+        management:
+          legend: "Verwaltung"
+          help: "Fakturierung, Lager, Nachverfolgung, Kostenrechnung und Verwaltungswerkzeuge."
+        declarations:
+          legend: "Elektronische Erklärungen"
+          help: "Übermittlung von Steuer- und Sozialerklärungen."
+        einvoicing:
+          legend: "E-Rechnung"
+          help: "Zugelassene Plattformen und Chorus Pro. Mehrere Plattformen können aktiv sein; der Mandant verbindet sich mit einer."
+        banking:
+          legend: "Bank und Zahlungen"
+          help: "Kontoauszüge und SEPA-Zahlungen."
+        household:
+          legend: "Haushalt"
+          help: "Private Finanzen eines Haushalts."
+        tools:
+          legend: "Werkzeuge"
+          help: "Belege, Importe, Berichte, Formulare und Vorlagen."
+      accounting:
+        name: "Buchhaltung"
+        help: "Doppelte Buchführung: Journale, Hauptbuch, USt, Abschluss."
+      micro:
+        name: "Kleinstunternehmen"
+        help: "Einnahmenbuch, Einkaufsregister, zu meldender Umsatz, Schwellenwerte."
+      liberal:
+        name: "Freier Beruf (2035)"
+        help: "Vereinnahmte Einnahmen und Ausgaben, Anlagegüter, Erklärung 2035."
+      invoicing:
+        name: "Fakturierung"
+        help: "Angebote, Rechnungen, Gutschriften, Zahlungen und Mahnungen."
+      stock:
+        name: "Lager"
+        help: "Artikel und Lagerbewegungen."
+      followup:
+        name: "Nachverfolgung"
+        help: "Aktionen, Erinnerungen und Schlagwörter zu den Karteikarten."
+      analytic:
+        name: "Kostenrechnung"
+        help: "Kostenpläne, Verteilung der Buchungen und Berichte."
+      amortis:
+        name: "Anlagen und Abschreibungen"
+        help: "Anlagenverzeichnis, Abschreibungspläne und Zuführungen."
+      crm:
+        name: "Kundenbeziehungen"
+        help: "Vertriebliche Betreuung von Kunden und Interessenten."
+      teledec:
+        name: "TELEDEC"
+        help: "Steuererklärungen (Jahresabschluss, USt, 2035), übermittelt über TELEDEC."
+      urssaf:
+        name: "URSSAF"
+        help: "Erklärung des Kleinstunternehmers bei der URSSAF durch Dritte."
+      einv:
+        name: "E-Rechnung"
+        help: "Versand und Empfang elektronischer Rechnungen, E-Reporting."
+      superpdp:
+        name: "SUPER PDP"
+        help: "Anbindung an die zugelassene Plattform SUPER PDP."
+      esalink:
+        name: "EsaLink"
+        help: "Anbindung an die zugelassene Plattform EsaLink."
+      choruspro:
+        name: "Chorus Pro"
+        help: "Rechnungen an öffentliche Auftraggeber."
+      bankimport:
+        name: "Import von Kontoauszügen"
+        help: "Importierte Kontoauszüge, Kategorisierungsregeln."
+      sepa:
+        name: "SEPA-Zahlungen"
+        help: "Überweisungen und Lastschriften über SEPA-Dateien."
+      perso:
+        name: "Haushaltsfinanzen"
+        help: "Konten, Budgets und Vermögen eines Haushalts; wirkt nur in einem Haushaltsmandanten."
+      document:
+        name: "Belege"
+        help: "Eingegangene Belege zum Bearbeiten und Zuordnen."
+      import:
+        name: "Import von Vorgängen"
+        help: "Massenimport von Vorgängen."
+      reports:
+        name: "Erweiterte Berichte und Listen"
+        help: "Konfigurierbare Berichte und Listen."
+      form:
+        name: "Formulare"
+        help: "Öffentliche Formulare per Token."
+      modeles:
+        name: "Dokumentvorlagen"
+        help: "Rechnungsvorlagen in mehreren Formaten."
+      notes:
+        requires: "Erfordert %{others}."
+        incompatible: "Unvereinbar mit %{others}."
+        kind_excludes: "In einem Mandanten „%{kind}“ nicht zulässig."
+        kind_requires: "Erforderlich für einen Mandanten „%{kind}“."
+      other:
+        label: "Weitere Erweiterungen"
+        help: "Codes von Erweiterungen, die nicht in der Liste stehen, durch Kommas getrennt; der Mandant prüft sie bei der Aktivierung."
+      js:
+        required_by: "Erforderlich für %{others}"
+        incompatible: "Nicht verfügbar: unvereinbar mit %{others}"
+        kind_required: "Erforderlich für einen Mandanten „%{kind}“"
+        unavailable: "In einem Mandanten „%{kind}“ nicht zulässig"
+        checked: "%{piece} ausgewählt: auch %{others}, da erforderlich."
+        unchecked: "Ebenfalls abgewählt: %{others}."
+        confirm: "Wenn Sie %{piece} abwählen, wird auch abgewählt, was davon abhängt: %{others}. Fortfahren?"
+        enable: "Zu aktivieren: %{others}."
+        disable: "Zu deaktivieren: %{others} — ihre Daten bleiben schreibgeschützt erhalten."
     login:
       connect_button: "Mit meinem Partiduo-Konto anmelden"
       connect_help: "Ein Konto für die Verwaltung und alle Ihre Mandanten: Passkey, Authenticator-App und Wiederherstellungscodes werden von connect verwaltet."
@@ -179,6 +284,9 @@ de:
       managers: "Betreuer"
       assign: "Zuweisen"
       unassign: "Entfernen"
+      sections:
+        identity: "Identität"
+        assignment: "Zuordnung und Sicherungen"
       fields:
         slug: "Subdomain"
         label: "Firmenname"
@@ -204,8 +312,11 @@ de:
         retention_until: "Aufbewahrung bis"
       help:
         slug: "Kleinbuchstaben, Ziffern und Bindestriche; der Mandant wird unter <Subdomain>.%{domain} bereitgestellt."
-        kind: "Unternehmen (einschließlich Kleinstunternehmen und freier Beruf) oder Haushalt; nach der Anlage nicht mehr änderbar. Ein Haushalt hat nur die Buchhaltung, weder SIREN noch USt-IdNr."
-        extensions: "Durch Kommas getrennte Codes (einvoicing, superpdp…)."
+        kind: "Nach der Anlage nicht mehr änderbar."
+        kinds:
+          company: "Unternehmen, Kleinstunternehmen oder freier Beruf."
+          household: "Finanzen eines Haushalts: Buchhaltung erforderlich, kein Unternehmensmodul, weder SIREN noch USt-IdNr."
+        regime: "Land des Kontenplans und der Besteuerung des Mandanten."
         admin_email: "Erhält die Einladung als Mandantenadministrator."
         payer: "Wer den Mandanten bestellt und bezahlt: Pflichtangabe."
         package: "FreeBSD-Paket, das den Mandanten bereitstellt; beryl aktualisiert es auf allen Servern, und der Mandant migriert sich beim Start selbst."
@@ -698,12 +809,17 @@ de:
         unknown: "Unbekannter Passkey."
         origin: "Herkunft abgelehnt."
         already_registered: "Dieser Passkey ist bereits registriert."
+      pieces:
+        requires: "%{piece} erfordert %{others}."
+        requires_any: "%{piece} erfordert %{others}."
+        incompatible: "%{piece} ist unvereinbar mit %{others}."
+        kind_excludes: "%{piece} ist in einem Mandanten „%{kind}“ nicht zulässig."
+        kind_requires: "Ein Mandant „%{kind}“ erfordert %{piece}."
       dossier:
         slug: "Ungültige Subdomain: zuerst ein Kleinbuchstabe, dann Kleinbuchstaben, Ziffern, Bindestriche (höchstens 40 Zeichen)."
         slug_taken: "Diese Subdomain ist bereits vergeben."
         regime: "Unbekanntes Steuerregime."
         kind: "Unbekannter Mandantentyp."
-        household_modules: "Ein Haushaltsmandant hat unter den Modulen nur die Buchhaltung."
         locale: "Unbekannte Sprache."
         modules: "Wählen Sie mindestens eines der offiziellen Module."
         extensions: "Ungültiger Erweiterungscode."

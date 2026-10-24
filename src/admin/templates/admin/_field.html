@@ -1,8 +1,13 @@
-{# SPDX-License-Identifier: AGPL-3.0-or-later. Un champ de formulaire (PartiduoAdmin::FormField) : étiquette reliée, aide et erreurs annoncées, aria-invalid en cas d'erreur. #}{% if field.type == "checkboxes" %}<fieldset class="pd-fieldset"{% if field.describedby %} aria-describedby="{{ field.describedby }}"{% endif %}>
+{# SPDX-License-Identifier: AGPL-3.0-or-later. Un champ de formulaire (PartiduoAdmin::FormField) : étiquette reliée, aide et erreurs annoncées, aria-invalid en cas d'erreur ; cases à cocher et boutons radio dans un fieldset. #}{% if field.type == "checkboxes" %}<fieldset class="pd-fieldset"{% if field.describedby %} aria-describedby="{{ field.describedby }}"{% endif %}>
   <legend>{{ field.label }}{% if field.required %}<span class="pd-required" aria-hidden="true"> *</span>{% endif %}</legend>
   <div class="pd-checks">{% for option in field.options %}<label class="checkbox"><input type="checkbox" name="{{ field.name }}" value="{{ option.value }}"{% if option.selected %} checked{% endif %}> {{ option.label }}</label>{% endfor %}</div>
   {% if field.help %}<p class="help" id="{{ field.help_id }}">{{ field.help }}</p>{% endif %}
   {% if field.has_errors %}<p class="help is-danger" id="{{ field.error_id }}">{% for error in field.errors %}{{ error }} {% endfor %}</p>{% endif %}
+</fieldset>{% elsif field.type == "radios" %}<fieldset class="pd-fieldset" data-pd-radios="{{ field.name }}"{% if field.describedby %} aria-describedby="{{ field.describedby }}"{% endif %}>
+  <legend>{{ field.label }}{% if field.required %}<span class="pd-required" aria-hidden="true"> *</span>{% endif %}</legend>
+  {% if field.help %}<p class="help" id="{{ field.help_id }}">{{ field.help }}</p>{% endif %}
+  {% if field.has_errors %}<p class="help is-danger" id="{{ field.error_id }}">{% for error in field.errors %}{{ error }} {% endfor %}</p>{% endif %}
+  <div class="pd-choices pd-choices-row">{% for option in field.options %}<label class="pd-choice"><input type="radio" name="{{ field.name }}" value="{{ option.value }}"{% if option.selected %} checked{% endif %}{% if field.required %} required{% endif %}{% if field.has_errors %} aria-invalid="true"{% endif %}><span><strong>{{ option.label }}</strong>{% if option.help %}<span class="pd-choice-help">{{ option.help }}</span>{% endif %}</span></label>{% endfor %}</div>
 </fieldset>{% else %}<div class="field">
   <label class="label" for="{{ field.id }}">{{ field.label }}{% if field.required %}<span class="pd-required" aria-hidden="true"> *</span>{% endif %}</label>
   <div class="control">

@@ -12,8 +12,14 @@ module PartiduoAdmin
   class FormField
     include Marten::Template::Object::Auto
 
-    record Option, value : String, label : String, selected : Bool = false do
+    # Option d'un choix ; `help` : ligne d'explication d'un bouton radio.
+    record Option, value : String, label : String, selected : Bool = false, help_text : String = "" do
       include Marten::Template::Object::Auto
+
+      # `nil` si vide (une chaîne vide est vraie dans un gabarit).
+      def help : String?
+        help_text.presence
+      end
     end
 
     getter name : String
@@ -192,7 +198,7 @@ module PartiduoAdmin
     end
 
     def translate(errors : Fleet::Errors) : Hash(String, Array(String))
-      errors.transform_values { |keys| keys.map { |key| I18n.t(key) } }
+      errors.transform_values { |keys| keys.map { |key| Catalog.message(key) || I18n.t(key) } }
     end
 
     def page(template : String, values = {} of String => String, status : Int32 = 200) : Marten::HTTP::Response
@@ -285,6 +291,27 @@ module PartiduoAdmin
 
     def require_admin! : Nil
       raise Access::Denied.new("admin") if user.file_manager?
+    end
+
+    # Autres extensions d'un dossier : codes absents du catalogue (D-ADM-016).
+    def other_field(extensions : Array(String), t : Hash(String, Array(String))) : FormField
+      FormField.new("extensions", I18n.t("admin.pieces.other.label"), PieceForm.others(extensions),
+        errors: errs(t, "extensions"), help: I18n.t("admin.pieces.other.help"))
+    end
+
+    # Erreurs du choix des pièces, annoncées en tête du choix : celles qui
+    # ne relèvent d'aucune famille (aucun module officiel, module inconnu),
+    # puis celles de chaque famille, répétées sous sa légende ; `nil` sans
+    # erreur (une liste vide est vraie dans un gabarit).
+    def piece_errors(t : Hash(String, Array(String))) : Array(String)?
+      list = errs(t, "modules") + Catalog::FAMILIES.flat_map { |family| errs(t, "family.#{family}") }
+      list.empty? ? nil : list
+    end
+
+    # Réglages de `pieces.js` : type fixé (vide à la création, où il se
+    # choisit), pièces actives au départ, messages traduits.
+    def picker(kind : String, initial : Array(String) = [] of String) : PiecePicker
+      PiecePicker.new(kind, initial)
     end
   end
 

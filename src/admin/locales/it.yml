@@ -78,14 +78,119 @@ it:
     packages:
       app: "partiduo-app (produzione)"
       devel: "partiduo-app-devel (sviluppo)"
-    modules:
-      accounting: "Contabilità"
-      invoicing: "Fatturazione"
-      analytic: "Contabilità analitica"
-      stock: "Magazzino"
-      followup: "Monitoraggio"
-      micro: "Microimpresa (micro-entreprise)"
-      liberal: "Libere professioni (2035)"
+    pieces:
+      quoted: "«%{name}»"
+      or: "%{first} o %{last}"
+      kind_fixed: "fissato alla creazione."
+      families:
+        keeping:
+          legend: "Regime e tenuta della contabilità"
+          help: "Contabilità completa, microimpresa o libera professione. Si possono combinare: la Contabilità riprende allora i registri in partita doppia."
+        management:
+          legend: "Gestione"
+          help: "Fatturazione, magazzino, monitoraggio, contabilità analitica e strumenti di gestione."
+        declarations:
+          legend: "Dichiarazioni telematiche"
+          help: "Trasmissione delle dichiarazioni fiscali e sociali."
+        einvoicing:
+          legend: "Fattura elettronica"
+          help: "Piattaforme autorizzate e Chorus Pro. Possono essere attive più piattaforme; il dossier si collega a una."
+        banking:
+          legend: "Banca e pagamenti"
+          help: "Estratti conto e pagamenti SEPA."
+        household:
+          legend: "Nucleo familiare"
+          help: "Finanze personali di un nucleo familiare."
+        tools:
+          legend: "Strumenti"
+          help: "Giustificativi, importazioni, report, moduli e modelli."
+      accounting:
+        name: "Contabilità"
+        help: "Partita doppia: giornali, libro mastro, IVA, chiusura."
+      micro:
+        name: "Microimpresa"
+        help: "Libro degli incassi, registro degli acquisti, fatturato da dichiarare, soglie."
+      liberal:
+        name: "Libera professione (2035)"
+        help: "Incassi e spese pagate, immobilizzazioni, dichiarazione 2035."
+      invoicing:
+        name: "Fatturazione"
+        help: "Preventivi, fatture, note di credito, incassi e solleciti."
+      stock:
+        name: "Magazzino"
+        help: "Articoli e movimenti di magazzino."
+      followup:
+        name: "Monitoraggio"
+        help: "Azioni, promemoria ed etichette delle schede."
+      analytic:
+        name: "Contabilità analitica"
+        help: "Piani analitici, ripartizione delle registrazioni e report."
+      amortis:
+        name: "Immobilizzazioni e ammortamenti"
+        help: "Registro dei cespiti, piani di ammortamento e quote."
+      crm:
+        name: "Relazioni con i clienti"
+        help: "Monitoraggio commerciale di clienti e potenziali clienti."
+      teledec:
+        name: "TELEDEC"
+        help: "Dichiarazioni fiscali (bilancio, IVA, 2035) trasmesse tramite TELEDEC."
+      urssaf:
+        name: "URSSAF"
+        help: "Dichiarazione per conto terzi del microimprenditore all'URSSAF."
+      einv:
+        name: "Fattura elettronica"
+        help: "Emissione e ricezione di fatture elettroniche, e-reporting."
+      superpdp:
+        name: "SUPER PDP"
+        help: "Collegamento alla piattaforma autorizzata SUPER PDP."
+      esalink:
+        name: "EsaLink"
+        help: "Collegamento alla piattaforma autorizzata EsaLink."
+      choruspro:
+        name: "Chorus Pro"
+        help: "Fatture a clienti pubblici."
+      bankimport:
+        name: "Importazione degli estratti conto"
+        help: "Estratti conto importati, regole di categorizzazione."
+      sepa:
+        name: "Pagamenti SEPA"
+        help: "Bonifici e addebiti tramite file SEPA."
+      perso:
+        name: "Finanze familiari"
+        help: "Conti, budget e patrimonio di un nucleo familiare; agisce solo in un dossier di nucleo familiare."
+      document:
+        name: "Giustificativi"
+        help: "Documenti ricevuti da trattare e collegare."
+      import:
+        name: "Importazione di operazioni"
+        help: "Importazione massiva di operazioni."
+      reports:
+        name: "Report avanzati ed elenchi"
+        help: "Report configurabili ed elenchi."
+      form:
+        name: "Moduli"
+        help: "Moduli pubblici tramite token."
+      modeles:
+        name: "Modelli di documenti"
+        help: "Modelli di fattura in più formati."
+      notes:
+        requires: "Richiede %{others}."
+        incompatible: "Incompatibile con %{others}."
+        kind_excludes: "Non ammesso in un dossier «%{kind}»."
+        kind_requires: "Obbligatorio per un dossier «%{kind}»."
+      other:
+        label: "Altre estensioni"
+        help: "Codici di estensioni assenti dall'elenco, separati da virgole; il dossier li controlla all'attivazione."
+      js:
+        required_by: "Richiesto da %{others}"
+        incompatible: "Non disponibile: incompatibile con %{others}"
+        kind_required: "Obbligatorio per un dossier «%{kind}»"
+        unavailable: "Non ammesso in un dossier «%{kind}»"
+        checked: "%{piece} selezionato: anche %{others}, perché richiesto."
+        unchecked: "Deselezionato anche: %{others}."
+        confirm: "Deselezionare %{piece} deselezionerà anche ciò che ne dipende: %{others}. Continuare?"
+        enable: "Da attivare: %{others}."
+        disable: "Da disattivare: %{others}; i loro dati sono conservati, in sola lettura."
     login:
       connect_button: "Accedi con il mio account Partiduo"
       connect_help: "Un solo account per l'amministrazione e tutti i Suoi dossier: passkey, app di autenticazione e codici di recupero sono gestiti da connect."
@@ -179,6 +284,9 @@ it:
       managers: "Gestori"
       assign: "Affida"
       unassign: "Rimuovi"
+      sections:
+        identity: "Identità"
+        assignment: "Assegnazione e backup"
       fields:
         slug: "Sottodominio"
         label: "Ragione sociale"
@@ -204,8 +312,11 @@ it:
         retention_until: "Conservazione fino al"
       help:
         slug: "Minuscole, cifre e trattini; il dossier sarà servito su <sottodominio>.%{domain}."
-        kind: "Impresa (comprese microimpresa e libera professione) o nucleo familiare; non cambia più dopo la creazione. Un nucleo familiare ha solo la Contabilità, né SIREN né partita IVA."
-        extensions: "Codici separati da virgole (einvoicing, superpdp…)."
+        kind: "Non cambia più dopo la creazione."
+        kinds:
+          company: "Impresa, microimpresa o libera professione."
+          household: "Finanze di un nucleo familiare: Contabilità obbligatoria, nessun modulo d'impresa, né SIREN né partita IVA."
+        regime: "Paese del piano dei conti e della fiscalità del dossier."
         admin_email: "Riceve l'invito come amministratore del dossier."
         payer: "Chi ordina e paga il dossier: obbligatorio."
         package: "Pacchetto FreeBSD che servirà il dossier; il suo aggiornamento viene eseguito da beryl su tutti i server, e il dossier si migra al suo avvio."
@@ -698,12 +809,17 @@ it:
         unknown: "Passkey sconosciuta."
         origin: "Origine rifiutata."
         already_registered: "Questa passkey è già registrata."
+      pieces:
+        requires: "%{piece} richiede %{others}."
+        requires_any: "%{piece} richiede %{others}."
+        incompatible: "%{piece} è incompatibile con %{others}."
+        kind_excludes: "%{piece} non è ammesso in un dossier «%{kind}»."
+        kind_requires: "Un dossier «%{kind}» richiede %{piece}."
       dossier:
         slug: "Sottodominio non valido: una minuscola all'inizio, poi minuscole, cifre, trattini (al massimo 40 caratteri)."
         slug_taken: "Questo sottodominio è già in uso."
         regime: "Regime sconosciuto."
         kind: "Tipo di dossier sconosciuto."
-        household_modules: "Un dossier nucleo familiare ha solo la Contabilità tra i moduli."
         locale: "Lingua sconosciuta."
         modules: "Scelga almeno un modulo tra i moduli ufficiali."
         extensions: "Codice di estensione non valido."

@@ -87,3 +87,119 @@ copies.
 suivante. Les courriels de connect partent dans la langue du compte, en
 `fr` pour un compte qui suit son navigateur (aucun navigateur n'est connu
 à l'envoi).
+
+=== D-ADM-016 — Choix des modules et extensions par familles, règles au catalogue de la console (24 octobre 2026)
+
+Demande de l'utilisateur : le choix des options et des modules d'un
+dossier « n'est pas optimal » — certaines options devraient s'exclure, et
+l'on n'obtient que la liste brute des modules. Version 0.1.53.
+
+*Contexte.* La création d'un dossier et la page des modules proposaient
+les sept modules officiels en cases à cocher (`Protocol::MODULES`) et un
+champ libre pour les extensions (« einvoicing, superpdp… », alors que le
+code de l'extension est `einv`). Seule règle contrôlée : un foyer n'a que
+la Comptabilité parmi les modules. Les dépendances, les incompatibilités
+et les exclusions par type n'étaient découvertes qu'à l'exécution de la
+tâche, par le cœur.
+
+*Règles réelles* (manifestes et cœur, au 24 octobre 2026) :
+
+* dépendances : `ANALYTIC`, `AMORTIS`, `BANKIMPORT`, `SEPA`, `IMPORT`,
+  `REPORTS` → `ACCOUNTING` ; `CRM`, `CHORUSPRO` → `INVOICING` ;
+  `URSSAF` → `MICRO` ; `EINV` → `DOCUMENT` ; `SUPERPDP`, `ESALINK` →
+  `EINV` ; `PERSO` → `ACCOUNTING` et `BANKIMPORT` ; `STOCK` →
+  `INVOICING` ou `ACCOUNTING` ; `TELEDEC` → `ACCOUNTING` ou `LIBERAL` ;
+* incompatibilités : `PERSO` seul en déclare, avec les modules et
+  extensions d'entreprise (`INVOICING`, `MICRO`, `LIBERAL`, `STOCK`,
+  `FOLLOWUP`, `ANALYTIC`, `EINV`, `SUPERPDP`, `ESALINK`, `CHORUSPRO`,
+  `TELEDEC`, `URSSAF`, `CRM`, `MODELES`) ; le cœur contrôle les deux sens ;
+* type foyer (`register_kind` du cœur) : `ACCOUNTING` requis ;
+  `INVOICING`, `MICRO`, `LIBERAL`, `STOCK`, `FOLLOWUP`, `ANALYTIC`
+  exclus ; `AMORTIS` s'exclut lui-même (`incompatible_with_kind`) ;
+* *aucune exclusion* entre `ACCOUNTING`, `MICRO` et `LIBERAL` : ils se
+  cumulent (ADR-007 D3, D6 : la Comptabilité reprend les registres en
+  partie double) ; aucune entre `SUPERPDP` et `ESALINK` : plusieurs
+  adaptateurs de plateforme peuvent être actifs, le dossier n'en raccorde
+  qu'un (`Einvoicing::Connections.active`).
+
+*Choix.*
+
+* *Familles* : régime et tenue des comptes (Comptabilité,
+  Micro-entreprise, Profession libérale), gestion (Facturation, Stock,
+  Suivi, Analytique, Immobilisations, Relation client), télédéclarations
+  (TELEDEC, URSSAF), facture électronique (`EINV`, SUPER PDP, EsaLink,
+  Chorus Pro), banque et paiements (relevés, SEPA), foyer (Finances du
+  foyer), outils (Justificatifs, Import d'opérations, Rapports,
+  Formulaires, Modèles). Un `fieldset` et une `legend` par famille, nom
+  humain et ligne d'explication par pièce, code en petit pour
+  l'exploitant. Les extensions connues deviennent des cases ; un champ
+  « Autres extensions » garde la saisie libre des codes absents du
+  catalogue (extension privée, `skel`).
+* *Choix uniques en boutons radio* : type de dossier (entreprise ou
+  foyer) et régime fiscal (France ou Belgique). Aucune exclusion mutuelle
+  n'étant déclarée entre modules, aucune famille de pièces n'est en
+  boutons radio ; une pièce incompatible avec une pièce cochée est
+  désactivée, avec « Indisponible : incompatible avec … ».
+* *Catalogue de la console* (`PartiduoAdmin::Catalog`,
+  `src/admin/services/catalog.cr`) : seule source des règles. Le serveur
+  en tire ses contrôles (`Catalog.problems`, appelé par `Fleet` à la
+  création et au changement de modules : pièce exclue ou requise par le
+  type, dépendance manquante, incompatibilité), avec un message traduit
+  par manquement, rangé sous la famille de la pièce en cause. Le
+  navigateur en reçoit les mêmes règles en attributs `data-*` de chaque
+  case, lus par `pieces.js` : cocher coche les dépendances (« requis par
+  … »), décocher une dépendance décoche après confirmation ce qui en
+  dépend, un foyer ne voit pas les pièces qu'il n'admet pas ni celles qui
+  en dépendent. Tout fonctionne sans JavaScript : la page des modules d'un
+  foyer ne propose que les pièces admises, la Comptabilité verrouillée
+  (case désactivée et champ caché) ; à la création, chaque pièce dit ses
+  dépendances, ses incompatibilités et les types qui l'excluent, et le
+  serveur refuse ce qui enfreint une règle.
+* *Rappel avant l'enregistrement* (page des modules) : désactiver une
+  pièce conserve ses données (ADR-006 D2), et la liste de ce qui sera
+  activé et désactivé se met à jour.
+* *Concordance vérifiée* : `spec/admin/catalog_spec.cr` lit les
+  manifestes des dépôts voisins (`partiduo-app/src/*/manifest.cr`,
+  `partiduo-*/src/*/manifest.cr`) et le type foyer du cœur quand
+  `partiduo-app` est là, et échoue au moindre écart — pièce ajoutée ou
+  retirée, dépendance, incompatibilité, type exclu, ou exclusion déclarée
+  par une extension (`InitialData.exclude`), comme les specs d'empreinte
+  des fichiers communs.
+
+*Pourquoi une table dans la console.* Les règles vivent dans les
+manifestes, compilés dans le paquet de l'instance. La console ne les
+reçoit que d'une instance existante, par `manage instance status`
+(`depends_on`, `incompatible_with`, `kind`, contrat 1.2.0) : rien
+n'existe encore à la création d'un dossier, ce retour ne porte ni les
+exclusions par type (`incompatible_with_kind`, `register_kind`) ni les
+extensions non installées, et la console ne le garde pas. Le recevoir
+demanderait de changer le protocole de l'exécutant (nouvelle clé de
+résultat, catalogue par serveur et par version de paquet) et le contrat
+`manage instance`, pour un gain faible : les règles changent rarement, et
+la spec de concordance signale tout écart avant la publication. Le cœur
+reste juge en dernier ressort : il refuse à l'activation ce que la
+console aurait laissé passer.
+
+*Alternatives écartées.*
+
+* Règles reçues de l'exécutant (`status` de chaque instance) : absentes
+  à la création, incomplètes, changement de protocole.
+* Lecture des manifestes voisins à la compilation : la console serait
+  construite contre les sources de tous les dépôts.
+* Boutons radio pour la tenue des comptes ou les plateformes : ce serait
+  inventer une exclusion que ni les manifestes ni le cœur ne déclarent.
+
+*Exclusions souhaitables, non déclarées (à soumettre).*
+
+* `MICRO` et `LIBERAL` ensemble : deux régimes fiscaux distincts
+  (micro-BNC ou déclaration contrôlée) ; rien ne les empêche aujourd'hui.
+* `PERSO` dans un dossier d'entreprise : l'extension n'y agit pas
+  (`Records.household?`) ; un `incompatible_with_kind "company"` la
+  retirerait des entreprises.
+* Extensions d'entreprise dans un foyer sans `PERSO` (`TELEDEC`, `EINV`,
+  `SUPERPDP`, `ESALINK`, `MODELES`) : seul `PERSO` les écarte ; le type
+  foyer du cœur ne les exclut pas.
+* Pièces propres à la France d'après leur objet (`URSSAF`, `TELEDEC`,
+  `CHORUSPRO`) proposées à un dossier belge : aucun manifeste ne déclare
+  de régime ; les plateformes le font à l'exécution
+  (`Adapter#regimes`).

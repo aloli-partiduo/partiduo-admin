@@ -80,6 +80,28 @@ fieldset.pd-fieldset legend { font-weight: 600; margin-block-end: .35rem; }
 .pd-choice:has(input:checked) { border-color: var(--pd-focus); background: var(--pd-row-alt); }
 .pd-choice.is-disabled { cursor: not-allowed; opacity: .75; }
 .pd-choice-help { display: block; color: var(--pd-muted); font-size: .88rem; }
+/* Choix des modules et extensions par familles (D-ADM-016) : cartes des
+   pièces, code en petit pour l'exploitant, raison d'une pièce indisponible
+   ou requise annoncée par la case (aria-describedby). */
+.pd-panel .pd-subtitle:not(:first-child) { margin-block-start: 1.5rem; }
+.pd-choices-row { grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr)); }
+.pd-family { margin-block-end: 1.25rem; }
+.pd-family > .help { margin-block: -.2rem .5rem; }
+.pd-family > .help.is-danger { font-size: .9rem; font-weight: 600; }
+.pd-pieces { display: grid; grid-template-columns: repeat(auto-fill, minmax(17rem, 1fr)); gap: .5rem; }
+.pd-piece[hidden], .pd-family[hidden] { display: none; }
+.pd-piece .pd-choice { height: 100%; }
+.pd-piece-body { display: flex; flex-direction: column; gap: .15rem; min-width: 0; }
+.pd-piece-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: .1rem .5rem; }
+.pd-piece-code { font-size: .78rem; padding: 0 .3rem; color: var(--pd-muted); background: var(--pd-row-alt); }
+.pd-piece-note { display: block; font-size: .82rem; margin-block-start: .15rem; }
+.pd-picker.is-live .pd-piece-note[data-pd-note="incompatible"], .pd-picker.is-live .pd-piece-note[data-pd-note="kind"] { display: none; }
+.pd-piece-status { font-size: .85rem; font-weight: 600; }
+.pd-piece-status:empty { display: none; }
+.pd-piece.is-unavailable .pd-choice { cursor: not-allowed; border-style: dashed; }
+.pd-piece.is-unavailable .pd-piece-status, .pd-piece.is-missing .pd-piece-status { color: var(--pd-gap); }
+.pd-piece.is-needed .pd-piece-status { color: var(--pd-ok); }
+.pd-keep .pd-status:empty { display: none; }
 .pd-fingerprint { overflow-wrap: anywhere; letter-spacing: .02em; }
 .pd-status:empty { display: none; }
 .pd-status.is-error { color: var(--pd-gap); }

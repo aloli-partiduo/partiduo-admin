@@ -78,14 +78,119 @@ es:
     packages:
       app: "partiduo-app (producción)"
       devel: "partiduo-app-devel (desarrollo)"
-    modules:
-      accounting: "Contabilidad"
-      invoicing: "Facturación"
-      analytic: "Analítica"
-      stock: "Existencias"
-      followup: "Seguimiento"
-      micro: "Microempresa (micro-entreprise)"
-      liberal: "Profesiones liberales (2035)"
+    pieces:
+      quoted: "«%{name}»"
+      or: "%{first} o %{last}"
+      kind_fixed: "fijado al crearlo."
+      families:
+        keeping:
+          legend: "Régimen y llevanza de la contabilidad"
+          help: "Contabilidad completa, microempresa o profesión liberal. Pueden combinarse: la Contabilidad pasa entonces los registros a partida doble."
+        management:
+          legend: "Gestión"
+          help: "Facturación, existencias, seguimiento, analítica y herramientas de gestión."
+        declarations:
+          legend: "Declaraciones telemáticas"
+          help: "Presentación de declaraciones fiscales y sociales."
+        einvoicing:
+          legend: "Factura electrónica"
+          help: "Plataformas autorizadas y Chorus Pro. Pueden estar activas varias plataformas; el expediente se conecta a una."
+        banking:
+          legend: "Banco y pagos"
+          help: "Extractos bancarios y pagos SEPA."
+        household:
+          legend: "Hogar"
+          help: "Finanzas personales de un hogar."
+        tools:
+          legend: "Herramientas"
+          help: "Justificantes, importaciones, informes, formularios y plantillas."
+      accounting:
+        name: "Contabilidad"
+        help: "Partida doble: diarios, libro mayor, IVA, cierre."
+      micro:
+        name: "Microempresa"
+        help: "Libro de ingresos, registro de compras, volumen de negocio a declarar, umbrales."
+      liberal:
+        name: "Profesión liberal (2035)"
+        help: "Ingresos cobrados y gastos pagados, inmovilizado, declaración 2035."
+      invoicing:
+        name: "Facturación"
+        help: "Presupuestos, facturas, abonos, cobros y recordatorios."
+      stock:
+        name: "Existencias"
+        help: "Artículos y movimientos de existencias."
+      followup:
+        name: "Seguimiento"
+        help: "Acciones, recordatorios y etiquetas de las fichas."
+      analytic:
+        name: "Analítica"
+        help: "Planes analíticos, reparto de asientos e informes."
+      amortis:
+        name: "Inmovilizado y amortizaciones"
+        help: "Registro del inmovilizado, planes de amortización y dotaciones."
+      crm:
+        name: "Relación con clientes"
+        help: "Seguimiento comercial de clientes y prospectos."
+      teledec:
+        name: "TELEDEC"
+        help: "Declaraciones fiscales (cuentas anuales, IVA, 2035) presentadas por TELEDEC."
+      urssaf:
+        name: "URSSAF"
+        help: "Declaración por terceros del microempresario ante la URSSAF."
+      einv:
+        name: "Factura electrónica"
+        help: "Emisión y recepción de facturas electrónicas, e-reporting."
+      superpdp:
+        name: "SUPER PDP"
+        help: "Conexión a la plataforma autorizada SUPER PDP."
+      esalink:
+        name: "EsaLink"
+        help: "Conexión a la plataforma autorizada EsaLink."
+      choruspro:
+        name: "Chorus Pro"
+        help: "Facturas a clientes públicos."
+      bankimport:
+        name: "Importación de extractos bancarios"
+        help: "Extractos bancarios importados, reglas de categorización."
+      sepa:
+        name: "Pagos SEPA"
+        help: "Transferencias y domiciliaciones mediante ficheros SEPA."
+      perso:
+        name: "Finanzas del hogar"
+        help: "Cuentas, presupuestos y patrimonio de un hogar; solo actúa en un expediente de hogar."
+      document:
+        name: "Justificantes"
+        help: "Documentos recibidos por tratar y vincular."
+      import:
+        name: "Importación de operaciones"
+        help: "Importación masiva de operaciones."
+      reports:
+        name: "Informes avanzados y listados"
+        help: "Informes configurables y listados."
+      form:
+        name: "Formularios"
+        help: "Formularios públicos mediante token."
+      modeles:
+        name: "Plantillas de documentos"
+        help: "Plantillas de facturas en varios formatos."
+      notes:
+        requires: "Requiere %{others}."
+        incompatible: "Incompatible con %{others}."
+        kind_excludes: "No admitido en un expediente «%{kind}»."
+        kind_requires: "Obligatorio en un expediente «%{kind}»."
+      other:
+        label: "Otras extensiones"
+        help: "Códigos de extensiones que no están en la lista, separados por comas; el expediente los comprueba al activarlos."
+      js:
+        required_by: "Requerido por %{others}"
+        incompatible: "No disponible: incompatible con %{others}"
+        kind_required: "Obligatorio en un expediente «%{kind}»"
+        unavailable: "No admitido en un expediente «%{kind}»"
+        checked: "%{piece} marcado: también %{others}, por ser necesario."
+        unchecked: "También desmarcado: %{others}."
+        confirm: "Desmarcar %{piece} desmarcará también lo que depende de ello: %{others}. ¿Continuar?"
+        enable: "Por activar: %{others}."
+        disable: "Por desactivar: %{others}; sus datos se conservan, en solo lectura."
     login:
       connect_button: "Iniciar sesión con mi cuenta Partiduo"
       connect_help: "Una sola cuenta para la administración y todos sus expedientes: connect gestiona la llave de acceso, la aplicación de autenticación y los códigos de recuperación."
@@ -179,6 +284,9 @@ es:
       managers: "Gestores"
       assign: "Asignar"
       unassign: "Retirar"
+      sections:
+        identity: "Identidad"
+        assignment: "Asignación y copias de seguridad"
       fields:
         slug: "Subdominio"
         label: "Razón social"
@@ -204,8 +312,11 @@ es:
         retention_until: "Conservación hasta el"
       help:
         slug: "Minúsculas, cifras y guiones; el expediente se servirá en <subdominio>.%{domain}."
-        kind: "Empresa (incluidas microempresa y profesión liberal) u hogar; no cambia después de la creación. Un hogar solo tiene Contabilidad, sin SIREN ni NIF-IVA."
-        extensions: "Códigos separados por comas (einvoicing, superpdp…)."
+        kind: "No cambia después de la creación."
+        kinds:
+          company: "Empresa, microempresa o profesión liberal."
+          household: "Finanzas de un hogar: Contabilidad obligatoria, ningún módulo de empresa, ni SIREN ni número de IVA."
+        regime: "País del plan contable y de la fiscalidad del expediente."
         admin_email: "Recibe la invitación de administrador del expediente."
         payer: "Quien encarga y paga el expediente: obligatorio."
         package: "Paquete FreeBSD que servirá el expediente; beryl lo actualiza en todos los servidores y el expediente se migra al arrancar."
@@ -698,12 +809,17 @@ es:
         unknown: "Llave de acceso desconocida."
         origin: "Origen rechazado."
         already_registered: "Esta llave de acceso ya está registrada."
+      pieces:
+        requires: "%{piece} requiere %{others}."
+        requires_any: "%{piece} requiere %{others}."
+        incompatible: "%{piece} es incompatible con %{others}."
+        kind_excludes: "%{piece} no se admite en un expediente «%{kind}»."
+        kind_requires: "Un expediente «%{kind}» requiere %{piece}."
       dossier:
         slug: "Subdominio no válido: minúscula al principio y luego minúsculas, cifras y guiones (40 caracteres como máximo)."
         slug_taken: "Este subdominio ya está ocupado."
         regime: "Régimen desconocido."
         kind: "Tipo de expediente desconocido."
-        household_modules: "Un expediente de hogar solo tiene Contabilidad entre los módulos."
         locale: "Idioma desconocido."
         modules: "Elija al menos un módulo entre los módulos oficiales."
         extensions: "Código de extensión no válido."

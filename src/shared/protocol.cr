@@ -28,11 +28,6 @@ module PartiduoAdmin
     # antérieure à 3.1.0) : `company`.
     DOSSIER_KINDS = %w[company household]
 
-    # Modules officiels qu'un dossier foyer admet : la Comptabilité seule,
-    # requise (ADR-011 D2 ; les autres sont exclus par le cœur, qui refuse
-    # le provisionnement).
-    HOUSEHOLD_MODULES = %w[accounting]
-
     def self.valid_dossier_kind?(kind : String) : Bool
       DOSSIER_KINDS.includes?(kind)
     end
@@ -96,7 +91,9 @@ module PartiduoAdmin
       nil
     end
 
-    # Modules officiels de partiduo-app (ADR-006, ADR-007).
+    # Modules officiels de partiduo-app (ADR-006, ADR-007) ; leurs règles et
+    # celles des extensions connues sont au catalogue de la console
+    # (`PartiduoAdmin::Catalog`, D-ADM-016).
     MODULES = %w[accounting invoicing analytic stock followup micro liberal]
 
     # Sous-domaine d'un dossier : même règle que `partiduo-provision`.

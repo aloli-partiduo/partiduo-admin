@@ -1,12 +1,19 @@
-{# SPDX-License-Identifier: AGPL-3.0-or-later. Création d'un dossier (ADR-008 D3, D5). #}{% extend "admin/base.html" %}
+{# SPDX-License-Identifier: AGPL-3.0-or-later. Création d'un dossier (ADR-008 D3, D5) : identité, type et régime en boutons radio, modules et extensions par familles (D-ADM-016), rattachement. #}{% extend "admin/base.html" %}
 {% block title %}{% translate "admin.dossiers.new" %}{% endblock title %}
 {% block crumbs %}<li><a href="{% url 'dossiers' %}">{% translate "admin.dossiers.title" %}</a></li><li>{% translate "admin.dossiers.new" %}</li>{% endblock crumbs %}
 {% block heading %}{% translate "admin.dossiers.new" %}{% endblock heading %}
 {% block content %}
-<form method="post" action="{% url 'dossier_new' %}" class="pd-panel" novalidate>
+<script src="{% asset 'admin/js/pieces.js' %}" defer></script>
+<form method="post" action="{% url 'dossier_new' %}" class="pd-panel" novalidate data-pd-pieces-form>
   {% csrf_input %}
   {% include "admin/_base_errors.html" %}
   <p class="pd-help">{% translate "admin.dossiers.help.package_fixed" %} <strong>{% translate package_key %}</strong></p>
+  <h2 class="pd-subtitle">{% translate "admin.dossiers.sections.identity" %}</h2>
+  {% for field in identity %}{% include "admin/_field.html" %}{% endfor %}
+  {% for field in choices %}{% include "admin/_field.html" %}{% endfor %}
+  <h2 class="pd-subtitle">{% translate "admin.dossiers.modules_title" %}</h2>
+  {% include "admin/_pieces.html" %}
+  <h2 class="pd-subtitle">{% translate "admin.dossiers.sections.assignment" %}</h2>
   {% for field in fields %}{% include "admin/_field.html" %}{% endfor %}
   <button class="button is-primary" type="submit">{% translate "admin.dossiers.create" %}</button>
 </form>

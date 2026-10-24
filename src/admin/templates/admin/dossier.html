@@ -19,8 +19,8 @@
       <dt>{% translate "admin.dossiers.fields.host" %}</dt><dd class="pd-mono">{{ dossier.host }}{% include "admin/_open_dossier.html" %}</dd>
       <dt>{% translate "admin.dossiers.fields.regime" %}</dt><dd>{{ dossier.regime|upcase }}</dd>
       <dt>{% translate "admin.dossiers.fields.kind" %}</dt><dd>{% translate kind_key %}</dd>
-      <dt>{% translate "admin.dossiers.fields.modules" %}</dt><dd>{{ dossier.modules }}</dd>
-      <dt>{% translate "admin.dossiers.fields.extensions" %}</dt><dd>{{ dossier.extensions|default:"—" }}</dd>
+      <dt>{% translate "admin.dossiers.fields.modules" %}</dt><dd>{{ module_labels }} <code class="pd-piece-code">{{ dossier.modules }}</code></dd>
+      <dt>{% translate "admin.dossiers.fields.extensions" %}</dt><dd>{% if extension_labels %}{{ extension_labels }} <code class="pd-piece-code">{{ dossier.extensions }}</code>{% else %}—{% endif %}</dd>
       <dt>{% translate "admin.dossiers.fields.package" %}</dt><dd>{% translate dossier.package_key %}</dd>
       <dt>{% translate "admin.dossiers.fields.version" %}</dt><dd class="pd-mono">{{ dossier.version|default:"—" }}</dd>
       <dt>{% translate "admin.dossiers.fields.server" %}</dt><dd>{{ dossier.server_name }}</dd>

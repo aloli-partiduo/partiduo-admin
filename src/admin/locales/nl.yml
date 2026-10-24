@@ -78,14 +78,119 @@ nl:
     packages:
       app: "partiduo-app (productie)"
       devel: "partiduo-app-devel (ontwikkeling)"
-    modules:
-      accounting: "Boekhouding"
-      invoicing: "Facturatie"
-      analytic: "Analytische boekhouding"
-      stock: "Voorraad"
-      followup: "Opvolging"
-      micro: "Micro-onderneming"
-      liberal: "Vrije beroepen (2035)"
+    pieces:
+      quoted: "‘%{name}’"
+      or: "%{first} of %{last}"
+      kind_fixed: "vastgelegd bij het aanmaken."
+      families:
+        keeping:
+          legend: "Stelsel en boekhouding"
+          help: "Volledige boekhouding, micro-onderneming of vrij beroep. Ze kunnen samen: de Boekhouding zet de registers dan om in dubbel boekhouden."
+        management:
+          legend: "Beheer"
+          help: "Facturatie, voorraad, opvolging, analytische boekhouding en beheertools."
+        declarations:
+          legend: "Elektronische aangiften"
+          help: "Indienen van fiscale en sociale aangiften."
+        einvoicing:
+          legend: "E-facturatie"
+          help: "Erkende platformen en Chorus Pro. Meerdere platformen kunnen actief zijn; het dossier koppelt er één."
+        banking:
+          legend: "Bank en betalingen"
+          help: "Bankafschriften en SEPA-betalingen."
+        household:
+          legend: "Huishouden"
+          help: "Persoonlijke financiën van een huishouden."
+        tools:
+          legend: "Hulpmiddelen"
+          help: "Bewijsstukken, imports, rapporten, formulieren en sjablonen."
+      accounting:
+        name: "Boekhouding"
+        help: "Dubbel boekhouden: dagboeken, grootboek, btw, afsluiting."
+      micro:
+        name: "Micro-onderneming"
+        help: "Ontvangstenboek, aankoopregister, aan te geven omzet, drempels."
+      liberal:
+        name: "Vrij beroep (2035)"
+        help: "Ontvangen inkomsten en betaalde uitgaven, vaste activa, aangifte 2035."
+      invoicing:
+        name: "Facturatie"
+        help: "Offertes, facturen, creditnota's, betalingen en herinneringen."
+      stock:
+        name: "Voorraad"
+        help: "Artikelen en voorraadbewegingen."
+      followup:
+        name: "Opvolging"
+        help: "Acties, herinneringen en labels bij de fiches."
+      analytic:
+        name: "Analytische boekhouding"
+        help: "Analytische plannen, verdeling van boekingen en rapporten."
+      amortis:
+        name: "Vaste activa en afschrijvingen"
+        help: "Register van vaste activa, afschrijvingsplannen en dotaties."
+      crm:
+        name: "Klantenrelaties"
+        help: "Commerciële opvolging van klanten en prospecten."
+      teledec:
+        name: "TELEDEC"
+        help: "Fiscale aangiften (jaarrekening, btw, 2035) ingediend via TELEDEC."
+      urssaf:
+        name: "URSSAF"
+        help: "Aangifte door derden van de micro-ondernemer bij de URSSAF."
+      einv:
+        name: "E-facturatie"
+        help: "Verzenden en ontvangen van e-facturen, e-reporting."
+      superpdp:
+        name: "SUPER PDP"
+        help: "Koppeling met het erkende platform SUPER PDP."
+      esalink:
+        name: "EsaLink"
+        help: "Koppeling met het erkende platform EsaLink."
+      choruspro:
+        name: "Chorus Pro"
+        help: "Facturen aan overheidsklanten."
+      bankimport:
+        name: "Import van bankafschriften"
+        help: "Geïmporteerde bankafschriften, categoriseringsregels."
+      sepa:
+        name: "SEPA-betalingen"
+        help: "Overschrijvingen en domiciliëringen via SEPA-bestanden."
+      perso:
+        name: "Financiën van het huishouden"
+        help: "Rekeningen, budgetten en vermogen van een huishouden; werkt alleen in een huishoudendossier."
+      document:
+        name: "Bewijsstukken"
+        help: "Ontvangen stukken om te verwerken en te koppelen."
+      import:
+        name: "Import van verrichtingen"
+        help: "Massa-import van verrichtingen."
+      reports:
+        name: "Geavanceerde rapporten en lijsten"
+        help: "Instelbare rapporten en lijsten."
+      form:
+        name: "Formulieren"
+        help: "Openbare formulieren via token."
+      modeles:
+        name: "Documentsjablonen"
+        help: "Factuursjablonen in meerdere formaten."
+      notes:
+        requires: "Vereist %{others}."
+        incompatible: "Onverenigbaar met %{others}."
+        kind_excludes: "Niet toegestaan in een dossier ‘%{kind}’."
+        kind_requires: "Vereist voor een dossier ‘%{kind}’."
+      other:
+        label: "Andere extensies"
+        help: "Codes van extensies die niet in de lijst staan, gescheiden door komma's; het dossier controleert ze bij het activeren."
+      js:
+        required_by: "Vereist door %{others}"
+        incompatible: "Niet beschikbaar: onverenigbaar met %{others}"
+        kind_required: "Vereist voor een dossier ‘%{kind}’"
+        unavailable: "Niet toegestaan in een dossier ‘%{kind}’"
+        checked: "%{piece} aangevinkt: ook %{others}, want vereist."
+        unchecked: "Ook uitgevinkt: %{others}."
+        confirm: "Als u %{piece} uitvinkt, wordt ook uitgevinkt wat ervan afhangt: %{others}. Doorgaan?"
+        enable: "Te activeren: %{others}."
+        disable: "Uit te schakelen: %{others} — hun gegevens blijven bewaard, alleen-lezen."
     login:
       connect_button: "Aanmelden met mijn Partiduo-account"
       connect_help: "Eén account voor het beheer en al uw dossiers: toegangssleutel, authenticatie-app en herstelcodes worden door connect bewaard."
@@ -179,6 +284,9 @@ nl:
       managers: "Dossierbeheerders"
       assign: "Toewijzen"
       unassign: "Intrekken"
+      sections:
+        identity: "Identiteit"
+        assignment: "Toewijzing en back-ups"
       fields:
         slug: "Subdomein"
         label: "Firmanaam"
@@ -204,8 +312,11 @@ nl:
         retention_until: "Bewaard tot"
       help:
         slug: "Kleine letters, cijfers en koppeltekens; het dossier komt op <subdomein>.%{domain}."
-        kind: "Onderneming (ook micro-onderneming en vrij beroep) of huishouden; wijzigt niet meer na de aanmaak. Een huishouden heeft enkel de Boekhouding, zonder SIREN of btw-nummer."
-        extensions: "Codes gescheiden door komma's (einvoicing, superpdp…)."
+        kind: "Kan na het aanmaken niet meer wijzigen."
+        kinds:
+          company: "Onderneming, micro-onderneming of vrij beroep."
+          household: "Financiën van een huishouden: Boekhouding vereist, geen ondernemingsmodule, geen SIREN of btw-nummer."
+        regime: "Land van het rekeningenstelsel en de fiscaliteit van het dossier."
         admin_email: "Ontvangt de uitnodiging als beheerder van het dossier."
         payer: "Wie het dossier bestelt en betaalt: verplicht."
         package: "FreeBSD-pakket dat het dossier bedient; beryl werkt het bij op alle servers, en het dossier migreert zichzelf bij het opstarten."
@@ -698,12 +809,17 @@ nl:
         unknown: "Onbekende toegangssleutel."
         origin: "Oorsprong geweigerd."
         already_registered: "Deze toegangssleutel is al geregistreerd."
+      pieces:
+        requires: "%{piece} vereist %{others}."
+        requires_any: "%{piece} vereist %{others}."
+        incompatible: "%{piece} is onverenigbaar met %{others}."
+        kind_excludes: "%{piece} is niet toegestaan in een dossier ‘%{kind}’."
+        kind_requires: "Een dossier ‘%{kind}’ vereist %{piece}."
       dossier:
         slug: "Ongeldig subdomein: eerst een kleine letter, daarna kleine letters, cijfers, koppeltekens (hoogstens 40 tekens)."
         slug_taken: "Dit subdomein is al in gebruik."
         regime: "Onbekend stelsel."
         kind: "Onbekende soort dossier."
-        household_modules: "Een huishoudensdossier heeft enkel de Boekhouding als module."
         locale: "Onbekende taal."
         modules: "Kies minstens één van de officiële modules."
         extensions: "Ongeldige extensiecode."
