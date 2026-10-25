@@ -134,17 +134,23 @@ describe "Catalogue des pièces (D-ADM-016)" do
     PartiduoAdmin::Catalog.excluded_kinds("perso").should eq(["company"])
   end
 
-  it "réserve au régime fr les services de l'administration française" do
-    %w[urssaf teledec choruspro].each { |code| PartiduoAdmin::Catalog.regimes(code).should eq(["fr"]) }
-    problem_keys("company", %w[micro urssaf], "be").should eq(["regime_excludes urssaf"])
+  it "réserve au régime fr les services de l'administration française, les régimes d'imposition français et EsaLink" do
+    %w[urssaf teledec choruspro micro liberal esalink].each { |code| PartiduoAdmin::Catalog.regimes(code).should eq(["fr"]) }
+    # SUPER PDP sert aussi la Belgique par Peppol (ADR-004 D2).
+    PartiduoAdmin::Catalog.regimes("superpdp").should be_empty
+    problem_keys("company", %w[micro urssaf], "be").should eq(["regime_excludes micro", "regime_excludes urssaf"])
+    problem_keys("company", %w[accounting liberal], "be").should eq(["regime_excludes liberal"])
+    problem_keys("company", %w[accounting document einv esalink superpdp], "be").should eq(["regime_excludes esalink"])
+    problem_keys("company", %w[accounting document einv superpdp], "be").should be_empty
     problem_keys("company", %w[accounting teledec invoicing choruspro], "be").should eq(["regime_excludes teledec", "regime_excludes choruspro"])
     problem_keys("company", %w[micro urssaf], "fr").should be_empty
     # Régime invalide, déjà refusé par le formulaire : non jugé.
     problem_keys("company", %w[micro urssaf], nil).should be_empty
     unavailable = PartiduoAdmin::Catalog.unavailable("company", "be")
-    %w[urssaf teledec choruspro perso].each { |code| unavailable.should contain(code) }
-    unavailable.should_not contain("micro")
+    %w[urssaf teledec choruspro perso micro liberal esalink].each { |code| unavailable.should contain(code) }
     unavailable.should_not contain("einv")
+    unavailable.should_not contain("superpdp")
+    unavailable.should_not contain("accounting")
   end
 
   it "contrôle les dépendances, toutes ou l'une d'un groupe" do
@@ -226,6 +232,9 @@ describe "Choix des modules et extensions par familles, sans JavaScript (D-ADM-0
     html.should contain("<legend>Régime d'imposition</legend>")
     html.should_not contain(fr("Incompatible avec « Profession libérale (2035) »"))
     html.should contain(%(data-regimes="fr" data-choice=""))
+    # Régimes d'imposition français (D-AMD-043 du cœur) : pieces.js les
+    # masque, avec leur groupe, pour un dossier belge.
+    html.should contain(%(data-regimes="fr" data-choice="scheme"))
     html.should contain(fr("Seulement pour un dossier « France »."))
     html.should contain(fr("Non admis dans un dossier « Entreprise »."))
     html.should contain(%(name="extensions" value="perso"))
@@ -352,8 +361,8 @@ describe "Dossier belge : services français exclus (D-ADM-019)" do
     dossier.save!
     browser = AdminSpec::Browser.new(token: AdminSpec.session(AdminSpec.user(PartiduoAdmin::Config::FIRM_ADMIN, firm)))
     html = browser.get("/dossiers/#{dossier.pk}/modules").html
-    %w[urssaf teledec choruspro perso].each { |code| html.should_not contain(%(id="p-#{code}")) }
-    %w[micro liberal einv superpdp esalink].each { |code| html.should contain(%(id="p-#{code}")) }
+    %w[urssaf teledec choruspro perso micro liberal esalink].each { |code| html.should_not contain(%(id="p-#{code}")) }
+    %w[accounting einv superpdp].each { |code| html.should contain(%(id="p-#{code}")) }
     html.should contain(%(data-regime="be"))
     html.should contain("<strong>Belgique</strong>")
     refused = browser.post("/dossiers/#{dossier.pk}/modules", {"modules" => ["accounting", "invoicing"], "extensions" => ["choruspro"]})

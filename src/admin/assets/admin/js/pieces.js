@@ -17,7 +17,9 @@
    une pièce requise décoche, après confirmation, ce qui en dépend ; une
    pièce incompatible avec une pièce cochée est désactivée, avec la raison ;
    un foyer ne voit pas les pièces qu'il n'admet pas, ni un dossier celles
-   que son régime n'admet pas. Changer de bouton radio décoche, après
+   que son régime n'admet pas (un dossier belge : ni micro-entreprise, ni
+   profession libérale, groupe « Régime d'imposition » masqué ; ni URSSAF,
+   TELEDEC, Chorus Pro, EsaLink). Changer de bouton radio décoche, après
    confirmation, ce qui dépendait de l'ancien choix. Sur la page des
    modules, un rappel liste ce qui sera activé et désactivé (données
    conservées). */

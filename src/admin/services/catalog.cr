@@ -55,12 +55,13 @@ module PartiduoAdmin
     # qui reste possible comme autre extension.
     PIECES = [
       # Régime et tenue des comptes : micro-entreprise ou profession
-      # libérale, l'un ou l'autre (D-AMD-038 du cœur) ; la Comptabilité se
-      # cumule avec chacun (ADR-007 D3, D6 : elle reprend leurs registres en
-      # partie double).
+      # libérale, l'un ou l'autre (D-AMD-038 du cœur), tous deux réservés au
+      # régime fr (D-AMD-043 du cœur : micro-social, 2042-C-PRO, 2035) ; la
+      # Comptabilité se cumule avec chacun (ADR-007 D3, D6 : elle reprend
+      # leurs registres en partie double).
       Piece.new("accounting", "keeping", official: true),
-      Piece.new("micro", "keeping", official: true, incompatible_with: %w[liberal], choice: "scheme"),
-      Piece.new("liberal", "keeping", official: true, incompatible_with: %w[micro], choice: "scheme"),
+      Piece.new("micro", "keeping", official: true, incompatible_with: %w[liberal], regimes: %w[fr], choice: "scheme"),
+      Piece.new("liberal", "keeping", official: true, incompatible_with: %w[micro], regimes: %w[fr], choice: "scheme"),
       # Gestion.
       Piece.new("invoicing", "management", official: true),
       Piece.new("stock", "management", official: true, depends_on_any: [%w[invoicing accounting]]),
@@ -76,10 +77,12 @@ module PartiduoAdmin
       # le dossier n'en raccorde qu'une (partiduo-einvoicing,
       # `Connections.active`).
       # Jamais dans un foyer ; Chorus Pro, portail de la sphère publique
-      # française, seulement au régime fr.
+      # française, et EsaLink, plateforme agréée de la réforme française,
+      # seulement au régime fr (D-AMD-043 du cœur). SUPER PDP sert aussi
+      # la Belgique par Peppol (ADR-004 D2) : tous les régimes.
       Piece.new("einv", "einvoicing", depends_on: %w[document], excluded_kinds: %w[household]),
       Piece.new("superpdp", "einvoicing", depends_on: %w[einv], excluded_kinds: %w[household]),
-      Piece.new("esalink", "einvoicing", depends_on: %w[einv], excluded_kinds: %w[household]),
+      Piece.new("esalink", "einvoicing", depends_on: %w[einv], excluded_kinds: %w[household], regimes: %w[fr]),
       Piece.new("choruspro", "einvoicing", depends_on: %w[invoicing], excluded_kinds: %w[household], regimes: %w[fr]),
       # Banque et paiements.
       Piece.new("bankimport", "banking", depends_on: %w[accounting]),

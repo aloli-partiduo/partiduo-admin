@@ -489,3 +489,62 @@ remis par le serveur, rendus à l'administration, remplacement, personne à
 prévenir, contrat 1.4.0 refusé pour l'ajout et le retrait) ;
 `spec/admin/administrators_spec.cr` (paramètres `firm` et `requester`,
 envoi en dernier recours, résultat expurgé, trace).
+
+=== D-ADM-021 — Micro-entreprise, profession libérale et EsaLink réservées au régime fr (25 octobre 2026)
+
+Décision de l'utilisateur du 25 octobre 2026 : déclarer `regimes "fr"`
+pour `MICRO`, `LIBERAL`, `SUPERPDP` et `ESALINK` (D-AMD-043 de
+`partiduo-app`). Version 0.1.57.
+
+*Choix.* Au catalogue (`src/admin/services/catalog.cr`), `regimes: %w[fr]`
+pour `micro`, `liberal` et `esalink`, comme pour `urssaf`, `teledec` et
+`choruspro` (D-ADM-019). Rien d'autre à changer : le contrôle serveur
+(`problems`, manquement `regime_excludes`), la page des modules
+(`unavailable`), les profils de l'assistant « entrepreneur » (D-ADM-018,
+profils filtrés par `Catalog.regime_excluded?`) et `pieces.js` (attribut
+`data-regimes` de chaque pièce) lisent cette source. Un dossier belge ne
+voit donc plus ni la micro-entreprise ni la profession libérale : le
+groupe « Régime d'imposition » est masqué, la Comptabilité reste ; ni
+EsaLink. La spec de concordance compare toujours le catalogue aux
+manifestes voisins.
+
+*SUPERPDP non déclaré.* SUPER PDP sert aussi les dossiers belges par
+Peppol : ADR-004 D2 (« SuperPDP, qui couvre aussi la Belgique : le dossier
+choisit son adaptateur »), adaptateur déclaré pour `fr` et `be` dans
+`partiduo-superpdp`, raccordement par numéro d'entreprise belge et envoi
+UBL PEPPOL BIS d'un dossier belge couverts par ses specs. Le déclarer
+réservé à `fr` retirerait cette fonction adoptée ; la remarque de
+D-AMD-039 qui le rangeait parmi les pièces françaises était inexacte pour
+lui. À trancher par l'utilisateur : garder SUPER PDP ouvert aux dossiers
+belges (état actuel), ou amender ADR-004 D2.
+
+*Repérage des dossiers existants non conformes* (D-AMD-040 du cœur :
+ils refusent de démarrer, avec la commande de réparation). Dans la base de
+la console, avant la mise à jour des paquets :
+
+[source,sql]
+----
+-- Dossiers de la console qui violent une exclusion du 24 ou du 25 octobre 2026.
+SELECT d.slug, d.regime, d.kind, d.modules, d.extensions, v.defaut
+FROM admin_dossier d
+CROSS JOIN LATERAL (
+  SELECT string_to_array(coalesce(nullif(d.modules, ''), '') || ',' || coalesce(d.extensions, ''), ',') AS codes
+) c
+CROSS JOIN LATERAL (
+  SELECT 'micro et liberal actifs ensemble' AS defaut WHERE c.codes @> ARRAY['micro', 'liberal']
+  UNION ALL
+  SELECT 'perso dans un dossier d''entreprise' WHERE d.kind <> 'household' AND 'perso' = ANY (c.codes)
+  UNION ALL
+  SELECT code || ' dans un foyer' FROM unnest(c.codes) AS code
+   WHERE d.kind = 'household'
+     AND code IN ('teledec', 'einv', 'superpdp', 'esalink', 'modeles', 'choruspro', 'crm', 'urssaf', 'amortis')
+  UNION ALL
+  SELECT code || ' dans un dossier au régime ' || d.regime FROM unnest(c.codes) AS code
+   WHERE d.regime <> 'fr' AND code IN ('urssaf', 'teledec', 'choruspro', 'micro', 'liberal', 'esalink')
+) v
+WHERE d.state NOT IN ('deleted')
+ORDER BY d.slug;
+----
+
+La même requête, dans la base de chaque instance (la liste de la console
+peut différer de l'ensemble actif réel), est donnée par D-AMD-043 du cœur.
