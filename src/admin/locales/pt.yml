@@ -934,6 +934,7 @@ pt:
         firm_replaces: "Substituir: o novo administrador é convidado e depois o anterior passa a gestor de dossiers."
         dossier: "As contas com direitos de administração no dossier. A empresa também as pode alterar ela própria no seu dossier: releia a lista para retomar as suas alterações."
         add_dossier: "Adições e remoções passam por um pedido, validado segundo a definição da estrutura; o agente aplica-as depois no dossier e a pessoa convidada recebe um correio eletrónico."
+        informed: "Os administradores atuais do dossier são avisados por correio eletrónico, na sua língua, de cada adição, remoção ou despromoção feita daqui: quem, por quem (estrutura e pessoa), quando e com que direitos. Podem retirar eles próprios um acesso adicionado no ecrã de utilizadores do seu dossier; a consola nunca o reabre."
         dossier_replaces: "Substituir: o novo administrador é adicionado e depois o anterior é removido."
       states:
         pending: "pendente"

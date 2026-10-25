@@ -23,8 +23,13 @@ module PartiduoAdmin
     # 3.2.0 : types `instance.admins`, `instance.admin_add` et
     # `instance.admin_remove` — administrateurs d'un dossier, paramètres
     # `removal`, `replaces`, `replace_removal`, résultat `admins`,
-    # `promoted`, `changed`, `removed`, `remaining_admins`, D-ADM-017).
-    API_VERSION = "3.2.0"
+    # `promoted`, `changed`, `removed`, `remaining_admins`, D-ADM-017 ;
+    # 3.3.0 : avis aux administrateurs du dossier — paramètres `firm` et
+    # `requester` d'`instance.admin_add` et d'`instance.admin_remove`,
+    # résultat `notified`, `notices_delivered_by` et `notices` (avis que ni
+    # l'instance ni le serveur n'ont pu remettre, envoyés par
+    # l'administration), D-ADM-020).
+    API_VERSION = "3.3.0"
 
     # Types de dossier (ADR-011 A3) : `company` (entreprise, micro-entreprise,
     # profession libérale) ou `household` (foyer), transmis à
@@ -51,6 +56,19 @@ module PartiduoAdmin
     # et `admin-remove` (contrat 1.4.0, D-ADM-017) : une instance plus
     # ancienne refuse ces gestes, l'exécutant le dit avant tout appel.
     ADMINS_MINOR = 4
+
+    # Mineure du contrat `manage instance` dont `admin-add` et
+    # `admin-remove` préviennent les administrateurs du dossier (contrat
+    # 1.5.0, D-ADM-020 ; options `--firm` et `--requester`, réponse
+    # `notices`) : sans elle, ni ajout ni retrait (la société serait tenue
+    # dans l'ignorance d'un droit donné par la plateforme).
+    NOTICES_MINOR = 5
+
+    # Remise des avis aux administrateurs (`notices_delivered_by`) :
+    # l'instance elle-même (transport du dossier), le serveur (compte SMTP
+    # de Partiduo), l'administration (dernier recours), ou personne (aucun
+    # administrateur à prévenir).
+    NOTICE_DELIVERERS = %w[instance server admin none]
 
     # Retrait d'un administrateur du dossier : accès révoqué (`revoke`) ou
     # profil sans droits d'administration (`demote`).

@@ -41,6 +41,14 @@ module PartiduoAdmin
       end
     end
 
+    # Avis aux administrateurs d'un dossier (D-ADM-020) : sujet et texte
+    # rédigés par l'instance, dans la langue du destinataire ; envoyés ici
+    # seulement quand ni l'instance ni le serveur n'ont pu les remettre.
+    def self.notice(email : String, subject : String, body : String) : Nil
+      raise ArgumentError.new("avis vide pour #{email}") if subject.strip.empty? || body.strip.empty?
+      TextEmail.new(email, subject.gsub(/[[:cntrl:]]/, " ").strip, body).deliver
+    end
+
     def self.alert(alert : Alert) : Nil
       recipients = Config.alert_recipients
       return if recipients.empty?

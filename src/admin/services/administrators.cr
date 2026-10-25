@@ -116,6 +116,7 @@ module PartiduoAdmin
 
     # Paramètres de la tâche d'une demande validée.
     def self.task_params(approval : Approval, params : Tasks::Params) : String
+      notice_params(params, approval.dossier!, approval.requested_by)
       params["email"] = Tasks.any(approval.param("email"))
       if approval.kind == "admin_remove"
         params["removal"] = Tasks.any(approval.param("removal"))
@@ -148,8 +149,24 @@ module PartiduoAdmin
         params["approval_ref"] = Tasks.any("#{CREATION_PREFIX}#{dossier.pk}")
         params["approval_mode"] = Tasks.any(ApprovalMode::SINGLE)
         params["approvers"] = Tasks.any([requester.try(&.email.to_s) || "partiduo-admin"])
+        notice_params(params, dossier, requester)
         Tasks.enqueue("instance.admin_add", dossier.server!, params, requester, dossier)
       end
+    end
+
+    # Qui décide, pour l'avis que l'instance adresse aux administrateurs
+    # actuels du dossier (D-ADM-020, contrat d'instance 1.5.0) : la
+    # structure qui administre le dossier (`firm`) et la personne qui a
+    # demandé le geste (`requester`, « Prénom Nom <adresse> »).
+    def self.notice_params(params : Tasks::Params, dossier : Dossier, requester : User?) : Nil
+      params["firm"] = Tasks.any(dossier.firm_name)
+      params["requester"] = Tasks.any(requester.try { |user| person(user) } || "")
+    end
+
+    # « Prénom Nom <adresse> », ou l'adresse seule.
+    def self.person(user : User) : String
+      name = "#{user.first_name} #{user.last_name}".strip.gsub(/[\r\n<>]/, " ")
+      name.empty? ? user.email.to_s : "#{name} <#{user.email}>"
     end
 
     # Copie restaurée installée : ses administrateurs sont ceux de la
@@ -170,7 +187,8 @@ module PartiduoAdmin
       sync_first(dossier)
       Audit.log(nil, "administrators.added", target: dossier, actor_label: "agent:#{task.server.try(&.name)}",
         detail: {"email" => email, "replaces" => replaced, "created" => result["user_created"]?.to_s,
-                 "promoted" => result["promoted"]?.to_s, "reference" => params["approval_ref"]?.try(&.as_s?).to_s})
+                 "promoted" => result["promoted"]?.to_s, "reference" => params["approval_ref"]?.try(&.as_s?).to_s,
+                 "notified" => notified(result), "notices_delivered_by" => result["notices_delivered_by"]?.try(&.as_s?).to_s})
     end
 
     def self.removed(task : Task, dossier : Dossier, result : JSON::Any) : Nil
@@ -180,7 +198,14 @@ module PartiduoAdmin
       sync_first(dossier)
       Audit.log(nil, "administrators.removed", target: dossier, actor_label: "agent:#{task.server.try(&.name)}",
         detail: {"email" => email, "removal" => params["removal"]?.try(&.as_s?).to_s,
-                 "changed" => result["changed"]?.to_s, "reference" => params["approval_ref"]?.try(&.as_s?).to_s})
+                 "changed" => result["changed"]?.to_s, "reference" => params["approval_ref"]?.try(&.as_s?).to_s,
+                 "notified" => notified(result), "notices_delivered_by" => result["notices_delivered_by"]?.try(&.as_s?).to_s})
+    end
+
+    # Administrateurs prévenus par l'instance (D-ADM-020), séparés par des
+    # virgules.
+    private def self.notified(result : JSON::Any) : String
+      (result["notified"]?.try(&.as_a?) || [] of JSON::Any).compact_map(&.as_s?).join(',')
     end
 
     # Liste relue dans l'instance : les administrateurs actifs et non

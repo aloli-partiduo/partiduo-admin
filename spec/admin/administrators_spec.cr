@@ -95,9 +95,39 @@ describe "Administrateurs d'un dossier (D-ADM-017)" do
     entry = PartiduoAdmin::AuditEntry.filter(action: "administrators.added").last!
     JSON.parse(entry.detail.to_s)["reference"].should eq(approval.reference)
 
+    # Qui décide, pour l'avis aux administrateurs actuels (D-ADM-020).
+    task.param("firm").should eq(dossier.firm_name)
+    task.param("requester").should eq(Admins.person(admin))
+
     # Déjà administrateur : refusé avant toute demande.
     Admins.request_add(admin, dossier, "gerante@exemple.fr", "encore une fois").errors["email"]
       .should eq(["admin.errors.administrators.already"])
+  end
+
+  it "envoie en dernier recours les avis rédigés par l'instance, sans les garder au résultat (D-ADM-020)" do
+    _firm, _server, admin, dossier = setting
+    admin.first_name = "Léa"
+    admin.last_name = "Martin"
+    admin.save!
+    Admins.person(admin).should eq("Léa Martin <#{admin.email}>")
+    task = confirm_alone(admin, Admins.request_add(admin, dossier, "gerante@exemple.fr", "nouvelle gérante").value!)
+    task.param("requester").should eq("Léa Martin <#{admin.email}>")
+    before = Marten::Spec.delivered_emails.size
+    notice = {"email" => dossier.admin_email.to_s, "locale" => "fr", "delivered" => false,
+              "subject" => "Un administrateur a été ajouté au dossier Exemple",
+              "body" => "Personne : gerante@exemple.fr\n"}
+    finish(task, {"email" => JSON::Any.new("gerante@exemple.fr"), "user_created" => JSON::Any.new(true),
+                  "notified" => JSON.parse([dossier.admin_email.to_s].to_json), "notices_delivered_by" => JSON::Any.new("admin"),
+                  "notices" => JSON.parse([notice].to_json)})
+    sent = Marten::Spec.delivered_emails[before..]
+    sent.map(&.to.map(&.address)).should eq([[dossier.admin_email.to_s]])
+    sent.first.subject.should eq("Un administrateur a été ajouté au dossier Exemple")
+    sent.first.text_body.to_s.should contain("Personne : gerante@exemple.fr")
+    stored = task.reload.result_json
+    stored["notices"]?.should be_nil
+    stored["notified"].as_a.map(&.as_s).should eq([dossier.admin_email.to_s])
+    detail = JSON.parse(PartiduoAdmin::AuditEntry.filter(action: "administrators.added").last!.detail.to_s)
+    {detail["notified"], detail["notices_delivered_by"]}.should eq({dossier.admin_email.to_s, "admin"})
   end
 
   it "attend une autre personne quand la structure est réglée sur deux personnes" do

@@ -934,6 +934,7 @@ es:
         firm_replaces: "Sustituir: se invita al nuevo administrador y luego el anterior pasa a gestor de expedientes."
         dossier: "Las cuentas con derechos de administración en el expediente. La empresa también puede cambiarlas ella misma en su expediente: relea la lista para recoger sus cambios."
         add_dossier: "Las altas y las bajas pasan por una solicitud, validada según el ajuste de la estructura; después el agente las aplica en el expediente y la persona invitada recibe un correo."
+        informed: "Los administradores actuales del expediente reciben un aviso por correo, en su idioma, de cada alta, baja o degradación hecha desde aquí: quién, por quién (estructura y persona), cuándo y con qué derechos. Pueden retirar ellos mismos un acceso añadido desde la pantalla de usuarios de su expediente; la consola nunca lo reabre."
         dossier_replaces: "Sustituir: se añade el nuevo administrador y luego se retira el anterior."
       states:
         pending: "pendiente"

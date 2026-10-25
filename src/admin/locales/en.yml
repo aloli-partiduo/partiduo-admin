@@ -934,6 +934,7 @@ en:
         firm_replaces: "Replace: the new administrator is invited, then the former one becomes a file manager."
         dossier: "The accounts with administration rights in the file. The company can also change them itself in its file: reread the list to pick up its changes."
         add_dossier: "Additions and removals go through a request, approved according to the structure's setting; the agent then makes them in the file, and the invitee receives an email."
+        informed: "The file's current administrators are notified by email, in their language, of each addition, removal or demotion made from here: who, by whom (structure and person), when, with which rights. They can withdraw an added access themselves from their file's users screen; the console never reopens it."
         dossier_replaces: "Replace: the new administrator is added, then the former one is removed."
       states:
         pending: "pending"

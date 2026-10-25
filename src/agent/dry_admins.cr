@@ -6,7 +6,9 @@ module PartiduoAgent
   # Mode à blanc : administrateurs simulés de chaque instance (contrat
   # d'instance 1.4.0, D-ADM-017) — l'adresse de provisionnement, puis celles
   # que les tâches ajoutent ou retirent, avec les refus de l'instance
-  # (dernier administrateur, adresse inconnue).
+  # (dernier administrateur, adresse inconnue) ; avis aux administrateurs
+  # actuels (contrat 1.5.0, D-ADM-020), rédigés comme une instance sans
+  # transport de courriel : à remettre par l'exécutant.
   class DrySystem < System
     # Base → adresses des administrateurs actifs.
     getter admins = {} of String => Array(String)
@@ -33,12 +35,13 @@ module PartiduoAgent
       when "admin-add"
         email = args.first? || ""
         created = !list.includes?(email)
+        notices = created ? dry_notices(list, "add", email, args) : [] of Hash(String, String | Bool)
         list << email if created
         dry_reply(action, {"email" => email, "user_created" => created, "promoted" => false,
                            "token" => "DRYADD", "url" => "https://dry-run/invitation/DRYADD",
                            "expires_at" => "2026-10-05T00:00:00Z", "usable_admins" => list.size - (created ? 1 : 0),
                            "approval_mode" => option(args, "--approval-mode") || "dual", "signup_code" => "",
-                           "connect_account" => false})
+                           "connect_account" => false, "notices" => notices})
       else
         dry_remove(list, args)
       end
@@ -48,9 +51,21 @@ module PartiduoAgent
       email = args.first? || ""
       return dry_refusal("instance.admin_remove.unknown") unless list.includes?(email)
       return dry_refusal("instance.admin_remove.last") if list.size <= 1
+      notices = dry_notices(list, option(args, "--removal") || "revoke", email, args)
       list.delete(email)
       dry_reply("admin-remove", {"email" => email, "removal" => option(args, "--removal") || "", "changed" => true,
-                                 "remaining_admins" => list.size, "approval_mode" => option(args, "--approval-mode") || "dual"})
+                                 "remaining_admins" => list.size, "approval_mode" => option(args, "--approval-mode") || "dual",
+                                 "notices" => notices})
+    end
+
+    # Avis simulés : un par administrateur actuel, sauf celui qu'on ajoute.
+    private def dry_notices(list : Array(String), gesture : String, email : String,
+                            args : Array(String)) : Array(Hash(String, String | Bool))
+      by = [option(args, "--firm"), option(args, "--requester")].compact.join(", ")
+      list.reject { |admin| gesture == "add" && admin == email }.map do |admin|
+        {"email" => admin, "locale" => "fr", "delivered" => false, "subject" => "[à blanc] #{gesture} #{email}",
+         "body" => "[à blanc] #{gesture} #{email} par #{by}\n"} of String => String | Bool
+      end
     end
 
     private def option(args : Array(String), name : String) : String?

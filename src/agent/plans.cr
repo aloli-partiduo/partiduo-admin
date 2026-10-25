@@ -542,14 +542,15 @@ module PartiduoAgent
 
     # --- Administrateurs du dossier (D-ADM-017, contrat d'instance 1.4.0) ----
 
-    # Les gestes sur les administrateurs exigent le contrat 1.4.0 : une
-    # instance plus ancienne est refusée avant tout geste, elle est à mettre
-    # à jour.
-    def self.require_admins_contract(ctx : Context) : Nil
+    # Les gestes sur les administrateurs exigent le contrat 1.4.0, et
+    # l'ajout et le retrait le contrat 1.5.0, qui prévient les
+    # administrateurs actuels du dossier (D-ADM-020) : une instance plus
+    # ancienne est refusée avant tout geste, elle est à mettre à jour.
+    def self.require_admins_contract(ctx : Context, minor : Int32 = PartiduoAdmin::Protocol::ADMINS_MINOR) : Nil
       contract = check_contract(ctx)
-      return if contract_at_least?(contract, 1, PartiduoAdmin::Protocol::ADMINS_MINOR)
+      return if contract_at_least?(contract, 1, minor)
       raise StepError.new("contrat d'instance #{contract} : les administrateurs du dossier exigent le contrat " \
-                          "1.#{PartiduoAdmin::Protocol::ADMINS_MINOR}.0 (mettre l'instance à jour)", "refused")
+                          "1.#{minor}.0 (mettre l'instance à jour)", "refused")
     end
 
     # Liste relue dans l'instance : comptes au profil administrateur.
@@ -565,7 +566,20 @@ module PartiduoAgent
     def self.approval_arguments(ctx : Context) : Array(String)
       approvers = checked_approvers(ctx)
       ["--reason", ctx.value_arg("reason"), "--approval-ref", ctx.value_arg("approval_ref"),
-       "--approval-mode", approval_mode(ctx), "--approvers", approvers.join(',')]
+       "--approval-mode", approval_mode(ctx), "--approvers", approvers.join(',')] + notice_arguments(ctx)
+    end
+
+    # Qui décide, pour l'avis aux administrateurs du dossier (contrat
+    # 1.5.0, D-ADM-020) : structure (`--firm`) et personne qui a demandé le
+    # geste (`--requester`) ; absents, l'instance cite le demandeur de la
+    # tâche.
+    def self.notice_arguments(ctx : Context) : Array(String)
+      arguments = [] of String
+      {"firm" => "--firm", "requester" => "--requester"}.each do |key, option|
+        value = ctx.value_arg(key)
+        arguments += [option, value] unless value.empty?
+      end
+      arguments
     end
 
     # Ajout d'un administrateur, puis, pour un remplacement (`replaces`),
@@ -573,7 +587,7 @@ module PartiduoAgent
     # Le lien d'invitation est gardé au journal de reprise le temps de la
     # tâche, et remis par le serveur quand il le peut (D-CRA-003).
     def self.admin_add(ctx : Context) : Nil
-      require_admins_contract(ctx)
+      require_admins_contract(ctx, PartiduoAdmin::Protocol::NOTICES_MINOR)
       ctx.log("administrateur ajouté — #{approval_line(ctx)}")
       email = ctx.value_arg("email")
       ctx.step("ajout #{email}") do
@@ -584,11 +598,13 @@ module PartiduoAgent
         if url = data["url"]?.try(&.as_s?)
           ctx.journal["invitation_url"] = url
         end
+        ctx.journal["add_notices"] = (data["notices"]? || JSON::Any.new([] of JSON::Any)).to_json
       end
       %w[email signup_code].each { |key| ctx.set(key, ctx.journal["add_#{key}"]? || "") }
       %w[user_created promoted connect_account].each { |key| ctx.set(key, ctx.journal["add_#{key}"]? == "true") }
       ctx.set("usable_admins", (ctx.journal["add_usable_admins"]? || "0").to_i? || 0)
       deliver_admin_invitation(ctx, ctx.journal["add_email"]?.presence || email)
+      deliver_notices(ctx, "add")
       replaced = ctx.param("replaces")
       admin_remove(ctx, replaced, ctx.param("replace_removal").presence || "revoke", "remplacement") unless replaced.empty?
     end
@@ -606,7 +622,7 @@ module PartiduoAgent
     # Retrait d'un administrateur : accès révoqué (`revoke`) ou profil
     # comptable (`demote`).
     def self.admin_remove(ctx : Context) : Nil
-      require_admins_contract(ctx)
+      require_admins_contract(ctx, PartiduoAdmin::Protocol::NOTICES_MINOR)
       ctx.log("administrateur retiré — #{approval_line(ctx)}")
       admin_remove(ctx, ctx.value_arg("email"), ctx.param("removal"), "retrait")
     end
@@ -622,12 +638,62 @@ module PartiduoAgent
         data = ctx.instance!("admin-remove", [email, "--removal", removal] + approval_arguments(ctx))
         ctx.journal["removed_changed"] = (data["changed"]?.try(&.as_bool?) || false).to_s
         ctx.journal["remaining_admins"] = (data["remaining_admins"]?.try(&.as_i?) || 0).to_s
+        ctx.journal["remove_notices"] = (data["notices"]? || JSON::Any.new([] of JSON::Any)).to_json
       end
+      deliver_notices(ctx, "remove")
       ctx.set("removed", email)
       ctx.set("removal", removal)
       ctx.set("changed", ctx.journal["removed_changed"]? == "true")
       ctx.set("remaining_admins", (ctx.journal["remaining_admins"]? || "0").to_i? || 0)
     end
+
+    # Avis aux administrateurs du dossier (D-ADM-020) rédigés par
+    # l'instance, dans la langue de chacun. Ceux qu'elle n'a pas remis
+    # elle-même (aucun transport de courriel dans le dossier, cas du parc)
+    # sont remis par le serveur, par le compte SMTP de Partiduo comme les
+    # invitations (D-CRA-003) ; sans ce compte, ils sont rendus à
+    # l'administration, qui les envoie à la clôture de la tâche
+    # (D-AFN-008 : un envoi en échec fait reprendre la tâche).
+    # `notified` : adresses prévenues ; `notices_delivered_by` : qui les a
+    # remis (`Protocol::NOTICE_DELIVERERS`), le plus éloigné de l'instance
+    # pour un remplacement.
+    private def self.deliver_notices(ctx : Context, gesture : String) : Nil
+      notices = JSON.parse(ctx.journal["#{gesture}_notices"]? || "[]").as_a? || [] of JSON::Any
+      pending = notices.reject { |notice| notice["delivered"]?.try(&.as_bool?) == true }
+      by = notice_deliverer(ctx, notices, pending)
+      case by
+      when "server"
+        pending.each { |notice| deliver_notice(ctx, gesture, notice) }
+      when "admin"
+        kept = ctx.result["notices"]?.try(&.as_a?) || [] of JSON::Any
+        ctx.result["notices"] = JSON::Any.new(kept + pending)
+      end
+      notified = (ctx.result["notified"]?.try(&.as_a?) || [] of JSON::Any) +
+                 notices.compact_map { |notice| notice["email"]?.try { |email| JSON::Any.new(email.as_s) } }
+      ctx.result["notified"] = JSON::Any.new(notified)
+      previous = ctx.result["notices_delivered_by"]?.try(&.as_s?) || "none"
+      ctx.set("notices_delivered_by", NOTICE_RANKS[by] > (NOTICE_RANKS[previous]? || 0) ? by : previous)
+    end
+
+    # Qui remet les avis d'un geste : personne (aucun), l'instance (tous
+    # remis), le serveur (compte SMTP de Partiduo), sinon l'administration.
+    private def self.notice_deliverer(ctx : Context, notices : Array(JSON::Any), pending : Array(JSON::Any)) : String
+      return "none" if notices.empty?
+      return "instance" if pending.empty?
+      ctx.system.mailer? ? "server" : "admin"
+    end
+
+    # Un avis remis par le serveur : une étape par destinataire, sautée à
+    # la reprise.
+    private def self.deliver_notice(ctx : Context, gesture : String, notice : JSON::Any) : Nil
+      email = notice["email"]?.try(&.as_s?) || return
+      ctx.step("avis #{gesture} #{email}") do
+        ctx.system.deliver_notice(email, notice["subject"]?.try(&.as_s?) || "", notice["body"]?.try(&.as_s?) || "")
+      end
+    end
+
+    # Du plus proche au plus éloigné de l'instance.
+    NOTICE_RANKS = {"none" => 0, "instance" => 1, "server" => 2, "admin" => 3}
 
     # --- Sauvegardes -------------------------------------------------------------
 

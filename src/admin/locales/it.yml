@@ -934,6 +934,7 @@ it:
         firm_replaces: "Sostituire: il nuovo amministratore viene invitato, poi il precedente diventa gestore di dossier."
         dossier: "Gli account con diritti di amministrazione nel dossier. L'azienda può anche cambiarli da sé nel proprio dossier: rileggere l'elenco per riprenderne le modifiche."
         add_dossier: "Aggiunte e rimozioni passano da una richiesta, convalidata secondo l'impostazione della struttura; poi l'esecutore le applica nel dossier e la persona invitata riceve un'e-mail."
+        informed: "Gli amministratori attuali del dossier ricevono un avviso via e-mail, nella loro lingua, di ogni aggiunta, rimozione o declassamento fatto da qui: chi, da chi (struttura e persona), quando, con quali diritti. Possono revocare essi stessi un accesso aggiunto dalla schermata degli utenti del loro dossier; la console non lo riapre mai."
         dossier_replaces: "Sostituire: il nuovo amministratore viene aggiunto, poi il precedente viene rimosso."
       states:
         pending: "in attesa"

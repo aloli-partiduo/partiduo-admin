@@ -432,3 +432,60 @@ la nouvelle déclaration `regimes` du manifeste.
 
 Traductions dans les sept langues ; l'aide de la famille « Régime et
 tenue des comptes » ne dit plus que les trois se cumulent.
+
+=== D-ADM-020 — Ajout d'un administrateur par la console : les administrateurs du dossier sont prévenus (25 octobre 2026)
+
+Décision de l'utilisateur du 25 octobre 2026 (option B, à la question que
+posait D-ADM-017) : l'ajout d'un administrateur de dossier depuis la
+console reste possible, validé et tracé comme aujourd'hui ; les
+administrateurs actuels du dossier en sont prévenus par courriel (qui, par
+qui — structure et personne —, quand, avec quels droits) et peuvent
+révoquer eux-mêmes cet accès. Il en va de même d'un retrait, d'une
+rétrogradation et d'un remplacement. ADR-002 D3 et ADR-008 D3 sont amendés
+(partiduo-docs). Version 0.1.56, protocole de l'exécutant 3.3.0, contrat
+d'instance 1.5.0 (D-AMD-044 de partiduo-app).
+
+*Qui envoie : l'instance* (D-AMD-044). Elle rédige l'avis dans le geste
+lui-même, pour ses administrateurs réels, dans la langue de chacun, avec
+le lien vers la fiche du compte dans l'écran des utilisateurs du dossier ;
+la console ne peut donc pas donner un droit sans que la société
+l'apprenne par son propre dossier. La console, elle, ne se contrôlerait
+pas elle-même, et sa liste (`DossierAdmin`) peut avoir divergé.
+
+*Ce que la console fournit.* Les paramètres des tâches `instance.admin_add`
+et `instance.admin_remove` portent `firm` (structure qui administre le
+dossier) et `requester` (« Prénom Nom <adresse> » de qui a demandé le
+geste : l'auteur de la demande validée ; à la création, qui a créé le
+dossier), passés à l'instance par `--firm` et `--requester`. Les personnes
+de la validation et son mode y étaient déjà.
+
+*Remise des avis.* L'instance les envoie elle-même quand le dossier a un
+transport de courriel ; sinon (cas du parc), l'exécutant les remet par le
+compte SMTP de Partiduo, comme les invitations (D-CRA-003), une étape par
+destinataire, sautée à la reprise ; sans ce compte, il les rend à
+l'administration, qui les envoie à la clôture de la tâche
+(`Effects.deliver_notices`, `Mailer.notice` ; un échec fait reprendre la
+tâche, D-AFN-008). Le résultat garde `notified` (adresses prévenues) et
+`notices_delivered_by` (`instance`, `server`, `admin` ou `none`), jamais le
+texte des avis (`SECRET_KEYS`) ; la trace `administrators.added` et
+`administrators.removed` les reprend.
+
+*Contrat exigé.* L'exécutant refuse avant tout geste un ajout ou un retrait
+sur une instance au contrat antérieur à 1.5.0 (`NOTICES_MINOR`) : elle
+donnerait le droit sans prévenir. La relecture (`instance.admins`) reste
+permise dès 1.4.0. Protocole 3.3.0 (ajouts : paramètres `firm`,
+`requester` ; résultat `notified`, `notices_delivered_by`, `notices`).
+
+*Révocation.* Par l'écran des utilisateurs du dossier, où elle existe
+déjà ; un accès que la société a révoqué n'est jamais rouvert par la
+console (`instance.admin_add.revoked`), et la relecture le retire de la
+liste. Un lien signé de révocation directe a été écarté (D-AMD-044).
+
+*Écran.* L'aide de « Ajouter ou remplacer un administrateur » le dit
+(`admin.administrators.help.informed`, sept langues).
+
+*Specs* : `spec/agent/administrators_spec.cr` (options transmises, avis
+remis par le serveur, rendus à l'administration, remplacement, personne à
+prévenir, contrat 1.4.0 refusé pour l'ajout et le retrait) ;
+`spec/admin/administrators_spec.cr` (paramètres `firm` et `requester`,
+envoi en dernier recours, résultat expurgé, trace).

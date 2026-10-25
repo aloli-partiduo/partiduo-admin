@@ -934,6 +934,7 @@ fr:
         firm_replaces: "Remplacer : le nouvel administrateur est invité, puis l'ancien devient gestionnaire de dossiers."
         dossier: "Les comptes qui ont les droits d'administration dans le dossier. La société peut aussi les changer elle-même dans son dossier : relisez la liste pour reprendre ses changements."
         add_dossier: "L'ajout et le retrait passent par une demande, validée selon le réglage de la structure ; l'exécutant les fait ensuite dans le dossier, et l'invité reçoit un courriel."
+        informed: "Les administrateurs actuels du dossier sont prévenus par courriel, dans leur langue, de chaque ajout, retrait ou rétrogradation fait d'ici : qui, par qui (structure et personne), quand, avec quels droits. Ils peuvent retirer eux-mêmes un accès ajouté depuis l'écran des utilisateurs de leur dossier ; la console ne le rouvre jamais."
         dossier_replaces: "Remplacer : le nouvel administrateur est ajouté, puis l'ancien est retiré."
       states:
         pending: "en attente"

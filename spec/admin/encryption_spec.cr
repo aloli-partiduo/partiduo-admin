@@ -188,7 +188,7 @@ describe "Chiffrement des sauvegardes : restauration et restauration test (D-CHF
     until claimed["task"]["kind"] == "backup.restore"
       claimed = api("/api/agent/v1/claim", token)
     end
-    claimed["api"].should eq("3.2.0")
+    claimed["api"].should eq("3.3.0")
     claimed["task"]["secrets"]["data_keys"].as_a.map(&.as_s).should eq([identity])
     claimed["task"]["params"].to_json.should_not contain(identity)
     task.reload.data_keys.should eq("")

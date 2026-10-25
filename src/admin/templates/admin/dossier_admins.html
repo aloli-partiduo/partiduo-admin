@@ -39,7 +39,8 @@
   <h2 id="pd-admin-new-title">{% translate "admin.administrators.add_dossier" %}</h2>
   {% csrf_input %}
   {% include "admin/_approval_mode_note.html" %}
-  <p class="help mb-3">{% translate "admin.administrators.help.add_dossier" %}</p>
+  <p class="help">{% translate "admin.administrators.help.add_dossier" %}</p>
+  <p class="help mb-3">{% translate "admin.administrators.help.informed" %}</p>
   <div class="field">
     <label class="label" for="pd-admin-email">{% translate "admin.users.fields.email" %}<span class="pd-required" aria-hidden="true"> *</span></label>
     <div class="control"><input class="input" type="email" id="pd-admin-email" name="email" value="{{ email }}" required{% if email_errors %} aria-invalid="true" aria-describedby="pd-admin-email-error"{% endif %}></div>

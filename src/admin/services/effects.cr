@@ -9,8 +9,10 @@ module PartiduoAdmin
     module Effects
       # Clés du résultat jamais conservées : le lien d'invitation et son
       # jeton ne sont écrits nulle part ailleurs que dans le courriel envoyé
-      # à l'adresse invitée (instance-cli, `admin-invite`).
-      SECRET_KEYS = %w[url token invitation_url]
+      # à l'adresse invitée (instance-cli, `admin-invite`) ; les avis aux
+      # administrateurs du dossier (D-ADM-020) ne vivent que dans le
+      # courriel, leurs destinataires restent (`notified`).
+      SECRET_KEYS = %w[url token invitation_url notices]
 
       # Envoi du lien d'invitation en échec : `Tasks.finish` annule alors
       # tout (état, résultat expurgé, effets) et répond une erreur à
@@ -23,6 +25,21 @@ module PartiduoAdmin
         Mailer.invitation_to_dossier(dossier, email, url)
       rescue ex
         raise DeliveryError.new("#{email} : #{ex.class} #{ex.message}")
+      end
+
+      # Avis aux administrateurs du dossier rédigés par l'instance, que ni
+      # elle ni le serveur n'ont pu remettre (D-ADM-020) : envoyés tels
+      # quels, à la clôture de la tâche ; un échec la fait reprendre
+      # (D-AFN-008).
+      def self.deliver_notices(result : JSON::Any) : Nil
+        (result["notices"]?.try(&.as_a?) || [] of JSON::Any).each do |notice|
+          email = notice["email"]?.try(&.as_s?) || next
+          begin
+            Mailer.notice(email, notice["subject"]?.try(&.as_s?) || "", notice["body"]?.try(&.as_s?) || "")
+          rescue ex
+            raise DeliveryError.new("#{email} : #{ex.class} #{ex.message}")
+          end
+        end
       end
 
       def self.sanitize(task : Task, result : JSON::Any) : JSON::Any
@@ -44,7 +61,7 @@ module PartiduoAdmin
         "instance.delete"          => Handler.new { |task, dossier, success, _, now| deleted(task, dossier, success, now) },
         "instance.admin_invite"    => Handler.new { |task, dossier, success, result, _| invited(task, dossier, success, result) },
         "instance.admin_add"       => Handler.new { |task, dossier, success, result, _| admin_added(task, dossier, success, result) },
-        "instance.admin_remove"    => Handler.new { |task, dossier, success, result, _| Administrators.removed(task, dossier, result) if success },
+        "instance.admin_remove"    => Handler.new { |task, dossier, success, result, _| admin_removed(task, dossier, success, result) },
         "instance.admins"          => Handler.new { |task, dossier, success, result, now| Administrators.refreshed(task, dossier, result, now) if success },
         "backup.run"               => Handler.new { |task, dossier, success, result, now| backed_up(task, dossier, success, result, now) },
         "backup.prune"             => Handler.new { |task, _, success, _, now| pruned(task, success, now) },
@@ -87,6 +104,14 @@ module PartiduoAdmin
         if url = result["url"]?.try(&.as_s?)
           deliver_invitation(dossier, result["email"]?.try(&.as_s?) || task.params_json["email"]?.try(&.as_s?) || "", url)
         end
+        deliver_notices(result)
+      end
+
+      # Administrateur retiré : liste à jour, avis remis en dernier recours.
+      def self.admin_removed(task : Task, dossier : Dossier, ok : Bool, result : JSON::Any) : Nil
+        return unless ok
+        Administrators.removed(task, dossier, result)
+        deliver_notices(result)
       end
 
       def self.modules(dossier : Dossier, ok : Bool, task : Task) : Nil

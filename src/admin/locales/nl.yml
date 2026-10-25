@@ -934,6 +934,7 @@ nl:
         firm_replaces: "Vervangen: de nieuwe beheerder wordt uitgenodigd, daarna wordt de vorige dossierbeheerder."
         dossier: "De accounts met beheerdersrechten in het dossier. De onderneming kan ze ook zelf in haar dossier wijzigen: lees de lijst opnieuw in om haar wijzigingen over te nemen."
         add_dossier: "Toevoegen en verwijderen gaan via een aanvraag, goedgekeurd volgens de instelling van de structuur; de uitvoerder voert ze daarna in het dossier uit, en de genodigde ontvangt een e-mail."
+        informed: "De huidige beheerders van het dossier krijgen per e-mail, in hun taal, bericht van elke toevoeging, verwijdering of terugzetting die van hieruit gebeurt: wie, door wie (structuur en persoon), wanneer, met welke rechten. Ze kunnen een toegevoegde toegang zelf intrekken in het gebruikersscherm van hun dossier; de console heropent die nooit."
         dossier_replaces: "Vervangen: de nieuwe beheerder wordt toegevoegd, daarna wordt de vorige verwijderd."
       states:
         pending: "in afwachting"

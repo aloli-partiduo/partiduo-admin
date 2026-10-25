@@ -934,6 +934,7 @@ de:
         firm_replaces: "Ersetzen: Der neue Administrator wird eingeladen, danach wird der bisherige Mandantenbetreuer."
         dossier: "Die Konten mit Administrationsrechten im Mandanten. Das Unternehmen kann sie auch selbst in seinem Mandanten ändern: Lesen Sie die Liste neu ein, um seine Änderungen zu übernehmen."
         add_dossier: "Hinzufügen und Entfernen erfolgen über einen Antrag, freigegeben nach der Einstellung der Organisation; der Agent führt sie danach im Mandanten aus, und die eingeladene Person erhält eine E-Mail."
+        informed: "Die aktuellen Administratoren des Mandanten werden per E-Mail in ihrer Sprache über jedes Hinzufügen, Entfernen oder Herabstufen von hier aus informiert: wer, durch wen (Organisation und Person), wann, mit welchen Rechten. Sie können einen hinzugefügten Zugang selbst im Benutzerbildschirm ihres Mandanten entziehen; die Konsole öffnet ihn nie wieder."
         dossier_replaces: "Ersetzen: Der neue Administrator wird hinzugefügt, danach wird der bisherige entfernt."
       states:
         pending: "ausstehend"

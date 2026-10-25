@@ -265,6 +265,18 @@ module PartiduoAgent
       log("invitation remise par le serveur à #{email}")
     end
 
+    # Avis aux administrateurs d'un dossier (D-ADM-020) : sujet et texte
+    # rédigés par l'instance, dans la langue du destinataire ; remis par le
+    # compte SMTP de Partiduo, comme les invitations (D-CRA-003).
+    def deliver_notice(email : String, subject : String, body : String) : Nil
+      raise StepError.new("adresse d'avis refusée", "usage") unless InvitationMail.valid_address?(email)
+      raise StepError.new("expéditeur des courriels manquant (--mail-from)", "usage") if config.mail_from.empty?
+      raise StepError.new("avis vide pour #{email}", "usage") if subject.strip.empty? || body.strip.empty?
+      send_mail(MartenMail::Message.new(from: config.mail_from, to: [email], subject: subject.gsub(/[[:cntrl:]]/, " ").strip,
+        text: body, date: Time.utc))
+      log("avis aux administrateurs remis par le serveur à #{email}")
+    end
+
     # Remise par le compte SMTP de Partiduo (marten-mail) ; un refus du
     # serveur ou une coupure fait échouer l'étape, avec la cause.
     def send_mail(message : MartenMail::Message) : Nil
