@@ -558,7 +558,7 @@ pt:
       question: "Quem decide uma operação sensível (eliminação definitiva, recuperação de acesso)?"
       setting_help: "A alteração aplica-se aos pedidos seguintes e aos pendentes: com duas pessoas, um pedido aguarda outra pessoa; com uma pessoa, o seu requerente pode confirmá-lo sozinho após reautenticação."
       changed_at: "alterado em"
-      team_short: "A dupla validação exige pelo menos duas pessoas habilitadas. Se a equipa ficar reduzida a uma pessoa, desativa-se automaticamente (registo no registo de auditoria)."
+      team_short: "A dupla validação exige pelo menos duas pessoas habilitadas. Se a equipa ficar reduzida a uma pessoa, desativa-se automaticamente (inscrito no registo de auditoria)."
       fleet_only: "Só um superadministrador define o parque sem gabinete."
       set_by_firm: "Definido pelo administrador da estrutura."
       team_title: "Pessoas habilitadas"
@@ -607,7 +607,7 @@ pt:
       type_slug: "Para confirmar, escreva de novo o subdomínio do dossier:"
       type_slug_help: "Exatamente como apresentado, em minúsculas."
       confirm_access: "Confirmo a reemissão do convite de administrador do dossier para"
-      confirm_access_help: "O convite é enviado para este endereço; o registo fica no registo de auditoria e no registo do dossier."
+      confirm_access_help: "O convite é enviado para este endereço; a operação fica inscrita no registo de auditoria e no registo do dossier."
       confirm_button: "Confirmar e iniciar a tarefa"
       confirmed: "Pedido %{reference} confirmado: a tarefa está em fila de espera."
     firm_approvals:
@@ -1186,8 +1186,8 @@ pt:
       approval:
         title: "Validação"
         mode: "Operações sensíveis da estrutura"
-        note: "O restauro fica fora da dupla validação: a chave de uma cópia cifrada nunca é conservada, quem validasse teria de a fornecer. É registado na sua validação, após a confirmação abaixo, inscrito no registo de auditoria e pode ser anulado enquanto o executor não o tiver assumido."
-        single_note: "Estrutura configurada para uma pessoa: a operação é feita na sua validação, inscrita no registo de auditoria e pode ser anulada enquanto o executor não a tiver assumido."
+        note: "O restauro fica fora da dupla validação: a chave de uma cópia cifrada nunca é conservada, quem validasse teria de a fornecer. É registado na sua validação, após a confirmação abaixo, inscrito no registo de auditoria e pode ser anulado enquanto o agente não o tiver assumido."
+        single_note: "Estrutura configurada para uma pessoa: a operação é feita na sua validação, inscrita no registo de auditoria e pode ser anulada enquanto o agente não a tiver assumido."
         dual_note: "Estrutura configurada para duas pessoas: a validação regista um pedido que outra pessoa habilitada valida em «Operações sensíveis»; a operação é feita com a sua decisão."
         transfer_note: "A validação regista um pedido: cada estrutura dá o seu acordo conforme a sua configuração (uma ou duas pessoas) e a transferência é feita com o último acordo."
       server:
@@ -1422,7 +1422,7 @@ pt:
         audit: "A transferência fica inscrita no registo de auditoria das duas estruturas."
       consent_title: "Acordo da sua estrutura"
       consent_label: "Dou o acordo da minha estrutura à transferência do dossier"
-      consent_help: "Exigida uma autenticação forte recente; o acordo fica inscrito no registo de auditoria da sua estrutura."
+      consent_help: "É exigida uma reautenticação forte recente; o acordo fica inscrito no registo de auditoria da sua estrutura."
       consent_button: "Dar o acordo"
       requester_waits: "O seu pedido aguarda o acordo das duas estruturas."
       nothing_to_do: "Não se espera nenhum acordo seu nesta transferência."

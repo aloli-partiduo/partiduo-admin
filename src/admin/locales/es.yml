@@ -547,11 +547,11 @@ es:
       confirm_at: "Podrá confirmar solo a partir del"
       recourse_help: "El superadministrador solo valida como último recurso la solicitud de un despacho o de un gestor independiente tras %{hours} horas sin decisión de un administrador de la estructura; sus administradores reciben un aviso por correo electrónico y el recurso queda inscrito en el registro de auditoría."
       held_help: "Una solicitud que el propio superadministrador hace sobre un despacho o un gestor independiente configurado para una persona también espera %{hours} horas: los administradores de la estructura, avisados por correo electrónico, pueden validarla o rechazarla; sin respuesta, el superadministrador la confirma después solo."
-      dual_operation: "Estructura configurada con dos personas: esta operación es una solicitud que valida otra persona habilitada."
+      dual_operation: "Estructura configurada con dos personas: esta operación es una solicitud que valida otra persona autorizada."
       confirm:
         archive: "Confirmo el archivo del expediente"
         move: "Confirmo el traslado a otro servidor del expediente"
-        help: "La operación se realiza al confirmar; el rastro va al registro de auditoría."
+        help: "La operación se realiza al confirmar; queda constancia en el registro de auditoría."
     dual_approval:
       title: "Doble validación"
       setting: "Ajuste"
@@ -1186,9 +1186,9 @@ es:
       approval:
         title: "Validación"
         mode: "Operaciones sensibles de la estructura"
-        note: "La restauración queda fuera de la doble validación: la clave de una copia cifrada nunca se conserva, quien validara tendría que aportarla. Se registra al validar, tras la confirmación de abajo, queda inscrita en el registro de auditoría y puede anularse mientras el ejecutor no la haya tomado."
-        single_note: "Estructura configurada con una persona: la operación se realiza al validar, queda inscrita en el registro de auditoría y puede anularse mientras el ejecutor no la haya tomado."
-        dual_note: "Estructura configurada con dos personas: la validación registra una solicitud que otra persona habilitada valida en «Operaciones sensibles»; la operación se realiza con su decisión."
+        note: "La restauración queda fuera de la doble validación: la clave de una copia cifrada nunca se conserva, quien validara tendría que aportarla. Se registra al validar, tras la confirmación de abajo, queda inscrita en el registro de auditoría y puede anularse mientras el agente no la haya recogido."
+        single_note: "Estructura configurada con una persona: la operación se realiza al validar, queda inscrita en el registro de auditoría y puede anularse mientras el agente no la haya recogido."
+        dual_note: "Estructura configurada con dos personas: la validación registra una solicitud que otra persona autorizada valida en «Operaciones sensibles»; la operación se realiza con su decisión."
         transfer_note: "La validación registra una solicitud: cada estructura da su acuerdo según su configuración (una o dos personas) y la transferencia se realiza con el último acuerdo."
       server:
         title: "Añadir un servidor"
@@ -1405,7 +1405,7 @@ es:
       follow_link: "Seguir"
       from_to: "Estructuras"
       agreements: "Acuerdos de las dos estructuras"
-      agreements_help: "Cada estructura da su acuerdo según su configuración: una persona habilitada, o dos personas distintas. El solicitante nunca da su acuerdo; el rechazo de una de las dos estructuras cierra la solicitud."
+      agreements_help: "Cada estructura da su acuerdo según su configuración: una persona autorizada, o dos personas distintas. El solicitante nunca da su acuerdo; el rechazo de una de las dos estructuras cierra la solicitud."
       given: "%{given} acuerdo(s) de %{needed}"
       sides:
         origin: "Estructura de origen"
@@ -1422,7 +1422,7 @@ es:
         audit: "La transferencia queda inscrita en el registro de auditoría de las dos estructuras."
       consent_title: "Acuerdo de su estructura"
       consent_label: "Doy el acuerdo de mi estructura a la transferencia del expediente"
-      consent_help: "Se exige una autenticación fuerte reciente; el acuerdo queda inscrito en el registro de auditoría de su estructura."
+      consent_help: "Se exige una reautenticación fuerte reciente; el acuerdo queda inscrito en el registro de auditoría de su estructura."
       consent_button: "Dar el acuerdo"
       requester_waits: "Su solicitud espera el acuerdo de las dos estructuras."
       nothing_to_do: "No se espera ningún acuerdo suyo sobre esta transferencia."
