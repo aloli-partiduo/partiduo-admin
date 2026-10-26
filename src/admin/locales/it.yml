@@ -855,6 +855,8 @@ it:
       detail: "Dettaglio"
     emails:
       ignore: "Se non si aspettava questo messaggio, lo ignori."
+      super_admin: "un super amministratore"
+      support: "Per qualsiasi domanda, scriva al supporto Partiduo: %{address}"
       invitation:
         subject: "Invito all'amministrazione Partiduo"
         intro: "È invitato all'amministrazione del parco Partiduo. Apra questo link per scegliere i Suoi metodi di autenticazione:"
@@ -882,7 +884,7 @@ it:
         previous: "Impronta precedente: %{fingerprint}"
         current: "Nuova impronta: %{fingerprint}"
         none: "nessuna (prima chiave depositata)"
-        illegitimate: "Se questa modifica non è legittima, contatti il suo autore (%{person}) e il super amministratore (%{super_admins}), poi depositi di nuovo una chiave pubblica nota dello studio nella schermata della cifratura dei backup:"
+        illegitimate: "Se questa modifica non è legittima, contatti il suo autore (%{person}) e il supporto Partiduo (%{support}), poi depositi di nuovo una chiave pubblica nota dello studio nella schermata della cifratura dei backup:"
         audit: "La modifica è registrata nel registro di audit dello studio (backup_key.deposit)."
     errors:
       administrators:

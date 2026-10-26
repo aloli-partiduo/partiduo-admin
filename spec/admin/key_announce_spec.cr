@@ -58,7 +58,8 @@ describe "Annonce de la nouvelle empreinte de la clé du cabinet (D-ADM-029)" do
     body.should contain("Bisheriger Fingerabdruck: #{display(first)}")
     body.should contain("Neuer Fingerabdruck: #{display(second)}")
     body.should contain(author.email.to_s)
-    body.should contain(root.email.to_s)
+    body.should_not contain(root.email.to_s)
+    body.should contain("Partiduo-Support (#{Cfg.support_email})")
     body.should contain(SPEC_NOW.to_s("%Y-%m-%d %H:%M UTC"))
     body.should contain("/firms/#{firm.pk}/backups")
 

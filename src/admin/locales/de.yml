@@ -855,6 +855,8 @@ de:
       detail: "Detail"
     emails:
       ignore: "Wenn Sie diese Nachricht nicht erwartet haben, ignorieren Sie sie."
+      super_admin: "einem Super-Administrator"
+      support: "Bei Fragen wenden Sie sich an den Partiduo-Support: %{address}"
       invitation:
         subject: "Einladung zur Partiduo-Verwaltung"
         intro: "Sie wurden zur Verwaltung des Partiduo-Bestands eingeladen. Öffnen Sie diesen Link, um Ihre Anmeldeverfahren zu wählen:"
@@ -882,7 +884,7 @@ de:
         previous: "Bisheriger Fingerabdruck: %{fingerprint}"
         current: "Neuer Fingerabdruck: %{fingerprint}"
         none: "keiner (erster hinterlegter Schlüssel)"
-        illegitimate: "Falls diese Änderung nicht rechtmäßig ist, wenden Sie sich an ihren Urheber (%{person}) und an den Super-Administrator (%{super_admins}) und hinterlegen Sie anschließend wieder einen bekannten öffentlichen Schlüssel der Kanzlei auf der Seite zur Verschlüsselung der Sicherungen:"
+        illegitimate: "Falls diese Änderung nicht rechtmäßig ist, wenden Sie sich an ihren Urheber (%{person}) und an den Partiduo-Support (%{support}) und hinterlegen Sie anschließend wieder einen bekannten öffentlichen Schlüssel der Kanzlei auf der Seite zur Verschlüsselung der Sicherungen:"
         audit: "Die Änderung ist im Audit-Protokoll der Kanzlei vermerkt (backup_key.deposit)."
     errors:
       administrators:

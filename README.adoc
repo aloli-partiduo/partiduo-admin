@@ -971,7 +971,11 @@ service partiduo_admin start
 Variables de l'application (fichier d'environnement lu par son script rc.d,
 voir le port) : `DATABASE_URL`, `MARTEN_SECRET_KEY`, `PARTIDUO_DOMAIN`
 (`partiduo.app`), `PARTIDUO_ADMIN_HOST`, `PARTIDUO_ADMIN_URL`,
-`PARTIDUO_ADMIN_MAIL_FROM`, `PARTIDUO_ADMIN_ALERTS_TO` ; au besoin
+`PARTIDUO_ADMIN_MAIL_FROM`, `PARTIDUO_ADMIN_ALERTS_TO`,
+`PARTIDUO_ADMIN_SUPPORT_EMAIL` (adresse de support, seul contact donné
+aux admins des cabinets dans les courriels de la console ; à défaut,
+l'adresse d'expédition, jamais celle d'un super-admin ni les destinataires
+des alertes, D-ADM-031) ; au besoin
 `PARTIDUO_ADMIN_RECOURSE_DELAY_HOURS` (délai du dernier recours du
 super-admin, et de sa confirmation seule sur un cabinet, 48 heures par
 défaut, D-ADM-024, D-ADM-028),

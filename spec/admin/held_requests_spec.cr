@@ -59,7 +59,9 @@ describe "Demande du super-admin retenue jusqu'à l'échéance (D-ADM-028)" do
     french.subject.to_s.should contain("à valider ou refuser")
     body = french.text_body.to_s
     body.should contain(approval.reference.to_s)
-    body.should contain(root.email.to_s)
+    body.should contain("Demandée par : un super-administrateur")
+    body.should_not contain(root.email.to_s)
+    body.should contain("Pour toute question, écrivez au support Partiduo : #{Cfg.support_email}")
     body.should contain("Motif : compte compromis")
     body.should contain((SPEC_NOW + 48.hours).to_s("%Y-%m-%d %H:%M UTC"))
     english = sent.find!(&.to.map(&.address).includes?(second.email.to_s))

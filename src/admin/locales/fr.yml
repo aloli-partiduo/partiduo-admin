@@ -855,6 +855,8 @@ fr:
       detail: "Détail"
     emails:
       ignore: "Si vous n'attendiez pas ce message, ignorez-le."
+      super_admin: "un super-administrateur"
+      support: "Pour toute question, écrivez au support Partiduo : %{address}"
       invitation:
         subject: "Invitation à l'administration Partiduo"
         intro: "Vous êtes invité à l'administration du parc Partiduo. Ouvrez ce lien pour choisir vos moyens d'authentification :"
@@ -882,7 +884,7 @@ fr:
         previous: "Ancienne empreinte : %{fingerprint}"
         current: "Nouvelle empreinte : %{fingerprint}"
         none: "aucune (première clé déposée)"
-        illegitimate: "Si ce changement n'est pas légitime, contactez son auteur (%{person}) et le super-administrateur (%{super_admins}), puis redéposez une clé publique connue du cabinet sur l'écran du chiffrement des sauvegardes :"
+        illegitimate: "Si ce changement n'est pas légitime, contactez son auteur (%{person}) et le support Partiduo (%{support}), puis redéposez une clé publique connue du cabinet sur l'écran du chiffrement des sauvegardes :"
         audit: "Le changement est inscrit au journal d'audit du cabinet (backup_key.deposit)."
     errors:
       administrators:

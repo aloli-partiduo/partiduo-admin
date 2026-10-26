@@ -259,13 +259,12 @@ module PartiduoAdmin
     end
 
     # Annonce de la nouvelle empreinte aux autres admins actifs du cabinet
-    # (jamais à l'auteur) ; les super-admins actifs sont nommés comme
-    # recours.
+    # (jamais à l'auteur) ; le contact donné est l'adresse de support de
+    # l'instance (D-ADM-031), jamais celle d'un super-admin.
     private def self.announce_key(user : User, firm : Firm, previous : String, current : String, now : Time,
                                   detail : Hash(String, String)) : Nil
       others = User.filter(firm_id: firm.pk, role: Config::FIRM_ADMIN, active: true).exclude(id: user.pk).order("email").to_a
-      supers = User.filter(role: Config::SUPER_ADMIN, active: true).order("email").map(&.email.to_s)
-      change = Mailer::KeyChange.new(firm, user, previous, current, now, supers)
+      change = Mailer::KeyChange.new(firm, user, previous, current, now)
       notified, failed = Mailer.backup_key(change, others)
       detail["notified"] = notified.join(',')
       detail["notice_failed"] = failed.join(',') unless failed.empty?

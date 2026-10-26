@@ -1308,6 +1308,9 @@ français, empreintes, auteur, heure, recours ; trace ; même clé sans
 annonce ; échec d'envoi consigné ; écran. Aucun envoi réel (file
 capturée).
 
+_Amendé par D-ADM-031 : le contact donné est l'adresse de support de
+l'instance, plus celles des super-admins._
+
 === D-ADM-030 — Champs facultatifs vides : `nil` pour les gabarits (26 octobre 2026)
 
 Défaut relevé le 26 octobre 2026 : dans « Opérations sensibles », un motif
@@ -1338,3 +1341,48 @@ sensibles » et sur « Confirmer seul », aucun séparateur orphelin sur la
 fiche de la structure, la liste des structures, des dossiers, la page du
 compte, aucun lien vide dans un assistant) ; `spec-connect/account_spec`
 (journal sans application).
+
+=== D-ADM-031 — Adresse de support unique dans les courriels de la console (26 octobre 2026)
+
+Décision de l'utilisateur du 26 octobre 2026. Version 0.1.66.
+
+*Constat.* L'annonce d'une nouvelle clé du cabinet (D-ADM-029) donnait
+comme contact les adresses de *tous les super-admins actifs* ; l'avis
+d'une demande retenue (D-ADM-028) et celui du dernier recours (D-ADM-024)
+donnaient l'adresse du super-admin demandeur ou décideur. Des adresses
+personnelles de l'exploitant partaient ainsi chez les admins des
+cabinets, et la liste changeait avec l'équipe.
+
+*Règle.* Les courriels de la console aux admins des structures donnent
+*une seule adresse de support*, réglée par l'instance :
+`PARTIDUO_ADMIN_SUPPORT_EMAIL` (`Config.support_email`, espaces ôtés).
+
+* Annonce de la nouvelle clé : « contactez son auteur et le support
+  Partiduo (adresse) » ; l'auteur, admin du cabinet, reste nommé.
+* Demande retenue et dernier recours : ligne « Pour toute question,
+  écrivez au support Partiduo : adresse » en fin de message ; un
+  super-admin demandeur ou décideur est désigné par sa fonction (« un
+  super-administrateur »), un admin de la structure par son adresse.
+  L'identité du super-admin reste au journal d'audit de la structure
+  (`approval.request`, `approval.recourse`).
+* Sept langues (clés `admin.emails.super_admin`, `admin.emails.support`,
+  `admin.emails.backup_key.illegitimate` réécrite).
+
+*Repli.* Sans `PARTIDUO_ADMIN_SUPPORT_EMAIL`, l'adresse d'expédition
+(`PARTIDUO_ADMIN_MAIL_FROM`, à défaut `no-reply@<domaine>`) : elle est
+unique, toujours définie et déjà lue par chaque destinataire dans
+l'en-tête du message ; elle ne révèle rien. Écarté :
+`PARTIDUO_ADMIN_ALERTS_TO`, liste interne de l'exploitation (astreinte,
+adresses personnelles possibles, plusieurs adresses), précisément ce qu'on
+ne veut plus envoyer aux cabinets ; et vide quand les alertes ne sont pas
+réglées. Une instance de production règle l'adresse de support (recette
+beryl `partiduo-admin`), le repli `no-reply` n'étant pas un contact.
+
+*connect.* Ses courriels ne citent aucune adresse de super-admin ni
+d'exploitant (le support y est nommé sans adresse) : inchangés.
+
+*Specs* : `spec/admin/support_email_spec.cr` — adresse réglée utilisée
+dans les trois avis ; repli sur l'adresse d'expédition, jamais sur les
+destinataires des alertes ; aucune adresse de super-admin dans les
+courriels envoyés, dans les sept langues ; `held_requests_spec`,
+`recourse_spec` et `key_announce_spec` suivent la règle.

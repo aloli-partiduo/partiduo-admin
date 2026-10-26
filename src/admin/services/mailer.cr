@@ -75,7 +75,8 @@ module PartiduoAdmin
     # Annonce d'une nouvelle clé publique de sauvegarde du cabinet
     # (D-ADM-029) aux *autres* admins actifs du cabinet, chacun dans sa
     # langue : auteur, heure, ancienne et nouvelle empreinte, marche à
-    # suivre si le changement n'est pas légitime (B-CRA-001).
+    # suivre si le changement n'est pas légitime (B-CRA-001), avec l'adresse
+    # de support de l'instance (D-ADM-031).
     def self.backup_key(change : KeyChange, recipients : Array(User)) : {Array(String), Array(String)}
       notify(recipients, "nouvelle clé") { |locale| backup_key_text(change, locale) }
     end
@@ -103,21 +104,21 @@ module PartiduoAdmin
         body = String.build do |io|
           io << I18n.t("admin.emails.held.intro", reference: approval.reference.to_s, kind: I18n.t(approval.kind_key),
             target: approval.target_name, structure: approval.target_firm.try(&.name.to_s) || "") << "\n\n"
-          io << I18n.t("admin.emails.held.requested_by", person: approval.requested_by.try(&.email.to_s) || "") << "\n"
+          io << I18n.t("admin.emails.held.requested_by", person: person(approval.requested_by)) << "\n"
           if reason = approval.reason_text
             io << I18n.t("admin.emails.held.reason", reason: reason) << "\n"
           end
           io << "\n" << I18n.t("admin.emails.held.deadline", time: Approvals.recourse_at(approval).to_s("%Y-%m-%d %H:%M UTC"),
             hours: Config.recourse_delay.total_hours.to_i.to_s) << "\n"
-          io << Config.base_url << "/approvals\n"
+          io << Config.base_url << "/approvals\n\n"
+          io << support_line << "\n"
         end
         {I18n.t("admin.emails.held.subject", reference: approval.reference.to_s), body}
       end
     end
 
     # Changement de la clé publique de sauvegarde d'un cabinet.
-    record KeyChange, firm : Firm, author : User, previous : String, current : String, at : Time,
-      super_admins : Array(String)
+    record KeyChange, firm : Firm, author : User, previous : String, current : String, at : Time
 
     # Objet et texte de l'annonce d'une nouvelle clé dans une langue.
     def self.backup_key_text(change : KeyChange, locale : String) : {String, String}
@@ -129,8 +130,7 @@ module PartiduoAdmin
             time: change.at.to_s("%Y-%m-%d %H:%M UTC")) << "\n\n"
           io << I18n.t("admin.emails.backup_key.previous", fingerprint: previous) << "\n"
           io << I18n.t("admin.emails.backup_key.current", fingerprint: BackupCrypto.display_fingerprint(change.current)) << "\n\n"
-          io << I18n.t("admin.emails.backup_key.illegitimate", person: author,
-            super_admins: change.super_admins.join(", ").presence || "—") << "\n"
+          io << I18n.t("admin.emails.backup_key.illegitimate", person: author, support: Config.support_email) << "\n"
           io << Config.base_url << "/firms/" << change.firm.pk << "/backups\n\n"
           io << I18n.t("admin.emails.backup_key.audit") << "\n"
         end
@@ -145,13 +145,26 @@ module PartiduoAdmin
         body = String.build do |io|
           io << I18n.t("admin.emails.recourse.intro", reference: approval.reference.to_s, kind: I18n.t(approval.kind_key),
             target: target, structure: approval.target_firm.try(&.name.to_s) || "") << "\n\n"
-          io << I18n.t("admin.emails.recourse.requested_by", person: approval.requested_by.try(&.email.to_s) || "") << "\n"
-          io << I18n.t("admin.emails.recourse.decided_by", person: decider.email.to_s,
+          io << I18n.t("admin.emails.recourse.requested_by", person: person(approval.requested_by)) << "\n"
+          io << I18n.t("admin.emails.recourse.decided_by", person: person(decider),
             hours: Config.recourse_delay.total_hours.to_i.to_s) << "\n\n"
-          io << I18n.t("admin.emails.recourse.audit") << "\n" << Config.base_url << "/approvals\n"
+          io << I18n.t("admin.emails.recourse.audit") << "\n" << Config.base_url << "/approvals\n\n"
+          io << support_line << "\n"
         end
         {I18n.t("admin.emails.recourse.subject", reference: approval.reference.to_s), body}
       end
+    end
+
+    # Personne nommée dans un avis aux admins d'une structure : son adresse,
+    # sauf pour un super-admin, désigné par sa fonction ; le contact est
+    # l'adresse de support (D-ADM-031), l'identité reste au journal d'audit.
+    private def self.person(user : User?) : String
+      return "" if user.nil?
+      user.super_admin? ? I18n.t("admin.emails.super_admin") : user.email.to_s
+    end
+
+    private def self.support_line : String
+      I18n.t("admin.emails.support", address: Config.support_email)
     end
 
     def self.alert(alert : Alert) : Nil

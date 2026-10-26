@@ -855,6 +855,8 @@ pt:
       detail: "Detalhe"
     emails:
       ignore: "Se não esperava esta mensagem, ignore-a."
+      super_admin: "um superadministrador"
+      support: "Para qualquer questão, escreva para o suporte Partiduo: %{address}"
       invitation:
         subject: "Convite para a administração Partiduo"
         intro: "Recebeu um convite para a administração do parque Partiduo. Abra esta ligação para escolher os seus meios de autenticação:"
@@ -882,7 +884,7 @@ pt:
         previous: "Impressão digital anterior: %{fingerprint}"
         current: "Nova impressão digital: %{fingerprint}"
         none: "nenhuma (primeira chave depositada)"
-        illegitimate: "Se esta alteração não for legítima, contacte o seu autor (%{person}) e o superadministrador (%{super_admins}) e, depois, volte a depositar uma chave pública conhecida do gabinete no ecrã de cifragem das cópias de segurança:"
+        illegitimate: "Se esta alteração não for legítima, contacte o seu autor (%{person}) e o suporte Partiduo (%{support}) e, depois, volte a depositar uma chave pública conhecida do gabinete no ecrã de cifragem das cópias de segurança:"
         audit: "A alteração está inscrita no registo de auditoria do gabinete (backup_key.deposit)."
     errors:
       administrators:

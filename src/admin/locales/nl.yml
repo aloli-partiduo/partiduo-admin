@@ -855,6 +855,8 @@ nl:
       detail: "Detail"
     emails:
       ignore: "Als u dit bericht niet verwachtte, negeer het dan."
+      super_admin: "een superbeheerder"
+      support: "Met vragen kunt u terecht bij de Partiduo-support: %{address}"
       invitation:
         subject: "Uitnodiging voor het Partiduo-beheer"
         intro: "U bent uitgenodigd voor het beheer van het Partiduo-park. Open deze link om te kiezen hoe u zich aanmeldt:"
@@ -882,7 +884,7 @@ nl:
         previous: "Vorige vingerafdruk: %{fingerprint}"
         current: "Nieuwe vingerafdruk: %{fingerprint}"
         none: "geen (eerste gedeponeerde sleutel)"
-        illegitimate: "Is deze wijziging niet rechtmatig, neem dan contact op met de auteur (%{person}) en met de superbeheerder (%{super_admins}) en deponeer daarna opnieuw een bekende publieke sleutel van het kantoor op het scherm van de back-upversleuteling:"
+        illegitimate: "Is deze wijziging niet rechtmatig, neem dan contact op met de auteur (%{person}) en met de Partiduo-support (%{support}) en deponeer daarna opnieuw een bekende publieke sleutel van het kantoor op het scherm van de back-upversleuteling:"
         audit: "De wijziging staat in het auditlogboek van het kantoor (backup_key.deposit)."
     errors:
       administrators:

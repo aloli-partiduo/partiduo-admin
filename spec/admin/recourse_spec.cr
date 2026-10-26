@@ -67,7 +67,10 @@ describe "Dernier recours du super-admin après un délai (D-ADM-024)" do
     french = sent.find!(&.to.map(&.address).includes?(first.email.to_s))
     french.subject.to_s.should contain("validée en dernier recours")
     french.text_body.to_s.should contain(approval.reference.to_s)
-    french.text_body.to_s.should contain(root.email.to_s)
+    french.text_body.to_s.should contain("Demandée par : #{first.email}")
+    french.text_body.to_s.should contain("Validée par : un super-administrateur, après 48 heures d'attente.")
+    french.text_body.to_s.should_not contain(root.email.to_s)
+    french.text_body.to_s.should contain(Cfg.support_email)
     english = sent.find!(&.to.map(&.address).includes?(second.email.to_s))
     english.subject.to_s.should contain("approved as a last resort")
   end

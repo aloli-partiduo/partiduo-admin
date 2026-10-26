@@ -855,6 +855,8 @@ es:
       detail: "Detalle"
     emails:
       ignore: "Si no esperaba este mensaje, ignórelo."
+      super_admin: "un superadministrador"
+      support: "Para cualquier consulta, escriba al soporte de Partiduo: %{address}"
       invitation:
         subject: "Invitación a la administración de Partiduo"
         intro: "Se le invita a la administración del parque Partiduo. Abra este enlace para elegir sus medios de autenticación:"
@@ -882,7 +884,7 @@ es:
         previous: "Huella anterior: %{fingerprint}"
         current: "Nueva huella: %{fingerprint}"
         none: "ninguna (primera clave depositada)"
-        illegitimate: "Si este cambio no es legítimo, póngase en contacto con su autor (%{person}) y con el superadministrador (%{super_admins}) y, después, vuelva a depositar una clave pública conocida del despacho en la pantalla de cifrado de las copias de seguridad:"
+        illegitimate: "Si este cambio no es legítimo, póngase en contacto con su autor (%{person}) y con el soporte de Partiduo (%{support}) y, después, vuelva a depositar una clave pública conocida del despacho en la pantalla de cifrado de las copias de seguridad:"
         audit: "El cambio está inscrito en el registro de auditoría del despacho (backup_key.deposit)."
     errors:
       administrators:

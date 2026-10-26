@@ -127,6 +127,15 @@ module PartiduoAdmin
       ENV["PARTIDUO_ADMIN_MAIL_FROM"]?.presence || "no-reply@#{domain}"
     end
 
+    # Adresse de support donnée comme contact dans les courriels aux admins
+    # des structures (D-ADM-031) : une boîte de l'exploitant, jamais
+    # l'adresse personnelle d'un super-admin. Repli : l'adresse d'expédition,
+    # déjà lue par chaque destinataire, unique et toujours définie ; jamais
+    # les destinataires des alertes, liste interne de l'exploitation.
+    def self.support_email : String
+      ENV["PARTIDUO_ADMIN_SUPPORT_EMAIL"]?.try(&.strip).presence || mail_from
+    end
+
     # Destinataires des alertes par courriel (liste séparée par des virgules).
     def self.alert_recipients : Array(String)
       (ENV["PARTIDUO_ADMIN_ALERTS_TO"]? || "").split(',').map(&.strip).reject(&.empty?)

@@ -855,6 +855,8 @@ en:
       detail: "Detail"
     emails:
       ignore: "If you were not expecting this message, ignore it."
+      super_admin: "a super admin"
+      support: "For any question, write to Partiduo support: %{address}"
       invitation:
         subject: "Invitation to the Partiduo administration"
         intro: "You are invited to the Partiduo fleet administration. Open this link to choose how you sign in:"
@@ -882,7 +884,7 @@ en:
         previous: "Previous fingerprint: %{fingerprint}"
         current: "New fingerprint: %{fingerprint}"
         none: "none (first key deposited)"
-        illegitimate: "If this change is not legitimate, contact its author (%{person}) and the super admin (%{super_admins}), then deposit a known public key of the firm again on the backup encryption screen:"
+        illegitimate: "If this change is not legitimate, contact its author (%{person}) and Partiduo support (%{support}), then deposit a known public key of the firm again on the backup encryption screen:"
         audit: "The change is recorded in the firm's audit log (backup_key.deposit)."
     errors:
       administrators:
