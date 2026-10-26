@@ -17,7 +17,7 @@ de:
       licence: "Lizenz"
       source: "Herkunft"
       texts: "Lizenztexte"
-      components: "Sie stützt sich auf die folgenden Komponenten, jede unter ihrer eigenen Lizenz; hier sind ihre Herkunft und ihr Text:"
+      components: "Die Software stützt sich auf die folgenden Komponenten, jede unter ihrer eigenen Lizenz; hier sind ihre Herkunft und ihr Text:"
       intro: "Diese Software ist frei, unter der Lizenz GNU AGPL-3.0 oder später. Ihr Quellcode ist hier veröffentlicht:"
       title: "Komponenten und Lizenzen"
     account:
@@ -95,7 +95,7 @@ de:
         subject: "Partiduo: Bestätigen Sie Ihre neue Adresse"
       events:
         recovery_issued: "Die Wiederherstellung Ihres Kontos wurde vom Support eingeleitet: Ihre Anmeldeverfahren wurden entfernt und Ihre Sitzungen beendet. Wenn Sie dies nicht angefordert haben, wenden Sie sich umgehend an den Support."
-        email_changed: "Die Adresse Ihres Kontos wurde geändert. Es ist nicht mehr diese."
+        email_changed: "Die Adresse Ihres Kontos wurde geändert. Diese Adresse ist nicht mehr die Ihres Kontos."
         passkey_added: "Ihrem Konto wurde ein Passkey hinzugefügt."
         passkey_removed: "Aus Ihrem Konto wurde ein Passkey entfernt."
         password_changed: "Das Passwort Ihres Kontos wurde geändert."
@@ -163,7 +163,7 @@ de:
       reauth:
         no_totp: "Für dieses Konto ist keine Authenticator-App aktiv."
       signup:
-        cancelled: "Zu viele falsche Codes: Die Einladung wurde storniert. Fordern Sie eine neue an."
+        cancelled: "Zu viele falsche Codes: Die Einladung wurde aufgehoben. Fordern Sie eine neue an."
         code: "Falscher Code."
         email: "Ungültige E-Mail-Adresse."
         exists: "Für diese Adresse besteht bereits ein Konto: Melden Sie sich an."
