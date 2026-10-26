@@ -18,7 +18,12 @@ module PartiduoAdmin
   #
   # *Cabinet* : les utilisateurs au rôle d'admin de cabinet. Ajout par
   # invitation, changement de rôle (admin ↔ gestionnaire de dossiers),
-  # retrait (rôle de gestionnaire), remplacement.
+  # retrait (rôle de gestionnaire), remplacement. Depuis D-ADM-023, ces
+  # changements, la désactivation et la réactivation d'un compte d'admin
+  # passent aussi par une demande (`request_*`), confirmée seule après
+  # ré-authentification ou validée par une autre personne selon le réglage
+  # de la structure ; `invite_firm_admin`, `set_role`, `replace_firm_admin`
+  # et `Directory.set_active` en sont l'exécution (`apply_approval`).
   #
   # Règles communes : jamais zéro administrateur (le dernier ne se retire
   # pas), le retrait de soi-même est confirmé, chaque changement passe au
@@ -326,6 +331,207 @@ module PartiduoAdmin
       demoted = set_role(actor, firm, previous, Config::FILE_MANAGER, true)
       return Outcome(User).new(nil, demoted.errors) unless demoted.ok?
       invited
+    end
+
+    # --- Cabinet : validation des changements (D-ADM-023) ----------------------
+    #
+    # Une action propre à une structure — inviter, promouvoir, retirer ou
+    # remplacer un admin, désactiver ou réactiver un compte d'admin — passe
+    # par une demande (`Approval#firm`, sans dossier) dès que la structure a
+    # une équipe (`firm_gated?`) : confirmée seule par le demandeur après
+    # ré-authentification forte récente (structure à une personne), validée
+    # par une autre personne habilitée sinon. Les écrans appellent d'abord
+    # la porte (`invite_gate`, `firm_gated?`, `account_gate`), puis la
+    # demande, et sinon l'action elle-même.
+
+    # Qui peut demander, confirmer seul ou valider une action de la
+    # structure : qui peut en gérer les admins (le super-admin, l'admin
+    # actif de la structure) ; un super-admin seulement si elle touche un
+    # compte de super-admin (`super_scope`).
+    def self.can_request_firm?(user : User, firm : Firm, super_scope : Bool = false) : Bool
+      return false unless user.active == true
+      return user.super_admin? if super_scope
+      can_manage_firm?(user, firm)
+    end
+
+    # Équipe constituée : au moins une personne habilitée active. Avant,
+    # rien n'est à protéger (structure qu'on vient de déclarer) : son
+    # premier admin est invité ou promu sans demande, comme à la création.
+    def self.firm_gated?(firm : Firm) : Bool
+      ApprovalMode.team_size(firm) >= 1
+    end
+
+    # Parc sans cabinet : la structure des super-admins (D-VAL2-002).
+    def self.fleet_firm : Firm?
+      Firm.filter(kind: "fleet").first
+    end
+
+    # Structure dont le réglage décide d'une invitation ; `nil` : invitation
+    # sans demande (gestionnaire de dossiers, premier admin d'une structure,
+    # super-admin quand aucun parc sans cabinet n'est déclaré, amorçage).
+    # Service commun de l'écran des utilisateurs, de celui des admins de la
+    # structure et de l'assistant d'invitation : si une structure est
+    # rendue, appeler `request_invite` au lieu de `Directory.invite_user`.
+    def self.invite_gate(actor : User?, input : Directory::UserInput) : Firm?
+      return if actor.nil?
+      case input.role
+      when Config::SUPER_ADMIN
+        fleet_firm
+      when Config::FIRM_ADMIN
+        firm = Directory.invited_firm_id(actor, input).try { |id| Firm.filter(id: id).first }
+        firm if firm && firm_gated?(firm)
+      end
+    end
+
+    # Structure dont le réglage décide de désactiver ou de réactiver ce
+    # compte ; `nil` : sans demande (gestionnaire de dossiers, super-admin
+    # sans parc sans cabinet déclaré).
+    def self.account_gate(target : User) : Firm?
+      if target.super_admin?
+        fleet_firm
+      elsif target.firm_admin?
+        firm = target.firm
+        firm if firm && firm_gated?(firm)
+      end
+    end
+
+    # Demande d'invitation d'un admin (de cabinet, ou super-admin pour le
+    # parc sans cabinet) : mêmes contrôles que l'invitation, rien n'est créé
+    # avant la décision.
+    def self.request_invite(actor : User, input : Directory::UserInput, reason : String = "",
+                            now : Time = Config.now) : Outcome(Approval)
+      firm = invite_gate(actor, input)
+      return Outcome(Approval).failure("role", "admin.errors.invalid") if firm.nil?
+      super_scope = input.role == Config::SUPER_ADMIN
+      return Outcome(Approval).failure("base", "admin.errors.forbidden") unless can_request_firm?(actor, firm, super_scope)
+      errors = Directory.invite_errors(actor, input)
+      return Outcome(Approval).new(nil, errors) unless errors.empty?
+      params = invite_params(actor, input, super_scope)
+      params["target"] = "email:#{params["email"]}"
+      Approvals.request_firm(actor, firm, "firm_invite", reason, params, now)
+    end
+
+    # Demande de remplacement : le nouvel admin sera invité, puis l'ancien
+    # deviendra gestionnaire de dossiers.
+    def self.request_replace(actor : User, firm : Firm, previous : User, input : Directory::UserInput,
+                             self_confirmed : Bool, reason : String = "", now : Time = Config.now) : Outcome(Approval)
+      return Outcome(Approval).failure("base", "admin.errors.forbidden") unless can_request_firm?(actor, firm)
+      unless previous.firm_admin? && previous.firm_id == firm.pk
+        return Outcome(Approval).failure("replaces", "admin.errors.administrators.unknown")
+      end
+      if previous.pk == actor.pk && !self_confirmed
+        return Outcome(Approval).failure("self_confirm", "admin.errors.administrators.self_confirm")
+      end
+      value = input.copy_with(role: Config::FIRM_ADMIN, firm_id: PartiduoAdmin.id?(firm.pk))
+      errors = Directory.invite_errors(actor, value)
+      return Outcome(Approval).new(nil, errors) unless errors.empty?
+      params = invite_params(actor, value, false).merge(account_params(previous))
+      params["replaces"] = previous.email.to_s
+      params["target"] = "user:#{previous.pk}"
+      Approvals.request_firm(actor, firm, "firm_replace", reason, params, now)
+    end
+
+    # Demande de promotion (gestionnaire → admin) ou de retrait des admins
+    # (admin → gestionnaire de dossiers) : mêmes refus que `set_role`.
+    def self.request_role(actor : User, firm : Firm, target : User, role : String, self_confirmed : Bool,
+                          reason : String = "", now : Time = Config.now) : Outcome(Approval)
+      if refusal = role_refusal(actor, firm, target, role, self_confirmed)
+        return Outcome(Approval).failure(*refusal)
+      end
+      return Outcome(Approval).failure("role", "admin.errors.invalid") if target.role == role
+      return Outcome(Approval).failure("base", "admin.errors.forbidden") unless can_request_firm?(actor, firm)
+      params = account_params(target)
+      params["role"] = role
+      params["target"] = "user:#{target.pk}"
+      Approvals.request_firm(actor, firm, role == Config::FIRM_ADMIN ? "firm_promote" : "firm_demote", reason, params, now)
+    end
+
+    # Demande de désactivation ou de réactivation d'un compte d'admin
+    # (écran des utilisateurs). Jamais le dernier admin actif.
+    def self.request_active(actor : User, target : User, active : Bool, reason : String = "",
+                            now : Time = Config.now) : Outcome(Approval)
+      firm = account_gate(target)
+      return Outcome(Approval).failure("base", "admin.errors.invalid") if firm.nil? || target.active == active
+      super_scope = target.super_admin?
+      unless Access.can_manage_user?(actor, target) && actor.pk != target.pk && can_request_firm?(actor, firm, super_scope)
+        return Outcome(Approval).failure("base", "admin.errors.forbidden")
+      end
+      return Outcome(Approval).failure("base", "admin.errors.administrators.last") if !active && last_firm_admin?(target)
+      params = account_params(target)
+      params["scope"] = super_scope ? "super" : "firm"
+      params["target"] = "user:#{target.pk}"
+      Approvals.request_firm(actor, firm, active ? "admin_enable" : "admin_disable", reason, params, now)
+    end
+
+    # Exécution d'une demande de structure décidée (`Approvals`), dans la
+    # transaction de la décision. Recontrôles : le demandeur peut encore
+    # gérer la structure, le compte visé n'a changé ni de rôle, ni d'état,
+    # ni de structure depuis la demande (`user_state`), puis les règles du
+    # service lui-même (jamais zéro admin, adresse libre…). Rend les
+    # erreurs (vide : fait) et le code de création du compte connect d'une
+    # invitation.
+    def self.apply_approval(approval : Approval, now : Time = Config.now) : {Errors, String?}
+      # Relus en base : l'état présent fait foi, pas celui de la demande.
+      firm = Firm.get!(id: approval.firm_id)
+      requester = User.get!(id: approval.requested_by_id)
+      allowed = approval.kind == "mode_single" ? ApprovalMode.can_manage?(requester, firm) : can_request_firm?(requester, firm, approval.super_scope?)
+      return {Errors{"base" => ["admin.errors.approval.requester_gone"]}, nil} unless allowed
+      return apply_without_account(approval, firm, requester, now) if approval.param("user_id").empty?
+      target = approval.target_user
+      if target.nil? || account_state(target) != approval.param("user_state")
+        return {Errors{"base" => ["admin.errors.approval.target_changed"]}, nil}
+      end
+      case approval.kind
+      when "firm_replace"
+        outcome = replace_firm_admin(requester, firm, target, approval_input(approval), true)
+        {outcome.errors, outcome.signup_code}
+      when "firm_promote", "firm_demote"
+        {set_role(requester, firm, target, approval.param("role"), true).errors, nil}
+      when "admin_disable", "admin_enable"
+        {apply_active(requester, target, approval.kind == "admin_enable"), nil}
+      else
+        {Errors{"base" => ["admin.errors.invalid"]}, nil}
+      end
+    end
+
+    # Demandes sans compte visé : invitation, retour à une personne.
+    private def self.apply_without_account(approval : Approval, firm : Firm, requester : User, now : Time) : {Errors, String?}
+      case approval.kind
+      when "firm_invite"
+        outcome = Directory.invite_user(requester, approval_input(approval), now)
+        {outcome.errors, outcome.signup_code}
+      when "mode_single"
+        {ApprovalMode.apply_single(requester, firm, approval, now), nil}
+      else
+        {Errors{"base" => ["admin.errors.invalid"]}, nil}
+      end
+    end
+
+    private def self.apply_active(requester : User, target : User, active : Bool) : Errors
+      return Errors{"base" => ["admin.errors.administrators.last"]} if !active && last_firm_admin?(target)
+      return Errors.new if Directory.set_active(requester, target, active)
+      Errors{"base" => ["admin.errors.forbidden"]}
+    end
+
+    # Ce que la demande suppose du compte visé : rôle, état, structure.
+    def self.account_state(target : User) : String
+      "#{target.role}|#{target.active}|#{target.firm_id}"
+    end
+
+    private def self.account_params(target : User) : Hash(String, String)
+      {"user_id" => target.pk.to_s, "user_email" => target.email.to_s, "user_state" => account_state(target)}
+    end
+
+    private def self.invite_params(actor : User, input : Directory::UserInput, super_scope : Bool) : Hash(String, String)
+      {"email" => input.email.strip.downcase, "first_name" => input.first_name.strip, "last_name" => input.last_name.strip,
+       "locale" => input.locale, "role" => input.role, "firm_id" => Directory.invited_firm_id(actor, input).to_s,
+       "scope" => super_scope ? "super" : "firm"}
+    end
+
+    private def self.approval_input(approval : Approval) : Directory::UserInput
+      Directory::UserInput.new(email: approval.param("email"), first_name: approval.param("first_name"),
+        last_name: approval.param("last_name"), role: approval.param("role"), firm_id: approval.param("firm_id").to_i64?,
+        locale: approval.param("locale").presence || "fr")
     end
   end
 end

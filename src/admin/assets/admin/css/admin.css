@@ -60,6 +60,8 @@ body { color: var(--pd-ink); font-family: var(--bulma-family-primary); }
 .pd-actions form { display: inline; }
 .pd-inline { display: flex; gap: .5rem; flex-wrap: wrap; align-items: flex-end; }
 .pd-inline .field { margin-block-end: 0; }
+/* Motif facultatif d'une demande de structure, dans une ligne du tableau (D-ADM-023). */
+.pd-inline .pd-reason-input { width: auto; flex: 1 1 10rem; max-width: 18rem; }
 .pd-token { font-family: var(--bulma-family-code); font-size: 1rem; padding: .75rem; background: var(--pd-warn-bg); color: var(--pd-ink);
   border-radius: var(--bulma-radius); overflow-wrap: anywhere; }
 .pd-required { color: var(--pd-gap); }

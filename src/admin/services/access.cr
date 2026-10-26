@@ -17,6 +17,7 @@ module PartiduoAdmin
   # |valider une demande d'un autre (validation à deux) |tous |son cabinet |—
   # |confirmer seul sa demande (structure « une personne ») |tous |son cabinet |—
   # |régler la validation à deux |parc sans cabinet |sa structure |—
+  # |demander ou valider une action de structure (D-ADM-023) |toutes |la sienne |—
   # |utilisateurs, affectations, donneurs d'ordre |tous |son cabinet |—
   # |administrateurs d'une structure |toutes |la sienne |—
   # |cabinets, serveurs |oui |— |—
@@ -121,12 +122,17 @@ module PartiduoAdmin
     end
 
     # Valider la demande de double validation : une *autre* personne,
-    # admin du cabinet du dossier ou super-admin (ADR-008 D3).
+    # admin du cabinet du dossier ou super-admin (ADR-008 D3) ; pour une
+    # demande propre à une structure (D-ADM-023), un autre admin actif de
+    # la structure ou un super-admin — un super-admin seulement si elle
+    # touche un compte de super-admin.
     def self.can_approve?(user : User, approval : Approval) : Bool
       return false if approval.requested_by_id == user.pk
-      dossier = approval.dossier
-      return false if dossier.nil?
-      can?(user, :approve, dossier)
+      if dossier = approval.dossier
+        return can?(user, :approve, dossier)
+      end
+      firm = approval.firm
+      !firm.nil? && Administrators.can_request_firm?(user, firm, approval.super_scope?)
     end
 
     def self.tasks(user : User) : Marten::DB::Query::Set(Task)

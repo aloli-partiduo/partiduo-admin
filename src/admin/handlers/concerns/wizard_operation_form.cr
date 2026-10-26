@@ -448,6 +448,7 @@ module PartiduoAdmin
     # Validation : mode de la structure du dossier ; ces opérations ne sont
     # pas des opérations sensibles (D-VAL2-001).
     private def summary_sections : Array(WizardSection)
+      return gated_invite_sections if kind == "user"
       return [] of WizardSection unless %w[restore move archive].includes?(kind)
       chosen = dossier || return [] of WizardSection
       mode = ApprovalMode.mode_for(chosen)
@@ -455,6 +456,15 @@ module PartiduoAdmin
       notes.unshift(note("warning", I18n.t("admin.wizards.restore.replace_warning"))) if kind == "restore" && Wizards.restore_target(@draft) == "replace"
       [WizardSection.new(I18n.t("admin.wizards.approval.title"),
         [item(I18n.t("admin.wizards.approval.mode"), I18n.t("admin.dual_approval.modes.#{mode}"))], notes)]
+    end
+
+    # Invitation d'un admin dans une structure qui a déjà son équipe : une
+    # demande, validée selon le réglage de la structure (D-ADM-023).
+    private def gated_invite_sections : Array(WizardSection)
+      firm = Administrators.invite_gate(@handler.user, Wizards.user_input(@handler.user, @draft)) || return [] of WizardSection
+      [WizardSection.new(I18n.t("admin.wizards.approval.title"),
+        [item(I18n.t("admin.wizards.approval.mode"), I18n.t("admin.dual_approval.modes.#{ApprovalMode.mode(firm)}"))],
+        [note("info", I18n.t("admin.firm_approvals.help.wizard"))])]
     end
 
     # --- Clé de la sauvegarde ---------------------------------------------------------

@@ -8,9 +8,21 @@ module PartiduoAdmin
         pending = approval.state == "pending"
         {"approval" => approval, "can_decide" => pending && Access.can_approve?(user, approval),
          "can_withdraw" => pending && approval.requested_by_id == user.pk,
-         "can_confirm" => pending && Approvals.can_confirm_alone?(user, approval)}
+         "can_confirm" => pending && Approvals.can_confirm_alone?(user, approval),
+         "firm_link" => firm_link(approval)}
       end
       page("admin/approvals.html", {"rows" => rows})
+    end
+
+    # Demande de structure (D-ADM-023) : lien vers l'écran de ses admins ou
+    # de son réglage, si l'utilisateur peut l'ouvrir.
+    private def firm_link(approval : Approval) : String?
+      firm = approval.firm
+      return if firm.nil?
+      if approval.kind == "mode_single"
+        return ApprovalMode.can_view?(user, firm) ? "/firms/#{firm.pk}/approval-mode" : nil
+      end
+      Administrators.can_manage_firm?(user, firm) ? "/firms/#{firm.pk}/admins" : nil
     end
   end
 
@@ -21,7 +33,10 @@ module PartiduoAdmin
       if params["decision"].to_s == "approve"
         outcome = Approvals.approve(user, approval)
         if outcome.ok?
-          flash["success"] = I18n.t("admin.approvals.approved")
+          flash["success"] = I18n.t(approval.firm_target? ? "admin.firm_approvals.approved" : "admin.approvals.approved")
+          if code = outcome.signup_code
+            flash["info"] = I18n.t("admin.users.signup_code", code: code)
+          end
         else
           flash["danger"] = outcome.errors.values.flatten.map { |key| I18n.t(key) }.join(" ")
         end

@@ -49,7 +49,7 @@ describe "Validation à deux : réglage par structure (D-VAL2-001 à D-VAL2-003)
   end
 
   it "est proposée, sans être imposée, à un cabinet de plusieurs personnes habilitées" do
-    firm, first, _second = two_admins("Cabinet Duo")
+    firm, first, second = two_admins("Cabinet Duo")
     Mode.mode(firm).should eq(Mode::SINGLE)
     Mode.suggested?(firm).should be_true
     Mode.set(first, firm, true).ok?.should be_true
@@ -58,8 +58,10 @@ describe "Validation à deux : réglage par structure (D-VAL2-001 à D-VAL2-003)
     entry = PartiduoAdmin::AuditEntry.filter(action: "dual_approval.change").first!
     JSON.parse(entry.detail.to_s)["after"].should eq("dual")
     JSON.parse(entry.detail.to_s)["team"].should eq("2")
-    # Retour à une personne : au choix, tracé aussi.
-    Mode.set(first, firm, false).ok?.should be_true
+    # Retour à une personne : demandé, validé par l'autre admin, tracé aussi
+    # (D-ADM-023).
+    back = Mode.request_single(first, firm).value!
+    PartiduoAdmin::Approvals.approve(second, back).ok?.should be_true
     PartiduoAdmin::AuditEntry.filter(action: "dual_approval.change").count.should eq(2)
   end
 
@@ -278,7 +280,7 @@ describe "Bascules du réglage et demandes en attente (D-VAL2-006)" do
     dossier = AdminSpec.dossier(firm, server, slug: "retour-seul")
     approval = PartiduoAdmin::Approvals.request_admin_invite(first, dossier, "gerant@demo.fr", "gérant parti").value!
     approval.mode.should eq("dual")
-    Mode.set(second, firm, false).ok?.should be_true
+    PartiduoAdmin::Approvals.approve(first, Mode.request_single(second, firm).value!).ok?.should be_true
     approval.reload.state.should eq("pending")
     PartiduoAdmin::Approvals.can_confirm_alone?(first, approval).should be_true
     PartiduoAdmin::Approvals.confirm_alone(first, approval, false, "yes").errors["reauth"]

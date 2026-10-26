@@ -510,11 +510,20 @@ pt:
       withdraw: "Retirar"
       approved: "Pedido validado: a tarefa está em fila de espera."
       rejected: "Pedido recusado."
+      target: "Alvo"
+      firm_target: "Estrutura"
       kinds:
         delete: "eliminação definitiva"
         admin_invite: "recuperação de acesso"
         admin_add: "adição de um administrador"
         admin_remove: "remoção de um administrador"
+        firm_invite: "convite de um administrador da estrutura"
+        firm_promote: "nomeação de um administrador da estrutura"
+        firm_demote: "retirada de um administrador da estrutura"
+        firm_replace: "substituição de um administrador da estrutura"
+        admin_disable: "desativação de uma conta de administrador"
+        admin_enable: "reativação de uma conta de administrador"
+        mode_single: "regresso à validação por uma pessoa"
       states:
         pending: "pendente"
         approved: "validado"
@@ -575,6 +584,31 @@ pt:
       confirm_access_help: "O convite é enviado para este endereço; o registo fica no registo de auditoria e no registo do dossier."
       confirm_button: "Confirmar e iniciar a tarefa"
       confirmed: "Pedido %{reference} confirmado: a tarefa está em fila de espera."
+    firm_approvals:
+      waiting: "A aguardar validação"
+      pending_title: "Pedidos pendentes sobre a estrutura"
+      confirm_help: "A ação é feita na confirmação; o rasto vai para o registo de auditoria."
+      confirm_button: "Confirmar e aplicar"
+      done: "Pedido %{reference} confirmado: feito."
+      approved: "Pedido validado: feito."
+      fields:
+        reason: "Motivo (opcional)"
+      help:
+        reason: "Mostrado a quem validar o pedido e inscrito no registo de auditoria."
+        invite_reason: "Convidar um administrador para uma estrutura que já tem a sua equipa passa por um pedido de validação; este motivo acompanha-o."
+        gated_dual: "Cada alteração de administradores passa por um pedido que outra pessoa habilitada valida (validação por duas pessoas)."
+        gated_single: "Cada alteração de administradores passa por um pedido que confirma após nova autenticação (validação por uma pessoa)."
+        mode_single: "O regresso a uma pessoa pede-se: outra pessoa habilitada tem de o validar."
+        scope: "Esta definição rege também o convite, a nomeação, a retirada e a substituição dos administradores da estrutura, a desativação e a reativação de uma conta de administrador, e o regresso a uma pessoa."
+        wizard: "Convidar um administrador para uma estrutura que já tem a sua equipa passa por um pedido de validação: na validação, confirmá-lo-á após nova autenticação (uma pessoa), ou aguardará outra pessoa habilitada (duas pessoas)."
+      confirm:
+        firm_invite: "Confirmo o convite como administrador da estrutura de"
+        firm_promote: "Confirmo a nomeação como administrador da estrutura de"
+        firm_demote: "Confirmo a retirada dos administradores da estrutura (a conta passa a gestor de processos) de"
+        firm_replace: "Confirmo o convite como administrador da estrutura de"
+        admin_disable: "Confirmo a desativação da conta de"
+        admin_enable: "Confirmo a reativação da conta de"
+        mode_single: "Confirmo o regresso à validação por uma pessoa para"
     reauth:
       connect: "Confirmar com a minha conta Partiduo"
       title: "Reautenticação"
@@ -869,6 +903,8 @@ pt:
         reauth: "Reautenticação forte necessária (menos de cinco minutos)."
         confirmation: "Assinale a caixa de confirmação."
         confirmation_slug: "O subdomínio escrito não corresponde ao dossier."
+        requester_gone: "O requerente já não pode gerir esta estrutura: o pedido foi encerrado, volte a fazê-lo."
+        target_changed: "O alvo mudou desde o pedido: o pedido foi encerrado, volte a fazê-lo sobre o estado atual."
       backup:
         unusable: "Esta cópia de segurança não é utilizável."
         none_before: "Nenhuma cópia de segurança nessa data ou antes."
@@ -892,6 +928,7 @@ pt:
         fleet_taken: "O parque sem gabinete já existe."
       dual_approval:
         team: "A dupla validação exige pelo menos duas pessoas habilitadas."
+        needs_approval: "O regresso a uma pessoa pede-se: outra pessoa habilitada valida-o."
       reauth:
         no_totp: "Reautenticação por código impossível: utilize a sua chave de acesso."
       server:

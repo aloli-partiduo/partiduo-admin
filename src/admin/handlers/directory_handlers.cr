@@ -93,6 +93,13 @@ module PartiduoAdmin
       require_admin!
       input = Directory::UserInput.new(email: field("email"), first_name: field("first_name"), last_name: field("last_name"),
         role: field("role"), firm_id: field("firm_id").to_i64?, locale: field("locale").presence || "fr")
+      # Un admin de plus dans une structure qui a déjà son équipe : une
+      # demande, validée selon son réglage (D-ADM-023).
+      if Administrators.invite_gate(user, input)
+        request = Administrators.request_invite(user, input, field("reason"))
+        return ApprovalConfirmHandler.after_firm_request(self, request.value!) if request.ok?
+        return form(input, request.errors, 422)
+      end
       outcome = Directory.invite_user(user, input)
       if outcome.ok?
         flash["success"] = I18n.t("admin.users.invited", email: outcome.value!.email.to_s)
@@ -122,6 +129,8 @@ module PartiduoAdmin
       end
       fields << FormField.new("locale", I18n.t("admin.users.fields.locale"), input.locale, "select",
         Config::LOCALES.map { |code| opt.call(code, I18n.t("admin.languages.#{code}"), input.locale) })
+      fields << FormField.new("reason", I18n.t("admin.firm_approvals.fields.reason"), field("reason"),
+        help: I18n.t("admin.firm_approvals.help.invite_reason"))
       page("admin/user_new.html", {"fields" => fields, "base_errors" => errs(t, "base")}, status: status)
     end
   end
@@ -138,6 +147,9 @@ module PartiduoAdmin
         flash["danger"] = I18n.t("admin.errors.administrators.last")
         return go("/users")
       end
+      if gated = request_active(target)
+        return gated
+      end
       done = case params["command"].to_s
              when "reinvite" then Directory.reinvite(user, target, codes: codes)
              when "disable"  then Directory.set_active(user, target, false)
@@ -148,6 +160,17 @@ module PartiduoAdmin
       raise Access::Denied.new("user") unless done
       flash["success"] = I18n.t("admin.saved")
       flash["info"] = I18n.t("admin.users.signup_code", code: codes.first) unless codes.empty?
+      go("/users")
+    end
+
+    # Désactiver ou réactiver un compte d'admin : une demande, validée
+    # selon le réglage de sa structure (D-ADM-023) ; `nil` hors de ce cas.
+    private def request_active(target : User) : Marten::HTTP::Response?
+      command = params["command"].to_s
+      return unless %w[disable enable].includes?(command) && Administrators.account_gate(target)
+      request = Administrators.request_active(user, target, command == "enable", field("reason"))
+      return ApprovalConfirmHandler.after_firm_request(self, request.value!) if request.ok?
+      flash["danger"] = translate(request.errors).values.flatten.join(" ")
       go("/users")
     end
   end

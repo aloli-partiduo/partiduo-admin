@@ -510,11 +510,20 @@ en:
       withdraw: "Withdraw"
       approved: "Request approved: the task is queued."
       rejected: "Request rejected."
+      target: "Target"
+      firm_target: "Organisation"
       kinds:
         delete: "permanent deletion"
         admin_invite: "access recovery"
         admin_add: "administrator addition"
         admin_remove: "administrator removal"
+        firm_invite: "invitation of an organisation admin"
+        firm_promote: "appointment of an organisation admin"
+        firm_demote: "removal of an organisation admin"
+        firm_replace: "replacement of an organisation admin"
+        admin_disable: "deactivation of an admin account"
+        admin_enable: "reactivation of an admin account"
+        mode_single: "return to single-person approval"
       states:
         pending: "pending"
         approved: "approved"
@@ -575,6 +584,31 @@ en:
       confirm_access_help: "The invitation is sent to this address; it is recorded in the audit log and in the file's own log."
       confirm_button: "Confirm and start the task"
       confirmed: "Request %{reference} confirmed: the task is queued."
+    firm_approvals:
+      waiting: "Awaiting approval"
+      pending_title: "Pending requests on the organisation"
+      confirm_help: "The action is carried out on confirmation; the trace goes to the audit log."
+      confirm_button: "Confirm and apply"
+      done: "Request %{reference} confirmed: done."
+      approved: "Request approved: done."
+      fields:
+        reason: "Reason (optional)"
+      help:
+        reason: "Shown to whoever approves the request and recorded in the audit log."
+        invite_reason: "Inviting an admin into an organisation that already has its team goes through an approval request; this reason goes with it."
+        gated_dual: "Every admin change goes through a request that another authorised person approves (dual approval)."
+        gated_single: "Every admin change goes through a request that you confirm after re-authenticating (single-person approval)."
+        mode_single: "Returning to single-person approval is requested: another authorised person must approve it."
+        scope: "This setting also governs inviting, appointing, removing and replacing the organisation's admins, deactivating and reactivating an admin account, and returning to single-person approval."
+        wizard: "Inviting an admin into an organisation that already has its team goes through an approval request: on validation you will confirm it after re-authenticating (single person), or it will await another authorised person (dual approval)."
+      confirm:
+        firm_invite: "I confirm the invitation as organisation admin of"
+        firm_promote: "I confirm the appointment as organisation admin of"
+        firm_demote: "I confirm the removal from the organisation's admins (the account becomes a file manager) of"
+        firm_replace: "I confirm the invitation as organisation admin of"
+        admin_disable: "I confirm the deactivation of the account of"
+        admin_enable: "I confirm the reactivation of the account of"
+        mode_single: "I confirm the return to single-person approval for"
     reauth:
       connect: "Confirm with my Partiduo account"
       title: "Re-authentication"
@@ -869,6 +903,8 @@ en:
         reauth: "Strong re-authentication required (less than five minutes ago)."
         confirmation: "Tick the confirmation box."
         confirmation_slug: "The subdomain typed does not match the file."
+        requester_gone: "The requester can no longer manage this organisation: the request is closed, please make it again."
+        target_changed: "The target has changed since the request: the request is closed, please make it again on the current state."
       backup:
         unusable: "This backup cannot be used."
         none_before: "No backup on or before this date."
@@ -892,6 +928,7 @@ en:
         fleet_taken: "The fleet without a firm already exists."
       dual_approval:
         team: "Dual approval requires at least two entitled people."
+        needs_approval: "Returning to single-person approval is requested: another authorised person approves it."
       reauth:
         no_totp: "Code re-authentication unavailable: use your passkey."
       server:

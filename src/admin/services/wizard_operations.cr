@@ -305,9 +305,18 @@ module PartiduoAdmin
 
     # Invitation, puis dossiers confiés, dans une transaction ; le code de
     # création du compte connect est rendu pour être montré une fois.
-    def self.finish_user(user : User, draft : WizardDraft) : {Errors, User?, String?}
+    # Un admin invité dans une structure qui a déjà son équipe passe par une
+    # demande (`Administrators.request_invite`, D-ADM-023), rendue à la place.
+    def self.finish_user(user : User, draft : WizardDraft) : {Errors, User?, String?, Approval?}
       errors = user_errors(user, draft)
-      return {errors, nil, nil} unless errors.empty?
+      return {errors, nil, nil, nil} unless errors.empty?
+      input = user_input(user, draft)
+      if Administrators.invite_gate(user, input)
+        request = Administrators.request_invite(user, input, "wizard")
+        return {request.errors, nil, nil, nil} unless request.ok?
+        discard(draft)
+        return {Errors.new, nil, nil, request.value!}
+      end
       invited : User? = nil
       code = nil
       failure = Errors.new
@@ -325,9 +334,9 @@ module PartiduoAdmin
         code = outcome.signup_code
         invited = record
       end
-      return {failure.empty? ? Errors{"base" => ["admin.errors.wizards.failed"]} : failure, nil, nil} if invited.nil?
+      return {failure.empty? ? Errors{"base" => ["admin.errors.wizards.failed"]} : failure, nil, nil, nil} if invited.nil?
       discard(draft)
-      {Errors.new, invited, code}
+      {Errors.new, invited, code, nil}
     end
   end
 end

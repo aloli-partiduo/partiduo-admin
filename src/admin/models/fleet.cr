@@ -400,18 +400,32 @@ module PartiduoAdmin
   # autre personne habilitée la valide (`dual`), ou le demandeur la confirme
   # seul après ré-authentification forte (`single`). `mode` : celui en
   # vigueur à la demande, puis celui de la décision.
+  #
+  # Cible : un dossier (`dossier`), ou une structure sans dossier (`firm`,
+  # actions propres à un cabinet, D-ADM-023) ; jamais les deux, jamais
+  # aucune (contrainte de la base, migration 0012).
   class Approval < Marten::Model
     MODES = %w[single dual]
 
-    KINDS  = %w[delete admin_invite admin_add admin_remove]
+    # Demandes portant sur un dossier.
+    DOSSIER_KINDS = %w[delete admin_invite admin_add admin_remove]
+    # Demandes portant sur une structure (D-ADM-023) : inviter, promouvoir,
+    # retirer (rôle de gestionnaire) ou remplacer un admin, désactiver ou
+    # réactiver un compte d'admin, repasser à une personne.
+    FIRM_KINDS = %w[firm_invite firm_promote firm_demote firm_replace admin_disable admin_enable mode_single]
+
+    KINDS  = DOSSIER_KINDS + FIRM_KINDS
     STATES = %w[pending approved rejected expired]
 
     field :id, :big_int, primary_key: true, auto: true
     field :kind, :string, max_size: 16
     field :reference, :string, max_size: 32, unique: true
-    field :dossier, :many_to_one, to: PartiduoAdmin::Dossier, on_delete: :protect
+    field :dossier, :many_to_one, to: PartiduoAdmin::Dossier, null: true, blank: true, on_delete: :protect
+    field :firm, :many_to_one, to: PartiduoAdmin::Firm, related: :approvals, null: true, blank: true, on_delete: :protect
     field :params, :text, default: "{}"
-    field :reason, :text
+    # Exigé (cinq caractères) pour une demande de dossier ; facultatif pour
+    # une demande de structure (D-ADM-023).
+    field :reason, :text, blank: true, default: ""
     field :state, :string, max_size: 16, default: "pending"
     field :requested_by, :many_to_one, to: PartiduoAdmin::User, related: :requested_approvals, on_delete: :protect
     field :decided_by, :many_to_one, to: PartiduoAdmin::User, related: :decided_approvals, null: true, blank: true, on_delete: :protect
@@ -450,14 +464,53 @@ module PartiduoAdmin
     # Phrase de la confirmation seule (D-VAL2-004), avant l'adresse.
     def confirm_key : String
       case kind
-      when "admin_add"    then "admin.administrators.confirm.add"
-      when "admin_remove" then "admin.administrators.confirm.remove"
-      else                     "admin.dual_approval.confirm_access"
+      when "admin_add"      then "admin.administrators.confirm.add"
+      when "admin_remove"   then "admin.administrators.confirm.remove"
+      when .in?(FIRM_KINDS) then "admin.firm_approvals.confirm.#{kind}"
+      else                       "admin.dual_approval.confirm_access"
       end
     end
 
     def removal_key : String?
       param("removal").presence.try { |removal| "admin.administrators.removals.#{removal}" }
+    end
+
+    # Demande propre à une structure, sans dossier (D-ADM-023).
+    def firm_target? : Bool
+      dossier_id.nil?
+    end
+
+    # Structure dont le réglage décide : celle de la demande, ou celle du
+    # dossier.
+    def target_firm : Firm?
+      firm || dossier.try(&.firm)
+    end
+
+    def target_firm! : Firm
+      target_firm || raise NilAssertionError.new("demande sans structure : #{reference}")
+    end
+
+    # Nom de la cible : sous-domaine du dossier, ou nom de la structure.
+    def target_name : String
+      dossier.try(&.slug.to_s) || firm.try(&.name.to_s) || ""
+    end
+
+    # Compte visé par une demande de structure (promotion, retrait,
+    # remplacement, désactivation), `nil` sinon.
+    def target_user : User?
+      param("user_id").to_i64?.try { |id| User.filter(id: id).first }
+    end
+
+    # Demande qui touche un compte de super-admin (invitation, désactivation,
+    # réactivation) : seul un super-admin en décide (D-ADM-023).
+    def super_scope? : Bool
+      param("scope") == "super"
+    end
+
+    # Libellé de la cible d'une demande de structure : l'adresse invitée
+    # ou celle du compte visé ; `nil` pour un changement de réglage.
+    def target_label : String?
+      param("email").presence || param("user_email").presence
     end
   end
 

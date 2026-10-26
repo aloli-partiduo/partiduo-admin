@@ -3,7 +3,8 @@
 module PartiduoAdmin
   # Administrateurs d'une structure (D-ADM-017) : liste, ajout par
   # invitation, remplacement, changement de rôle. Le super-admin pour toute
-  # structure, l'admin de cabinet pour la sienne.
+  # structure, l'admin de cabinet pour la sienne. Une fois l'équipe
+  # constituée, chaque changement passe par une demande (D-ADM-023).
   class FirmAdminsHandler < ScreenHandler
     def get
       render_page(firm!, input(""))
@@ -12,15 +13,21 @@ module PartiduoAdmin
     def post
       firm = firm!
       raise Access::Denied.new("firm_admins") unless Administrators.can_manage_firm?(user, firm)
-      value = input(field("email"))
+      value = input(field("email")).copy_with(firm_id: PartiduoAdmin.id?(firm.pk))
       replaced = field("replaces").to_i64?.try { |id| User.filter(id: id, firm_id: firm.pk).first }
-      outcome = if field("replaces").empty?
-                  Administrators.invite_firm_admin(user, firm, value)
-                elsif replaced
-                  Administrators.replace_firm_admin(user, firm, replaced, value, field("self_confirm") == "yes")
-                else
-                  Fleet::Outcome(User).failure("replaces", "admin.errors.administrators.unknown")
-                end
+      if field("replaces").empty? && Administrators.invite_gate(user, value).nil?
+        outcome = Administrators.invite_firm_admin(user, firm, value)
+      else
+        request = if replaced
+                    Administrators.request_replace(user, firm, replaced, value, field("self_confirm") == "yes", field("reason"))
+                  elsif field("replaces").empty?
+                    Administrators.request_invite(user, value, field("reason"))
+                  else
+                    Fleet::Outcome(Approval).failure("replaces", "admin.errors.administrators.unknown")
+                  end
+        return ApprovalConfirmHandler.after_firm_request(self, request.value!) if request.ok?
+        return render_page(firm, value, translate(request.errors), 422)
+      end
       if outcome.ok?
         flash["success"] = I18n.t("admin.users.invited", email: outcome.value!.email.to_s)
         if code = outcome.signup_code
@@ -45,10 +52,15 @@ module PartiduoAdmin
     private def render_page(firm : Firm, value : Directory::UserInput, errors = {} of String => Array(String),
                             status : Int32 = 200)
       admins = Administrators.firm_admins(firm)
+      # Demandes en attente sur la structure (D-ADM-023) : le compte visé
+      # est marqué « en attente de validation ».
+      pending = ApprovalMode.pending(firm).select(&.firm_target?)
+      waiting = ->(account : User) { pending.find { |approval| approval.param("user_id") == account.pk.to_s } }
       rows = admins.map do |admin|
         {"user" => admin, "is_self" => admin.pk == user.pk, "last" => Administrators.last_firm_admin?(admin),
-         "demotable" => !firm.independent?}
+         "demotable" => !firm.independent?, "pending" => waiting.call(admin)}
       end
+      members = firm.independent? ? [] of User : Administrators.firm_members(firm)
       opt = ->(code : String, label : String, current : String) { FormField::Option.new(code, label, code == current) }
       fields = [
         FormField.new("email", I18n.t("admin.users.fields.email"), value.email, "email", errors: errs(errors, "email"), required: true),
@@ -64,14 +76,22 @@ module PartiduoAdmin
           replaceable.map { |admin| opt.call(admin.pk.to_s, admin.email.to_s, field("replaces")) },
           errs(errors, "replaces"), help: I18n.t("admin.administrators.help.firm_replaces"))
       end
+      if Administrators.firm_gated?(firm)
+        fields << FormField.new("reason", I18n.t("admin.firm_approvals.fields.reason"), field("reason"),
+          help: I18n.t("admin.firm_approvals.help.reason"))
+      end
       page("admin/firm_admins.html", {
         "firm"        => firm,
         "rows"        => rows,
-        "members"     => firm.independent? ? [] of User : Administrators.firm_members(firm),
+        "members"     => members.map { |member| {"user" => member, "pending" => waiting.call(member)} },
         "fields"      => fields,
         "can_add"     => !(firm.independent? && !admins.empty?),
         "base_errors" => errs(errors, "base") + errs(errors, "role") + errs(errors, "firm_id") + errs(errors, "self_confirm"),
         "is_fleet"    => firm.fleet?,
+        "gated"       => Administrators.firm_gated?(firm),
+        "mode"        => ApprovalMode.mode(firm),
+        "pending"     => pending,
+        "reason"      => field("reason"),
       }, status: status)
     end
   end
@@ -89,7 +109,14 @@ module PartiduoAdmin
              when "promote" then Config::FIRM_ADMIN
              else                raise Access::Denied.new("command")
              end
-      outcome = Administrators.set_role(user, firm, target, role, field("self_confirm") == "yes")
+      self_confirmed = field("self_confirm") == "yes"
+      if Administrators.firm_gated?(firm)
+        request = Administrators.request_role(user, firm, target, role, self_confirmed, field("reason"))
+        return ApprovalConfirmHandler.after_firm_request(self, request.value!) if request.ok?
+        flash["danger"] = translate(request.errors).values.flatten.join(" ")
+        return go("/firms/#{firm.pk}/admins")
+      end
+      outcome = Administrators.set_role(user, firm, target, role, self_confirmed)
       if outcome.ok?
         flash["success"] = I18n.t("admin.saved")
       else

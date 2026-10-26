@@ -510,11 +510,20 @@ fr:
       withdraw: "Retirer"
       approved: "Demande validée : la tâche est en file d'attente."
       rejected: "Demande refusée."
+      target: "Cible"
+      firm_target: "Structure"
       kinds:
         delete: "suppression définitive"
         admin_invite: "recours d'accès"
         admin_add: "ajout d'un administrateur"
         admin_remove: "retrait d'un administrateur"
+        firm_invite: "invitation d'un admin de la structure"
+        firm_promote: "nomination d'un admin de la structure"
+        firm_demote: "retrait d'un admin de la structure"
+        firm_replace: "remplacement d'un admin de la structure"
+        admin_disable: "désactivation d'un compte d'admin"
+        admin_enable: "réactivation d'un compte d'admin"
+        mode_single: "retour à la validation à une personne"
       states:
         pending: "en attente"
         approved: "validée"
@@ -575,6 +584,31 @@ fr:
       confirm_access_help: "L'invitation est envoyée à cette adresse ; la trace va au journal d'audit et au journal du dossier."
       confirm_button: "Confirmer et lancer la tâche"
       confirmed: "Demande %{reference} confirmée : la tâche est en file d'attente."
+    firm_approvals:
+      waiting: "En attente de validation"
+      pending_title: "Demandes en attente sur la structure"
+      confirm_help: "L'action est faite dès la confirmation ; la trace va au journal d'audit."
+      confirm_button: "Confirmer et appliquer"
+      done: "Demande %{reference} confirmée : c'est fait."
+      approved: "Demande validée : c'est fait."
+      fields:
+        reason: "Motif (facultatif)"
+      help:
+        reason: "Montré à qui validera la demande et inscrit au journal d'audit."
+        invite_reason: "Inviter un admin dans une structure qui a déjà son équipe passe par une demande de validation ; ce motif l'accompagne."
+        gated_dual: "Chaque changement d'admin passe par une demande qu'une autre personne habilitée valide (structure à deux personnes)."
+        gated_single: "Chaque changement d'admin passe par une demande que vous confirmez après ré-authentification (structure à une personne)."
+        mode_single: "Revenir à une personne se demande : une autre personne habilitée doit valider ce retour."
+        scope: "Ce réglage décide aussi de l'invitation, de la nomination, du retrait et du remplacement des admins de la structure, de la désactivation et de la réactivation d'un compte d'admin, et du retour à une personne."
+        wizard: "Inviter un admin dans une structure qui a déjà son équipe passe par une demande de validation : à la validation, vous la confirmerez après ré-authentification (une personne), ou elle attendra une autre personne habilitée (deux personnes)."
+      confirm:
+        firm_invite: "Je confirme l'invitation comme admin de la structure de"
+        firm_promote: "Je confirme la nomination comme admin de la structure de"
+        firm_demote: "Je confirme le retrait des admins de la structure (le compte devient gestionnaire de dossiers) de"
+        firm_replace: "Je confirme l'invitation comme admin de la structure de"
+        admin_disable: "Je confirme la désactivation du compte de"
+        admin_enable: "Je confirme la réactivation du compte de"
+        mode_single: "Je confirme le retour à la validation à une personne pour"
     reauth:
       connect: "Confirmer avec mon compte Partiduo"
       title: "Ré-authentification"
@@ -869,6 +903,8 @@ fr:
         reauth: "Ré-authentification forte requise (moins de cinq minutes)."
         confirmation: "Cochez la case de confirmation."
         confirmation_slug: "Le sous-domaine retapé ne correspond pas au dossier."
+        requester_gone: "Le demandeur ne peut plus gérer cette structure : la demande est close, refaites-la."
+        target_changed: "La cible a changé depuis la demande : la demande est close, refaites-la sur l'état présent."
       backup:
         unusable: "Cette sauvegarde n'est pas utilisable."
         none_before: "Aucune sauvegarde à cette date ou avant."
@@ -892,6 +928,7 @@ fr:
         fleet_taken: "Le parc sans cabinet existe déjà."
       dual_approval:
         team: "La validation à deux exige au moins deux personnes habilitées."
+        needs_approval: "Revenir à une personne se demande : une autre personne habilitée valide ce retour."
       reauth:
         no_totp: "Ré-authentification par code impossible : utilisez votre clé d'accès."
       server:

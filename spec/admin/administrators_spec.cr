@@ -243,8 +243,14 @@ describe "Administrateurs d'un cabinet (D-ADM-017)" do
     page.html.should contain("Dernier administrateur")
     browser.get("/").html.should contain(%(href="/firms/#{firm.pk}/admins"))
 
+    # Équipe constituée : l'invitation passe par une demande confirmée seule
+    # après ré-authentification (D-ADM-023).
     invited = browser.post("/firms/#{firm.pk}/admins", {"email" => "seconde@cabinet.fr", "first_name" => "Ada", "locale" => "fr"})
     invited.status.should eq(302)
+    confirm = invited.headers["Location"]
+    confirm.should match(%r{\A/approvals/\d+/confirm\z})
+    PartiduoAdmin::User.filter(email: "seconde@cabinet.fr").exists?.should be_false
+    browser.post(confirm, {"confirm" => "yes"}).headers["Location"].should eq("/firms/#{firm.pk}/admins")
     second = PartiduoAdmin::User.get!(email: "seconde@cabinet.fr")
     {second.role, second.firm_id}.should eq({Cfg::FIRM_ADMIN, firm.pk})
     Admins.firm_admins(firm).map(&.email).should eq([first.email, "seconde@cabinet.fr"])
@@ -265,6 +271,8 @@ describe "Administrateurs d'un cabinet (D-ADM-017)" do
 
     promoted = browser.post("/firms/#{firm.pk}/admins/#{second.pk}/promote")
     promoted.status.should eq(302)
+    second.reload.role.should eq(Cfg::FILE_MANAGER)
+    browser.post(promoted.headers["Location"], {"confirm" => "yes"}).status.should eq(302)
     second.reload.role.should eq(Cfg::FIRM_ADMIN)
     # Un autre cabinet ne voit pas cette liste.
     other = AdminSpec::Browser.new(token: AdminSpec.session(AdminSpec.user(Cfg::FIRM_ADMIN, AdminSpec.firm)))

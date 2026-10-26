@@ -312,5 +312,17 @@ describe "Assistant « Inviter un utilisateur » (D-ADM-022)" do
     page = browser.get("/wizards/user").html
     page.should contain("Un admin de cabinet voit tous les dossiers de sa structure")
     page.should_not contain(%(name="dossier_ids"))
+    # Structure qui a déjà son équipe : l'invitation d'un admin passe par une
+    # demande de validation (D-ADM-023), rien n'est créé avant.
+    step(browser, "user", Data.new).status.should eq(302)
+    step(browser, "user", Data{"locale" => "fr"}).status.should eq(302)
+    browser.get("/wizards/user").html.should contain("passe par une demande de validation")
+    done = step(browser, "user", Data.new, "finish")
+    approval = PartiduoAdmin::Approval.filter(firm_id: firm.pk, kind: "firm_invite").first!
+    done.headers["Location"].should eq("/approvals/#{approval.pk}/confirm")
+    approval.target_label.should eq("second@cabinet.fr")
+    PartiduoAdmin::User.filter(email: "second@cabinet.fr").exists?.should be_false
+    PartiduoAdmin::Approvals.confirm_alone(admin, approval, true, "yes").ok?.should be_true
+    PartiduoAdmin::User.get!(email: "second@cabinet.fr").role.should eq(Cfg::FIRM_ADMIN)
   end
 end

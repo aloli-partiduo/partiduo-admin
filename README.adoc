@@ -172,6 +172,40 @@ comme avant. Le demandeur ne peut pas confirmer seul.
   tâche), celle à une personne est refusée avant tout geste — mettre
   l'instance à jour.
 
+=== Actions propres à une structure (D-ADM-023)
+
+Le même réglage décide des changements d'admins d'une structure, qui
+passent par une demande *sans dossier* dès que la structure a une équipe :
+inviter un admin (écran des admins de la structure, écran des
+utilisateurs, assistant « Inviter un utilisateur »), nommer un
+gestionnaire admin, retirer un admin (il devient gestionnaire), le
+remplacer, désactiver ou réactiver un compte d'admin (un compte de
+super-admin : décidé par le parc sans cabinet, validé par un super-admin
+seulement), et repasser de deux personnes à une personne. Passer à deux
+personnes reste immédiat. Les demandes figurent dans « Opérations
+sensibles » (colonne « Cible » : la structure) ; l'écran des admins marque
+le compte visé « En attente de validation ».
+
+* *Une personne* : confirmation seule, ré-authentification forte de moins
+  de cinq minutes et case cochée, puis l'action est faite aussitôt.
+* *Deux personnes* : un autre admin actif de la structure ou un
+  super-admin valide ; jamais le demandeur (refusé aussi par la base,
+  contrainte `admin_approval_other_person`).
+* *Recontrôles à la décision* : demandeur encore habilité, compte visé
+  inchangé (rôle, état, structure), règles du service (jamais zéro admin,
+  adresse libre) ; sinon la demande est close (`approval.stale`) et rien
+  n'est fait. Jamais rejouée.
+* *Anti-blocage* : deux personnes exigent toujours deux personnes
+  habilitées et se désactivent d'elles-mêmes sous deux ; le super-admin
+  valide en dernier recours la demande d'un cabinet dont l'autre admin est
+  injoignable ; pour le parc sans cabinet, qui a la main sur le serveur
+  repasse la structure à une personne :
+
+[source,sh]
+----
+partiduo-admin-manage approval-mode-single --firm=<id> --reason="second super-admin injoignable"
+----
+
 == Sauvegardes et chiffrement
 
 Chaque sauvegarde d'un dossier est un `pg_dump -Fc` de sa base et une

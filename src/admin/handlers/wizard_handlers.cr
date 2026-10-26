@@ -205,7 +205,9 @@ module PartiduoAdmin
     end
 
     private def finish_user(draft : WizardDraft, number : Int32)
-      errors, invited, code = Wizards.finish_user(user, draft)
+      errors, invited, code, approval = Wizards.finish_user(user, draft)
+      # Admin d'une structure qui a déjà son équipe : demande (D-ADM-023).
+      return ApprovalConfirmHandler.after_firm_request(self, approval) if approval
       return render_step(draft, number, errors, 422) if invited.nil?
       flash["success"] = I18n.t("admin.users.invited", email: invited.email.to_s)
       flash["info"] = I18n.t("admin.users.signup_code", code: code) if code

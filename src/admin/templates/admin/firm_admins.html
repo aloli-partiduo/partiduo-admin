@@ -1,4 +1,4 @@
-{# SPDX-License-Identifier: AGPL-3.0-or-later. Administrateurs d'une structure (DECISIONS D-ADM-017) : liste, changement de rôle, retrait (rôle de gestionnaire de dossiers), ajout par invitation et remplacement. Jamais zéro administrateur ; le retrait de soi-même est confirmé. #}{% extend "admin/base.html" %}
+{# SPDX-License-Identifier: AGPL-3.0-or-later. Administrateurs d'une structure (DECISIONS D-ADM-017) : liste, changement de rôle, retrait (rôle de gestionnaire de dossiers), ajout par invitation et remplacement. Jamais zéro administrateur ; le retrait de soi-même est confirmé. Une fois l'équipe constituée, chaque changement passe par une demande de validation (D-ADM-023) : comptes « en attente de validation », demandes en attente. #}{% extend "admin/base.html" %}
 {% block title %}{% translate "admin.administrators.firm_title" %} · {{ firm.name }}{% endblock title %}
 {% block crumbs %}{% if nav_fleet %}<li><a href="{% url 'firms' %}">{% translate "admin.firms.title" %}</a></li>{% endif %}<li>{{ firm.name }}</li>{% endblock crumbs %}
 {% block heading %}{% translate "admin.administrators.firm_title" %} · {{ firm.name }}{% endblock heading %}
@@ -7,6 +7,7 @@
 <section class="pd-panel" aria-labelledby="pd-admins-title">
   <h2 id="pd-admins-title">{% translate "admin.administrators.list" %}</h2>
   <p class="help mb-3">{% if is_fleet %}{% translate "admin.administrators.help.fleet" %}{% else %}{% translate "admin.administrators.help.firm" %}{% endif %}</p>
+  {% if gated %}<p class="help mb-3" id="pd-firm-gated">{% if mode == "dual" %}{% translate "admin.firm_approvals.help.gated_dual" %}{% else %}{% translate "admin.firm_approvals.help.gated_single" %}{% endif %} <a href="{% url 'firm_approval_mode' id: firm.id %}">{% translate "admin.dual_approval.title" %}</a></p>{% endif %}
   {% if rows %}<div class="table-container" tabindex="0" role="region" aria-labelledby="pd-admins-title"><table class="table is-fullwidth is-striped">
     <caption class="is-sr-only">{% translate "admin.administrators.list" %}</caption>
     <thead><tr><th scope="col">{% translate "admin.administrators.position" %}</th><th scope="col">{% translate "admin.users.fields.email" %}</th><th scope="col">{% translate "admin.users.fields.name" %}</th><th scope="col">{% translate "admin.users.fields.state" %}</th><th scope="col"><span class="is-sr-only">{% translate "admin.actions.title" %}</span></th></tr></thead>
@@ -14,11 +15,12 @@
       <td class="pd-mono">{{ loop.index }}</td>
       <th scope="row">{{ row.user.email }}{% if row.is_self %} <span class="pd-muted">({% translate "admin.administrators.you" %})</span>{% endif %}</th>
       <td>{{ row.user.display_name }}</td>
-      <td>{% if row.user.active %}{% translate "admin.users.active" %}{% else %}{% translate "admin.users.inactive" %}{% endif %}</td>
-      <td>{% if row.last %}<span class="pd-muted">{% translate "admin.administrators.last_note" %}</span>{% elsif row.demotable %}
+      <td>{% if row.user.active %}{% translate "admin.users.active" %}{% else %}{% translate "admin.users.inactive" %}{% endif %}{% if row.pending %} <a class="pd-state pd-state-pending" href="{% url 'approvals' %}">{% translate "admin.firm_approvals.waiting" %}<span class="is-sr-only"> : {% translate row.pending.kind_key %}, {{ row.pending.reference }}</span></a>{% endif %}</td>
+      <td>{% if row.last %}<span class="pd-muted">{% translate "admin.administrators.last_note" %}</span>{% elsif row.pending %}<span class="pd-muted">{% translate row.pending.kind_key %}</span>{% elsif row.demotable %}
         <form method="post" action="{% url 'firm_admin_command' id: firm.id, user_id: row.user.id, command: 'demote' %}" class="pd-inline">
           {% csrf_input %}
           {% if row.is_self %}<label class="checkbox"><input type="checkbox" name="self_confirm" value="yes" required> {% translate "admin.administrators.self_confirm" %}</label>{% endif %}
+          {% if gated %}<label class="is-sr-only" for="pd-demote-reason-{{ row.user.id }}">{% translate "admin.firm_approvals.fields.reason" %}</label><input class="input is-small pd-reason-input" id="pd-demote-reason-{{ row.user.id }}" name="reason" type="text" maxlength="500" placeholder="{% translate 'admin.firm_approvals.fields.reason' %}">{% endif %}
           <button class="button is-small is-warning is-light" type="submit">{% translate "admin.administrators.demote_firm" %}<span class="is-sr-only"> {{ row.user.email }}</span></button>
         </form>{% endif %}</td>
     </tr>{% endfor %}</tbody>
@@ -27,9 +29,15 @@
 {% if members %}
 <section class="pd-panel" aria-labelledby="pd-members-title">
   <h2 id="pd-members-title">{% translate "admin.administrators.members" %}</h2>
-  <ul>{% for member in members %}<li class="mb-1">{{ member.email }} <span class="pd-muted">{{ member.display_name }}</span>
-    <form method="post" action="{% url 'firm_admin_command' id: firm.id, user_id: member.id, command: 'promote' %}" class="pd-inline">{% csrf_input %}<button class="button is-small" type="submit">{% translate "admin.administrators.promote" %}<span class="is-sr-only"> {{ member.email }}</span></button></form>
+  <ul>{% for member in members %}<li class="mb-1">{{ member.user.email }} <span class="pd-muted">{{ member.user.display_name }}</span>
+    {% if member.pending %}<a class="pd-state pd-state-pending" href="{% url 'approvals' %}">{% translate "admin.firm_approvals.waiting" %}<span class="is-sr-only"> : {% translate member.pending.kind_key %}, {{ member.pending.reference }}</span></a>{% else %}<form method="post" action="{% url 'firm_admin_command' id: firm.id, user_id: member.user.id, command: 'promote' %}" class="pd-inline">{% csrf_input %}{% if gated %}<label class="is-sr-only" for="pd-promote-reason-{{ member.user.id }}">{% translate "admin.firm_approvals.fields.reason" %}</label><input class="input is-small pd-reason-input" id="pd-promote-reason-{{ member.user.id }}" name="reason" type="text" maxlength="500" placeholder="{% translate 'admin.firm_approvals.fields.reason' %}">{% endif %}<button class="button is-small" type="submit">{% translate "admin.administrators.promote" %}<span class="is-sr-only"> {{ member.user.email }}</span></button></form>{% endif %}
   </li>{% endfor %}</ul>
+</section>
+{% endif %}
+{% if pending %}
+<section class="pd-panel" aria-labelledby="pd-firm-pending-title">
+  <h2 id="pd-firm-pending-title">{% translate "admin.firm_approvals.pending_title" %}</h2>
+  <ul>{% for approval in pending %}<li class="mb-1"><span class="pd-state pd-state-pending">{% translate "admin.firm_approvals.waiting" %}</span> <a href="{% url 'approvals' %}" class="pd-mono">{{ approval.reference }}</a> — {% translate approval.kind_key %}{% if approval.target_label %} · {{ approval.target_label }}{% endif %}{% if approval.param_replaces %} ({% translate "admin.administrators.replacing" %} {{ approval.param_replaces }}){% endif %} · <span class="pd-mode pd-mode-{{ approval.mode }}">{% translate approval.mode_key %}</span> · {{ approval.requested_by.email }}</li>{% endfor %}</ul>
 </section>
 {% endif %}
 {% if can_add %}

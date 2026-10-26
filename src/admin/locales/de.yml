@@ -510,11 +510,20 @@ de:
       withdraw: "Zurückziehen"
       approved: "Anfrage freigegeben: Die Aufgabe steht in der Warteschlange."
       rejected: "Anfrage abgelehnt."
+      target: "Ziel"
+      firm_target: "Struktur"
       kinds:
         delete: "endgültige Löschung"
         admin_invite: "Zugriffswiederherstellung"
         admin_add: "Hinzufügen eines Administrators"
         admin_remove: "Entfernen eines Administrators"
+        firm_invite: "Einladung eines Admins der Struktur"
+        firm_promote: "Ernennung eines Admins der Struktur"
+        firm_demote: "Entzug eines Admins der Struktur"
+        firm_replace: "Ersetzung eines Admins der Struktur"
+        admin_disable: "Deaktivierung eines Admin-Kontos"
+        admin_enable: "Reaktivierung eines Admin-Kontos"
+        mode_single: "Rückkehr zur Freigabe durch eine Person"
       states:
         pending: "ausstehend"
         approved: "freigegeben"
@@ -575,6 +584,31 @@ de:
       confirm_access_help: "Die Einladung wird an diese Adresse gesendet; der Vorgang wird im Audit-Protokoll und im Protokoll des Mandanten vermerkt."
       confirm_button: "Bestätigen und Aufgabe starten"
       confirmed: "Anfrage %{reference} bestätigt: Die Aufgabe steht in der Warteschlange."
+    firm_approvals:
+      waiting: "Wartet auf Freigabe"
+      pending_title: "Offene Anträge zur Struktur"
+      confirm_help: "Die Aktion wird bei der Bestätigung ausgeführt; der Nachweis geht ins Prüfprotokoll."
+      confirm_button: "Bestätigen und anwenden"
+      done: "Antrag %{reference} bestätigt: erledigt."
+      approved: "Antrag freigegeben: erledigt."
+      fields:
+        reason: "Begründung (optional)"
+      help:
+        reason: "Wird der freigebenden Person angezeigt und ins Prüfprotokoll eingetragen."
+        invite_reason: "Einen Admin in eine Struktur einzuladen, die bereits ihr Team hat, erfolgt über einen Freigabeantrag; diese Begründung begleitet ihn."
+        gated_dual: "Jede Änderung der Admins erfolgt über einen Antrag, den eine andere berechtigte Person freigibt (Vier-Augen-Freigabe)."
+        gated_single: "Jede Änderung der Admins erfolgt über einen Antrag, den Sie nach erneuter Authentifizierung bestätigen (Freigabe durch eine Person)."
+        mode_single: "Die Rückkehr zu einer Person wird beantragt: Eine andere berechtigte Person muss sie freigeben."
+        scope: "Diese Einstellung gilt auch für Einladung, Ernennung, Entzug und Ersetzung der Admins der Struktur, für Deaktivierung und Reaktivierung eines Admin-Kontos und für die Rückkehr zu einer Person."
+        wizard: "Einen Admin in eine Struktur einzuladen, die bereits ihr Team hat, erfolgt über einen Freigabeantrag: Beim Abschluss bestätigen Sie ihn nach erneuter Authentifizierung (eine Person), oder er wartet auf eine andere berechtigte Person (zwei Personen)."
+      confirm:
+        firm_invite: "Ich bestätige die Einladung als Admin der Struktur von"
+        firm_promote: "Ich bestätige die Ernennung als Admin der Struktur von"
+        firm_demote: "Ich bestätige den Entzug der Admin-Rolle der Struktur (das Konto wird Dossierverwalter) von"
+        firm_replace: "Ich bestätige die Einladung als Admin der Struktur von"
+        admin_disable: "Ich bestätige die Deaktivierung des Kontos von"
+        admin_enable: "Ich bestätige die Reaktivierung des Kontos von"
+        mode_single: "Ich bestätige die Rückkehr zur Freigabe durch eine Person für"
     reauth:
       connect: "Mit meinem Partiduo-Konto bestätigen"
       title: "Erneute Authentifizierung"
@@ -869,6 +903,8 @@ de:
         reauth: "Starke erneute Authentifizierung erforderlich (vor weniger als fünf Minuten)."
         confirmation: "Kreuzen Sie das Bestätigungskästchen an."
         confirmation_slug: "Die eingegebene Subdomain stimmt nicht mit dem Mandanten überein."
+        requester_gone: "Der Antragsteller kann diese Struktur nicht mehr verwalten: Der Antrag ist geschlossen, bitte neu stellen."
+        target_changed: "Das Ziel hat sich seit dem Antrag geändert: Der Antrag ist geschlossen, bitte auf dem aktuellen Stand neu stellen."
       backup:
         unusable: "Diese Sicherung ist nicht verwendbar."
         none_before: "Keine Sicherung an oder vor diesem Datum."
@@ -892,6 +928,7 @@ de:
         fleet_taken: "Der Bestand ohne Kanzlei existiert bereits."
       dual_approval:
         team: "Die Vier-Augen-Freigabe erfordert mindestens zwei berechtigte Personen."
+        needs_approval: "Die Rückkehr zu einer Person wird beantragt: Eine andere berechtigte Person gibt sie frei."
       reauth:
         no_totp: "Erneute Authentifizierung per Code nicht möglich: Verwenden Sie Ihren Passkey."
       server:

@@ -34,7 +34,7 @@ module PartiduoAdmin
       when Payer    then {"payer", id, target.name.to_s, target.firm_id.as?(Int64)}
       when Server   then {"server", id, target.name.to_s, nil}
       when Task     then {"task", id, target.kind.to_s, target.dossier.try(&.firm_id).as?(Int64)}
-      when Approval then {"approval", id, target.reference.to_s, target.dossier.try(&.firm_id).as?(Int64)}
+      when Approval then {"approval", id, target.reference.to_s, (target.dossier.try(&.firm_id) || target.firm_id).as?(Int64)}
       else               {"", nil, "", nil}
       end
     end

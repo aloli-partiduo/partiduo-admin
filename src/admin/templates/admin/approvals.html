@@ -1,4 +1,4 @@
-{# SPDX-License-Identifier: AGPL-3.0-or-later. Opérations sensibles (ADR-008 D3, D5) : une autre personne habilitée valide (deux personnes), ou le demandeur confirme seul après ré-authentification (une personne, D-VAL2-004). #}{% extend "admin/base.html" %}
+{# SPDX-License-Identifier: AGPL-3.0-or-later. Opérations sensibles (ADR-008 D3, D5) : une autre personne habilitée valide (deux personnes), ou le demandeur confirme seul après ré-authentification (une personne, D-VAL2-004). Une demande vise un dossier ou une structure sans dossier (D-ADM-023). #}{% extend "admin/base.html" %}
 {% block title %}{% translate "admin.approvals.title" %}{% endblock title %}
 {% block crumbs %}<li>{% translate "admin.approvals.title" %}</li>{% endblock crumbs %}
 {% block heading %}{% translate "admin.approvals.title" %}{% endblock heading %}
@@ -6,12 +6,12 @@
 <p class="mb-4" id="pd-approvals-heading">{% translate "admin.approvals.help" %}</p>
 {% if rows %}<div class="table-container" tabindex="0" role="region" aria-labelledby="pd-approvals-heading"><table class="table is-fullwidth is-striped">
   <caption class="is-sr-only">{% translate "admin.approvals.title" %}</caption>
-  <thead><tr><th scope="col">{% translate "admin.approvals.reference" %}</th><th scope="col">{% translate "admin.approvals.kind" %}</th><th scope="col">{% translate "admin.tasks.dossier" %}</th><th scope="col">{% translate "admin.reason" %}</th><th scope="col">{% translate "admin.approvals.requested_by" %}</th><th scope="col">{% translate "admin.dual_approval.mode" %}</th><th scope="col">{% translate "admin.approvals.state" %}</th><th scope="col"><span class="is-sr-only">{% translate "admin.actions.title" %}</span></th></tr></thead>
+  <thead><tr><th scope="col">{% translate "admin.approvals.reference" %}</th><th scope="col">{% translate "admin.approvals.kind" %}</th><th scope="col">{% translate "admin.approvals.target" %}</th><th scope="col">{% translate "admin.reason" %}</th><th scope="col">{% translate "admin.approvals.requested_by" %}</th><th scope="col">{% translate "admin.dual_approval.mode" %}</th><th scope="col">{% translate "admin.approvals.state" %}</th><th scope="col"><span class="is-sr-only">{% translate "admin.actions.title" %}</span></th></tr></thead>
   <tbody>{% for row in rows %}<tr>
     <td class="pd-mono">{{ row.approval.reference }}</td>
-    <td>{% translate row.approval.kind_key %}{% if row.approval.param_email %} {{ row.approval.param_email }}{% endif %}{% if row.approval.param_replaces %} ({% translate "admin.administrators.replacing" %} {{ row.approval.param_replaces }}){% endif %}{% if row.approval.removal_key %} — {% translate row.approval.removal_key %}{% endif %}</td>
-    <td><a href="{% url 'dossier' id: row.approval.dossier.id %}">{{ row.approval.dossier.slug }}</a></td>
-    <td>{{ row.approval.reason }}</td>
+    <td>{% translate row.approval.kind_key %}{% if row.approval.dossier %}{% if row.approval.param_email %} {{ row.approval.param_email }}{% endif %}{% elsif row.approval.target_label %} {{ row.approval.target_label }}{% endif %}{% if row.approval.param_replaces %} ({% translate "admin.administrators.replacing" %} {{ row.approval.param_replaces }}){% endif %}{% if row.approval.removal_key %} — {% translate row.approval.removal_key %}{% endif %}</td>
+    <td>{% if row.approval.dossier %}<a href="{% url 'dossier' id: row.approval.dossier.id %}">{{ row.approval.dossier.slug }}</a>{% else %}<span class="pd-muted">{% translate "admin.approvals.firm_target" %}</span> {% if row.firm_link %}<a href="{{ row.firm_link }}">{{ row.approval.firm.name }}</a>{% else %}{{ row.approval.firm.name }}{% endif %}{% endif %}</td>
+    <td>{% if row.approval.reason %}{{ row.approval.reason }}{% else %}<span class="pd-muted">—</span>{% endif %}</td>
     <td>{{ row.approval.requested_by.email }}</td>
     <td><span class="pd-mode pd-mode-{{ row.approval.mode }}">{% translate row.approval.mode_key %}</span></td>
     <td><span class="pd-state pd-state-{{ row.approval.state }}">{% translate row.approval.state_key %}</span>{% if row.approval.decided_by %} · {{ row.approval.decided_by.email }}{% endif %}</td>

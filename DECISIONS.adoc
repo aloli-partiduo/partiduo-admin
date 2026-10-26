@@ -645,3 +645,142 @@ Le retrait de l'ancienne instance après un déplacement reste manuel
 déplacement et l'archivage parmi les opérations sensibles (validation à
 deux selon la structure) ? Difficulté : la clé d'une sauvegarde chiffrée
 n'est jamais conservée, la personne qui valide devrait donc la fournir.
+
+=== D-ADM-023 — Validation des actions propres à une structure (26 octobre 2026)
+
+Décision de l'utilisateur du 26 octobre 2026 : étendre la validation à
+deux (D-VAL2) aux actions propres à un cabinet, laissées sans validation
+par D-ADM-017 (« La validation à deux ne couvre pas les changements
+d'admins d'un cabinet »). Version 0.1.59. ADR-008 D3 est amendé
+(partiduo-docs).
+
+*Modèle : le dossier devient facultatif, avec une cible structure.*
+`Approval#firm` (migration 0012, colonne `firm_id`) ; `dossier_id`
+facultatif ; contrainte de la base `admin_approval_target` : exactement
+une cible. Les demandes existantes ne changent pas (dossier gardé,
+structure vide : celle du dossier fait foi, `Approval#target_firm`).
+Écartée : une cible générique (`target_type`, `target_id`) — sans clé
+étrangère, une demande pourrait viser un objet disparu ou d'une autre
+structure, et la portée des droits (`Approvals.visible`, journal d'audit
+par `firm_id`) devrait être recalculée par type ; les deux seules cibles
+réelles sont un dossier et une structure. Écartée aussi : une table à part
+pour les demandes de structure — deux modèles à garder d'accord (états,
+expiration, décision atomique, écrans). Une seconde contrainte,
+`admin_approval_other_person` (posée `NOT VALID` : les demandes passées ne
+sont pas relues), refuse en base une demande validée sans décideur, ou
+validée à deux par son propre demandeur, même par une écriture SQL
+directe ; la mise à jour conditionnelle de la décision pose désormais
+`decided_by_id`.
+
+*Actions soumises à validation* (`Approval::FIRM_KINDS`), dès que la
+structure a une équipe (au moins une personne habilitée active,
+`Administrators.firm_gated?`) :
+
+* `firm_invite` : inviter un admin de cabinet (écran des admins de la
+  structure, écran des utilisateurs, assistant « Inviter un utilisateur »
+  de D-ADM-022), ou un super-admin quand un parc sans cabinet est déclaré
+  (sa structure) ;
+* `firm_promote`, `firm_demote` : nommer un gestionnaire admin, retirer un
+  admin (il devient gestionnaire de dossiers) ;
+* `firm_replace` : remplacer (invitation du nouveau, puis retrait de
+  l'ancien) ;
+* `admin_disable`, `admin_enable` : désactiver ou réactiver un compte
+  d'admin (la réactivation rend des droits : c'est un ajout) ; un compte de
+  super-admin relève du parc sans cabinet ;
+* `mode_single` : repasser de deux personnes à une personne. Passer à deux
+  personnes reste immédiat. `ApprovalMode.set` refuse lui-même le retour à
+  une personne (`needs_approval`) : la protection ne se lève pas d'un
+  geste, quel que soit l'appelant.
+
+Sans demande : le premier admin d'une structure qui n'a encore personne
+(comme à sa création, D-ADM-018), les gestionnaires de dossiers, la
+création d'un cabinet par son assistant, l'amorçage ; un super-admin
+quand aucun parc sans cabinet n'est déclaré (aucune structure ne porte
+alors le réglage).
+
+*Modes.* Une personne : le demandeur habilité confirme seul après
+ré-authentification forte récente et case cochée (D-VAL2-004), puis
+l'action est faite aussitôt (aucune tâche). Deux personnes : une autre
+personne habilitée valide — un autre admin actif de la structure ou un
+super-admin, comme pour un dossier ; un super-admin seulement quand la
+demande touche un compte de super-admin (`scope = super`). Le mode est lu
+à la décision (D-VAL2-006). Le super-admin peut valider le retour à une
+personne d'un cabinet sans pouvoir le demander (D-VAL2-001 : seul l'admin
+de la structure règle).
+
+*Décision.* Mise à jour conditionnelle de la demande et action dans la
+même transaction (`Approvals.apply_firm`, `Administrators.apply_approval`).
+Recontrôles, l'état présent relu en base : demandeur encore habilité
+(`requester_gone`), compte visé inchangé depuis la demande — rôle, état,
+structure (`user_state`, `target_changed`) —, puis les règles du service
+(jamais zéro admin, adresse libre, gestionnaire indépendant d'une seule
+personne). Un recontrôle refusé annule tout et clôt la demande (état
+« expirée », `approval.stale` au journal d'audit) : il faut la refaire sur
+l'état présent. Une seule demande en attente par type et par cible ;
+jamais rejouée (D-AFN-010). L'action est faite au nom du demandeur
+(`user.invite`, `user.role`, `user.disable`…), la décision au nom de qui
+la prend (`approval.confirm_alone`, `approval.approve`).
+
+*Règle anti-blocage.* (1) Deux personnes exigent au moins deux personnes
+habilitées, et se désactivent d'elles-mêmes si l'équipe retombe à une
+(D-VAL2-003, inchangé) : une structure d'un seul admin est toujours à une
+personne, et confirme seule. (2) Un cabinet dont l'autre admin est
+injoignable : le super-admin valide la désactivation de ce compte (ou le
+retour à une personne) ; l'équipe réduite repasse d'elle-même à une
+personne. (3) Le parc sans cabinet n'a pas d'instance au-dessus de lui :
+deux super-admins dont l'un a disparu ne pourraient plus rien décider.
+Recours hors de l'interface : `partiduo-admin-manage approval-mode-single
+--firm=<id> --reason=…`, réservé à qui a la main sur le serveur, motif
+exigé, trace `dual_approval.cli_off`. (4) Les demandes expirent
+(`APPROVAL_TTL`, sept jours) : aucune ne bloque indéfiniment.
+
+*Écrans.* « Opérations sensibles » : colonne « Cible » (dossier, ou
+« Structure » et son nom, lien vers ses admins ou son réglage), motif
+facultatif (« — »). Admins de la structure : compte visé « En attente de
+validation » (pastille `pd-state-pending`, couleurs `--pd-warn` dont le
+contraste est contrôlé en clair et en sombre par
+`spec/admin/theme_contrast_spec.cr`), bloc « Demandes en attente sur la
+structure », motif facultatif dans chaque geste, aide du mode en vigueur.
+Réglage : motif et explication du retour à une personne, portée du
+réglage. « Confirmer seul » : structure au lieu du dossier, phrase propre
+à chaque action, « Confirmer et appliquer ». Assistant d'invitation :
+section « Validation » au récapitulatif quand l'invitation sera une
+demande. Sept langues.
+
+*Service pour les autres parcours.* `Administrators.invite_gate(acteur,
+saisie)` rend la structure dont le réglage décide d'une invitation (`nil` :
+inviter directement) ; `Administrators.request_invite` enregistre la
+demande ; `ApprovalConfirmHandler.after_firm_request` mène à la
+confirmation seule ou à l'écran d'origine. Mêmes portes pour les comptes
+(`account_gate`, `request_active`) et les rôles (`firm_gated?`,
+`request_role`, `request_replace`).
+
+*Specs* : `spec/admin/firm_approvals_spec.cr` — cible unique en base,
+premier admin sans demande, confirmation seule (ré-authentification
+absente ou trop ancienne, case non cochée), même personne refusée par le
+service et par la base, demande rejouée, refusée ou échue, cible changée
+(compte désactivé entre-temps, adresse prise), demandeur qui n'est plus
+admin, portée super-admin, retour à une personne validé par un autre ou
+devenu sans objet, recours du super-admin et de la ligne de commande,
+écrans (invitation jusqu'à la confirmation, « en attente de validation »,
+liste, validation par l'autre admin, autre structure refusée) et sept
+langues ; `administrators_spec`, `dual_approval_spec` et
+`wizard_operations_spec` suivent le nouveau parcours.
+
+*Actions sensibles proposées, non soumises.*
+
+* Clé publique de sauvegarde du cabinet et mode de chiffrement
+  (`/firms/<id>/backups`) : remplacer la clé par la sienne ou passer en
+  « aucun chiffrement » rendrait lisibles les sauvegardes suivantes. Non
+  soumis : une rotation de clé après compromission doit rester immédiate ;
+  à trancher (validation du seul affaiblissement, par exemple).
+* Réinvitation d'un admin (`reinvite`) : révoque ses sessions et ses
+  moyens d'authentification ; un admin pourrait ainsi écarter l'autre le
+  temps d'une décision. Candidat naturel à `admin_disable`.
+* Désactivation d'une structure par le super-admin, et changement de sa
+  nature (cabinet, gestionnaire indépendant).
+
+*À soumettre.* Le super-admin valide en dernier recours les demandes d'un
+cabinet : c'est la règle des dossiers, mais il tient ainsi la seconde clé
+de tout cabinet. Variante possible : ne l'admettre qu'après un délai
+(demande en attente depuis N jours).

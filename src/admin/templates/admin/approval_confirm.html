@@ -1,4 +1,4 @@
-{# SPDX-License-Identifier: AGPL-3.0-or-later. Confirmation d'une opération sensible par le demandeur seul (structure réglée sur « une personne », DECISIONS D-VAL2-004) : ré-authentification forte récente, puis confirmation explicite. #}{% extend "admin/base.html" %}
+{# SPDX-License-Identifier: AGPL-3.0-or-later. Confirmation d'une opération sensible par le demandeur seul (structure réglée sur « une personne », DECISIONS D-VAL2-004) : ré-authentification forte récente, puis confirmation explicite. Cible : un dossier, ou une structure sans dossier (D-ADM-023). #}{% extend "admin/base.html" %}
 {% block title %}{% translate "admin.dual_approval.confirm_title" %}{% endblock title %}
 {% block crumbs %}<li><a href="{% url 'approvals' %}">{% translate "admin.approvals.title" %}</a></li><li>{{ approval.reference }}</li>{% endblock crumbs %}
 {% block heading %}{% translate "admin.dual_approval.confirm_title" %} · {% translate approval.kind_key %}{% endblock heading %}
@@ -8,9 +8,10 @@
   <h2 id="pd-confirm-summary-title">{% translate "admin.dual_approval.summary" %}</h2>
   <dl class="pd-dl">
     <dt>{% translate "admin.approvals.reference" %}</dt><dd class="pd-mono">{{ approval.reference }}</dd>
-    <dt>{% translate "admin.approvals.kind" %}</dt><dd>{% translate approval.kind_key %}{% if approval.param_email %} · {{ approval.param_email }}{% endif %}</dd>
-    <dt>{% translate "admin.tasks.dossier" %}</dt><dd><a href="{% url 'dossier' id: dossier.id %}">{{ dossier.slug }}</a> — {{ dossier.label }}</dd>
-    <dt>{% translate "admin.reason" %}</dt><dd>{{ approval.reason }}</dd>
+    <dt>{% translate "admin.approvals.kind" %}</dt><dd>{% translate approval.kind_key %}{% if dossier %}{% if approval.param_email %} · {{ approval.param_email }}{% endif %}{% elsif approval.target_label %} · {{ approval.target_label }}{% endif %}{% if firm %}{% if approval.param_replaces %} ({% translate "admin.administrators.replacing" %} {{ approval.param_replaces }}){% endif %}{% endif %}</dd>
+    {% if dossier %}<dt>{% translate "admin.tasks.dossier" %}</dt><dd><a href="{% url 'dossier' id: dossier.id %}">{{ dossier.slug }}</a> — {{ dossier.label }}</dd>
+    {% else %}<dt>{% translate "admin.approvals.firm_target" %}</dt><dd>{{ firm.name }}</dd>{% endif %}
+    <dt>{% translate "admin.reason" %}</dt><dd>{% if approval.reason %}{{ approval.reason }}{% else %}<span class="pd-muted">—</span>{% endif %}</dd>
     <dt>{% translate "admin.dual_approval.mode" %}</dt><dd><span class="pd-mode pd-mode-{{ mode }}">{% if mode == "dual" %}{% translate "admin.dual_approval.modes.dual" %}{% else %}{% translate "admin.dual_approval.modes.single" %}{% endif %}</span></dd>
     <dt>{% translate "admin.approvals.state" %}</dt><dd><span class="pd-state pd-state-{{ approval.state }}">{% translate approval.state_key %}</span></dd>
   </dl>
@@ -56,13 +57,13 @@
   </div>
   {% else %}
   <div class="field">
-    <label class="pd-choice"><input type="checkbox" name="confirm" value="yes" required aria-describedby="pd-confirm-help{% if confirm_errors %} pd-confirmation-error{% endif %}"{% if confirm_errors %} aria-invalid="true"{% endif %}><span>{% translate approval.confirm_key %} <strong>{{ approval.param_email }}</strong>{% if approval.param_replaces %} ({% translate "admin.administrators.replacing" %} <strong>{{ approval.param_replaces }}</strong>){% endif %}{% if approval.removal_key %} — {% translate approval.removal_key %}{% endif %}</span></label>
-    <p class="help" id="pd-confirm-help">{% translate "admin.dual_approval.confirm_access_help" %}</p>
+    <label class="pd-choice"><input type="checkbox" name="confirm" value="yes" required aria-describedby="pd-confirm-help{% if confirm_errors %} pd-confirmation-error{% endif %}"{% if confirm_errors %} aria-invalid="true"{% endif %}><span>{% translate approval.confirm_key %}{% if dossier %} <strong>{{ approval.param_email }}</strong>{% elsif approval.target_label %} <strong>{{ approval.target_label }}</strong>{% else %} <strong>{{ firm.name }}</strong>{% endif %}{% if approval.param_replaces %} ({% translate "admin.administrators.replacing" %} <strong>{{ approval.param_replaces }}</strong>){% endif %}{% if approval.removal_key %} — {% translate approval.removal_key %}{% endif %}</span></label>
+    <p class="help" id="pd-confirm-help">{% if dossier %}{% translate "admin.dual_approval.confirm_access_help" %}{% else %}{% translate "admin.firm_approvals.confirm_help" %}{% endif %}</p>
     {% if confirm_errors %}<p class="help is-danger" id="pd-confirmation-error">{% for message in confirm_errors %}{{ message }} {% endfor %}</p>{% endif %}
   </div>
   {% endif %}
   <div class="buttons">
-    <button class="button {% if is_delete %}is-danger{% else %}is-primary{% endif %}" type="submit"{% if not recent %} aria-describedby="pd-confirm-reauth-note"{% endif %}>{% translate "admin.dual_approval.confirm_button" %}</button>
+    <button class="button {% if is_delete %}is-danger{% else %}is-primary{% endif %}" type="submit"{% if not recent %} aria-describedby="pd-confirm-reauth-note"{% endif %}>{% if dossier %}{% translate "admin.dual_approval.confirm_button" %}{% else %}{% translate "admin.firm_approvals.confirm_button" %}{% endif %}</button>
     <a class="button" href="{% url 'approvals' %}">{% translate "admin.cancel" %}</a>
   </div>
   {% if not recent %}<p class="help" id="pd-confirm-reauth-note">{% translate "admin.reauth.before_confirm" %}</p>{% endif %}

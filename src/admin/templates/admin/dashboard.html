@@ -25,7 +25,7 @@
   </section>
   <section class="pd-panel" aria-labelledby="pd-approvals-title">
     <h2 id="pd-approvals-title">{% translate "admin.approvals.title" %}</h2>
-    {% if approvals %}<ul>{% for approval in approvals %}<li><a href="{% url 'approvals' %}">{{ approval.reference }}</a> — {% translate approval.kind_key %} · {{ approval.dossier.slug }}</li>{% endfor %}</ul>
+    {% if approvals %}<ul>{% for approval in approvals %}<li><a href="{% url 'approvals' %}">{{ approval.reference }}</a> — {% translate approval.kind_key %} · {{ approval.target_name }}</li>{% endfor %}</ul>
     {% else %}<p class="pd-muted">{% translate "admin.approvals.none" %}</p>{% endif %}
   </section>
 </div>

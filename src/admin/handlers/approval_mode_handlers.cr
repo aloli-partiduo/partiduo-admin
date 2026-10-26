@@ -17,6 +17,13 @@ module PartiduoAdmin
       unless Approval::MODES.includes?(mode)
         return render_page(firm, {"mode" => [I18n.t("admin.errors.invalid")]}, 422)
       end
+      # Retour à une personne : une demande, validée par une autre personne
+      # (D-ADM-023).
+      if mode == ApprovalMode::SINGLE && ApprovalMode.mode(firm) == ApprovalMode::DUAL
+        request = ApprovalMode.request_single(user, firm, field("reason"))
+        return ApprovalConfirmHandler.after_firm_request(self, request.value!) if request.ok?
+        return render_page(firm, translate(request.errors), 422)
+      end
       outcome = ApprovalMode.set(user, firm, mode == ApprovalMode::DUAL)
       if outcome.ok?
         flash["success"] = I18n.t("admin.dual_approval.saved.#{firm.approval_mode}")
@@ -52,6 +59,7 @@ module PartiduoAdmin
         "pending"     => ApprovalMode.pending(firm),
         "changed_at"  => firm.dual_approval_changed_at.try(&.to_s("%Y-%m-%d %H:%M")),
         "mode_errors" => errs(errors, "mode") + errs(errors, "base"),
+        "reason"      => field("reason"),
       }, status: status)
     end
   end
@@ -70,10 +78,32 @@ module PartiduoAdmin
       confirmation = approval.kind == "delete" ? field("confirmation") : (field("confirm") == "yes" ? "yes" : "")
       outcome = Approvals.confirm_alone(user, approval, Auth::Sessions.recent_strong?(session_record, Config.now), confirmation)
       if outcome.ok?
-        flash["success"] = I18n.t("admin.dual_approval.confirmed", reference: approval.reference.to_s)
-        return redirect("/tasks/#{outcome.value!.pk}")
+        if task = outcome.value
+          flash["success"] = I18n.t("admin.dual_approval.confirmed", reference: approval.reference.to_s)
+          return redirect("/tasks/#{task.pk}")
+        end
+        flash["success"] = I18n.t("admin.firm_approvals.done", reference: approval.reference.to_s)
+        # Demande de structure (D-ADM-023) : faite aussitôt.
+        if code = outcome.signup_code
+          flash["info"] = I18n.t("admin.users.signup_code", code: code)
+        end
+        return redirect(Approvals.back_path(approval))
       end
+      # Demande close par un recontrôle (cible changée) : la page le dit.
+      approval.reload
       render_page(approval, translate(outcome.errors), 422)
+    end
+
+    # Demande de structure enregistrée (D-ADM-023) : confirmation aussitôt
+    # par le demandeur (une personne, D-VAL2-004), sinon attente d'une
+    # autre personne, sur l'écran d'où vient la demande.
+    def self.after_firm_request(handler : ScreenHandler, approval : Approval) : Marten::HTTP::Response
+      if Approvals.can_confirm_alone?(handler.user, approval)
+        handler.flash["info"] = I18n.t("admin.dual_approval.requested_single", reference: approval.reference.to_s)
+        return handler.go("/approvals/#{approval.pk}/confirm")
+      end
+      handler.flash["success"] = I18n.t("admin.approvals.requested", reference: approval.reference.to_s)
+      handler.go(Approvals.back_path(approval))
     end
 
     private def approval! : Approval
@@ -83,17 +113,18 @@ module PartiduoAdmin
     end
 
     private def render_page(approval : Approval, errors = {} of String => Array(String), status : Int32 = 200)
-      dossier = approval.dossier!
+      dossier = approval.dossier
       now = Config.now
       session = session_record
       strong_at = session.try(&.strong_auth_at)
       page("admin/approval_confirm.html", {
         "approval"           => approval,
         "dossier"            => dossier,
-        "mode"               => ApprovalMode.mode_for(dossier, now),
+        "firm"               => approval.firm,
+        "mode"               => ApprovalMode.mode(approval.target_firm!, now),
         "pending"            => approval.state == "pending" && approval.expires_at! > now,
         "can_confirm"        => Approvals.can_confirm_alone?(user, approval, now),
-        "needs_admin"        => !Access.can?(user, :approve, dossier),
+        "needs_admin"        => !Approvals.habilitated?(user, approval),
         "recent"             => Auth::Sessions.recent_strong?(session, now),
         "strong_at"          => strong_at.try(&.to_s("%H:%M")),
         "window"             => Config::REAUTH_WINDOW.total_minutes.to_i.to_s,

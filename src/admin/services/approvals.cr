@@ -4,8 +4,11 @@ require "json"
 
 module PartiduoAdmin
   # Opérations sensibles (ADR-008 D3, D5) : suppression définitive, recours
-  # d'accès, ajout et retrait d'un administrateur du dossier (D-ADM-017). Une personne demande ; selon le réglage de la structure
-  # du dossier (`ApprovalMode`, D-VAL2-001) :
+  # d'accès, ajout et retrait d'un administrateur du dossier (D-ADM-017) ;
+  # actions propres à une structure, sans dossier (D-ADM-023, demandes
+  # `Approval::FIRM_KINDS`, exécutées par `Administrators.apply_approval`).
+  # Une personne demande ; selon le réglage de la structure (`ApprovalMode`,
+  # D-VAL2-001) :
   #
   # * deux personnes : une *autre* personne habilitée (admin du cabinet du
   #   dossier ou super-admin) valide ;
@@ -49,6 +52,27 @@ module PartiduoAdmin
       create(user, dossier, kind, reason, params, now)
     end
 
+    # Demande d'une action propre à une structure (D-ADM-023), déjà
+    # contrôlée par son service (`Administrators`, `ApprovalMode`) : une
+    # seule demande en attente par type et par cible (`params["target"]`),
+    # mode de la structure. Le motif est facultatif : les écrans de la
+    # structure le proposent sans l'exiger.
+    def self.request_firm(user : User, firm : Firm, kind : String, reason : String, params : Hash(String, String),
+                          now : Time = Config.now) : Outcome(Approval)
+      raise ArgumentError.new("demande de structure inconnue : #{kind}") unless Approval::FIRM_KINDS.includes?(kind)
+      target = params["target"]? || ""
+      open = Approval.filter(firm_id: firm.pk, kind: kind, state: "pending", expires_at__gt: now).to_a
+      if open.any? { |approval| approval.param("target") == target }
+        return Outcome(Approval).failure("base", "admin.errors.approval.already_pending")
+      end
+      mode = ApprovalMode.mode(firm, now)
+      approval = Approval.create!(kind: kind, reference: Secrets.reference("DV"), firm: firm,
+        params: params.to_json, reason: reason.strip, requested_by: user, expires_at: now + Config::APPROVAL_TTL, mode: mode)
+      Audit.log(user, "approval.request", target: approval,
+        detail: {"kind" => kind, "firm" => firm.name.to_s, "target" => target, "mode" => mode})
+      Outcome(Approval).new(approval)
+    end
+
     private def self.create(user : User, dossier : Dossier, kind : String, reason : String,
                             params : Hash(String, String), now : Time) : Outcome(Approval)
       return Outcome(Approval).failure("reason", "admin.errors.required") if reason.strip.size < 5
@@ -68,13 +92,26 @@ module PartiduoAdmin
     # recours d'accès attend toujours un admin.
     def self.can_confirm_alone?(user : User, approval : Approval, now : Time = Config.now) : Bool
       return false unless approval.state == "pending" && approval.requested_by_id == user.pk
-      dossier = approval.dossier
-      return false if dossier.nil? || !Access.can?(user, :approve, dossier)
-      ApprovalMode.mode_for(dossier, now) == ApprovalMode::SINGLE
+      return false unless habilitated?(user, approval)
+      ApprovalMode.mode(approval.target_firm!, now) == ApprovalMode::SINGLE
+    end
+
+    # Habilité à décider de cette demande : admin du cabinet du dossier ou
+    # super-admin ; pour une demande de structure, qui peut gérer ses
+    # admins (le super-admin seul pour un compte de super-admin, D-ADM-023).
+    def self.habilitated?(user : User, approval : Approval) : Bool
+      if dossier = approval.dossier
+        return Access.can?(user, :approve, dossier)
+      end
+      firm = approval.firm
+      !firm.nil? && Administrators.can_request_firm?(user, firm, approval.super_scope?)
     end
 
     # Validation par une *autre* personne habilitée : toujours possible,
     # quel que soit le réglage (deux personnes valent mieux qu'une).
+    #
+    # Une demande de structure ne crée pas de tâche : l'action est faite
+    # aussitôt, et la valeur rendue est vide (`nil`).
     def self.approve(user : User, approval : Approval, now : Time = Config.now) : Outcome(Task)
       if failure = open_failure(approval, now)
         return failure
@@ -84,6 +121,15 @@ module PartiduoAdmin
       end
       return Outcome(Task).failure("base", "admin.errors.forbidden") unless Access.can_approve?(user, approval)
       requester = approval.requested_by!
+      if approval.firm_target?
+        outcome = apply_firm(user, approval, ApprovalMode::DUAL, now)
+        if outcome.ok?
+          Audit.log(user, "approval.approve", target: approval,
+            detail: {"kind" => approval.kind.to_s, "requested_by" => requester.email.to_s,
+                     "firm" => approval.firm!.name.to_s, "mode" => ApprovalMode::DUAL})
+        end
+        return outcome
+      end
       outcome = issue(user, approval, [requester.email.to_s, user.email.to_s], ApprovalMode::DUAL, now)
       if outcome.ok?
         Audit.log(user, "approval.approve", target: approval,
@@ -105,12 +151,13 @@ module PartiduoAdmin
         return failure
       end
       return Outcome(Task).failure("base", "admin.errors.forbidden") unless approval.requested_by_id == user.pk
-      dossier = approval.dossier!
-      return Outcome(Task).failure("base", "admin.errors.approval.needs_admin") unless Access.can?(user, :approve, dossier)
-      if ApprovalMode.mode_for(dossier, now) != ApprovalMode::SINGLE
+      return Outcome(Task).failure("base", "admin.errors.approval.needs_admin") unless habilitated?(user, approval)
+      if ApprovalMode.mode(approval.target_firm!, now) != ApprovalMode::SINGLE
         return Outcome(Task).failure("base", "admin.errors.approval.dual_required")
       end
       return Outcome(Task).failure("reauth", "admin.errors.approval.reauth") unless strong_recent
+      return confirm_firm_alone(user, approval, confirmation, now) if approval.firm_target?
+      dossier = approval.dossier!
       expected = approval.kind == "delete" ? dossier.slug.to_s : "yes"
       unless confirmation.strip == expected
         key = approval.kind == "delete" ? "admin.errors.approval.confirmation_slug" : "admin.errors.approval.confirmation"
@@ -120,6 +167,17 @@ module PartiduoAdmin
       if outcome.ok?
         Audit.log(user, "approval.confirm_alone", target: approval,
           detail: {"kind" => approval.kind.to_s, "dossier" => dossier.slug.to_s, "mode" => ApprovalMode::SINGLE})
+      end
+      outcome
+    end
+
+    # Demande de structure confirmée seule (D-ADM-023) : case cochée.
+    private def self.confirm_firm_alone(user : User, approval : Approval, confirmation : String, now : Time) : Outcome(Task)
+      return Outcome(Task).failure("confirmation", "admin.errors.approval.confirmation") unless confirmation.strip == "yes"
+      outcome = apply_firm(user, approval, ApprovalMode::SINGLE, now)
+      if outcome.ok?
+        Audit.log(user, "approval.confirm_alone", target: approval,
+          detail: {"kind" => approval.kind.to_s, "firm" => approval.firm!.name.to_s, "mode" => ApprovalMode::SINGLE})
       end
       outcome
     end
@@ -134,6 +192,52 @@ module PartiduoAdmin
         return Outcome(Task).failure("base", "admin.errors.approval.expired")
       end
       nil
+    end
+
+    # Décision d'une demande de structure (D-ADM-023) : la demande passe à
+    # « validée » par une mise à jour conditionnelle, et l'action est faite
+    # dans la même transaction (`Administrators.apply_approval`), après les
+    # recontrôles : demandeur encore habilité, cible inchangée depuis la
+    # demande, règles du service (jamais zéro admin…). Un recontrôle refusé
+    # annule tout et clôt la demande (« expirée », `approval.stale`) : il
+    # faut la refaire sur l'état présent. Jamais rejouée (D-AFN-010).
+    private def self.apply_firm(user : User, approval : Approval, mode : String, now : Time) : Outcome(Task)
+      failure = Fleet::Errors.new
+      code : String? = nil
+      done = false
+      Marten::DB::Connection.default.transaction do
+        claimed = Approval.filter(id: approval.pk, state: "pending")
+          .update(state: "approved", decided_at: now, mode: mode, decided_by_id: user.pk)
+        if claimed == 1
+          failure, code = Administrators.apply_approval(approval, now)
+          raise Marten::DB::Errors::Rollback.new unless failure.empty?
+          approval.state = "approved"
+          approval.mode = mode
+          approval.decided_by = user
+          approval.decided_at = now
+          approval.save!
+          done = true
+        end
+      end
+      unless done
+        approval.reload
+        return Outcome(Task).failure("base", "admin.errors.approval.state") if failure.empty?
+        stale(user, approval, failure, now)
+        return Outcome(Task).new(nil, failure)
+      end
+      outcome = Outcome(Task).new(nil)
+      outcome.signup_code = code
+      outcome
+    end
+
+    # Demande devenue fausse (cible changée, demandeur plus habilité, règle
+    # enfreinte) : close, avec la raison au journal d'audit.
+    private def self.stale(user : User, approval : Approval, failure : Fleet::Errors, now : Time) : Nil
+      closed = Approval.filter(id: approval.pk, state: "pending").update(state: "expired", decided_at: now)
+      approval.reload
+      return unless closed == 1
+      Audit.log(user, "approval.stale", target: approval, outcome: "refused",
+        detail: {"kind" => approval.kind.to_s, "errors" => failure.values.flatten.join(',')})
     end
 
     # Enregistre la tâche de la demande : état du dossier recontrôlé,
@@ -170,7 +274,8 @@ module PartiduoAdmin
       # simultanées, une seule crée la tâche (D-AFN-010).
       task : Task? = nil
       Marten::DB::Connection.default.transaction do
-        claimed = Approval.filter(id: approval.pk, state: "pending").update(state: "approved", decided_at: now, mode: mode)
+        claimed = Approval.filter(id: approval.pk, state: "pending")
+          .update(state: "approved", decided_at: now, mode: mode, decided_by_id: user.pk)
         if claimed == 1
           created = Tasks.enqueue(kind, dossier.server!, params, user, dossier)
           approval.state = "approved"
@@ -209,10 +314,24 @@ module PartiduoAdmin
       true
     end
 
-    # Demandes visibles : celles des dossiers de la portée de l'utilisateur.
+    # Demandes visibles : celles des dossiers de la portée de l'utilisateur,
+    # et celles de sa structure pour son admin (D-ADM-023).
     def self.visible(user : User) : Marten::DB::Query::Set(Approval)
       return Approval.all if user.super_admin?
-      Approval.filter(dossier_id__in: Access.dossiers(user).map(&.pk!.as(Int64)))
+      ids = Access.dossiers(user).map(&.pk!.as(Int64))
+      firm_id = user.firm_id
+      return Approval.filter(dossier_id__in: ids) unless user.firm_admin? && firm_id
+      return Approval.filter(firm_id: firm_id) if ids.empty?
+      Approval.filter { q(dossier_id__in: ids) | q(firm_id: firm_id) }
+    end
+
+    # Écran où revenir après la décision d'une demande de structure.
+    def self.back_path(approval : Approval) : String
+      case approval.kind
+      when "mode_single"                   then "/firms/#{approval.firm_id}/approval-mode"
+      when "admin_disable", "admin_enable" then "/users"
+      else                                      "/firms/#{approval.firm_id}/admins"
+      end
     end
   end
 end

@@ -510,11 +510,20 @@ es:
       withdraw: "Retirar"
       approved: "Solicitud validada: la tarea está en cola."
       rejected: "Solicitud rechazada."
+      target: "Objeto"
+      firm_target: "Estructura"
       kinds:
         delete: "eliminación definitiva"
         admin_invite: "recuperación de acceso"
         admin_add: "alta de un administrador"
         admin_remove: "baja de un administrador"
+        firm_invite: "invitación de un administrador de la estructura"
+        firm_promote: "nombramiento de un administrador de la estructura"
+        firm_demote: "retirada de un administrador de la estructura"
+        firm_replace: "sustitución de un administrador de la estructura"
+        admin_disable: "desactivación de una cuenta de administrador"
+        admin_enable: "reactivación de una cuenta de administrador"
+        mode_single: "vuelta a la validación por una persona"
       states:
         pending: "pendiente"
         approved: "validada"
@@ -575,6 +584,31 @@ es:
       confirm_access_help: "La invitación se envía a esta dirección; queda constancia en el registro de auditoría y en el registro del expediente."
       confirm_button: "Confirmar e iniciar la tarea"
       confirmed: "Solicitud %{reference} confirmada: la tarea está en cola."
+    firm_approvals:
+      waiting: "Pendiente de validación"
+      pending_title: "Solicitudes pendientes sobre la estructura"
+      confirm_help: "La acción se realiza al confirmar; el rastro va al registro de auditoría."
+      confirm_button: "Confirmar y aplicar"
+      done: "Solicitud %{reference} confirmada: hecho."
+      approved: "Solicitud validada: hecho."
+      fields:
+        reason: "Motivo (opcional)"
+      help:
+        reason: "Se muestra a quien valide la solicitud y se inscribe en el registro de auditoría."
+        invite_reason: "Invitar a un administrador a una estructura que ya tiene su equipo pasa por una solicitud de validación; este motivo la acompaña."
+        gated_dual: "Cada cambio de administradores pasa por una solicitud que valida otra persona habilitada (validación por dos personas)."
+        gated_single: "Cada cambio de administradores pasa por una solicitud que usted confirma tras volver a autenticarse (validación por una persona)."
+        mode_single: "Volver a una persona se solicita: otra persona habilitada debe validarlo."
+        scope: "Este ajuste rige también la invitación, el nombramiento, la retirada y la sustitución de los administradores de la estructura, la desactivación y la reactivación de una cuenta de administrador, y la vuelta a una persona."
+        wizard: "Invitar a un administrador a una estructura que ya tiene su equipo pasa por una solicitud de validación: al validar, la confirmará tras volver a autenticarse (una persona), o esperará a otra persona habilitada (dos personas)."
+      confirm:
+        firm_invite: "Confirmo la invitación como administrador de la estructura de"
+        firm_promote: "Confirmo el nombramiento como administrador de la estructura de"
+        firm_demote: "Confirmo la retirada de los administradores de la estructura (la cuenta pasa a gestor de expedientes) de"
+        firm_replace: "Confirmo la invitación como administrador de la estructura de"
+        admin_disable: "Confirmo la desactivación de la cuenta de"
+        admin_enable: "Confirmo la reactivación de la cuenta de"
+        mode_single: "Confirmo la vuelta a la validación por una persona para"
     reauth:
       connect: "Confirmar con mi cuenta Partiduo"
       title: "Reautenticación"
@@ -869,6 +903,8 @@ es:
         reauth: "Se requiere una reautenticación fuerte (de menos de cinco minutos)."
         confirmation: "Marque la casilla de confirmación."
         confirmation_slug: "El subdominio escrito no coincide con el expediente."
+        requester_gone: "El solicitante ya no puede gestionar esta estructura: la solicitud queda cerrada, vuelva a presentarla."
+        target_changed: "El objeto ha cambiado desde la solicitud: la solicitud queda cerrada, vuelva a presentarla sobre el estado actual."
       backup:
         unusable: "Esta copia de seguridad no se puede utilizar."
         none_before: "Ninguna copia de seguridad en esta fecha o antes."
@@ -892,6 +928,7 @@ es:
         fleet_taken: "El parque sin despacho ya existe."
       dual_approval:
         team: "La doble validación exige al menos dos personas autorizadas."
+        needs_approval: "Volver a una persona se solicita: otra persona habilitada lo valida."
       reauth:
         no_totp: "No es posible la reautenticación por código: utilice su llave de acceso."
       server:

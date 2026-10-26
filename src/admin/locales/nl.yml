@@ -510,11 +510,20 @@ nl:
       withdraw: "Intrekken"
       approved: "Aanvraag goedgekeurd: de taak staat in de wachtrij."
       rejected: "Aanvraag geweigerd."
+      target: "Doel"
+      firm_target: "Organisatie"
       kinds:
         delete: "definitieve verwijdering"
         admin_invite: "toegangsherstel"
         admin_add: "toevoegen van een beheerder"
         admin_remove: "verwijderen van een beheerder"
+        firm_invite: "uitnodiging van een beheerder van de organisatie"
+        firm_promote: "benoeming van een beheerder van de organisatie"
+        firm_demote: "intrekking van een beheerder van de organisatie"
+        firm_replace: "vervanging van een beheerder van de organisatie"
+        admin_disable: "deactivering van een beheerdersaccount"
+        admin_enable: "heractivering van een beheerdersaccount"
+        mode_single: "terugkeer naar goedkeuring door één persoon"
       states:
         pending: "wachtend"
         approved: "goedgekeurd"
@@ -575,6 +584,31 @@ nl:
       confirm_access_help: "De uitnodiging gaat naar dit adres; ze wordt vermeld in het auditlogboek en in het logboek van het dossier."
       confirm_button: "Bevestigen en de taak starten"
       confirmed: "Aanvraag %{reference} bevestigd: de taak staat in de wachtrij."
+    firm_approvals:
+      waiting: "Wacht op goedkeuring"
+      pending_title: "Openstaande aanvragen voor de organisatie"
+      confirm_help: "De actie wordt bij de bevestiging uitgevoerd; het spoor gaat naar het auditlogboek."
+      confirm_button: "Bevestigen en toepassen"
+      done: "Aanvraag %{reference} bevestigd: uitgevoerd."
+      approved: "Aanvraag goedgekeurd: uitgevoerd."
+      fields:
+        reason: "Reden (optioneel)"
+      help:
+        reason: "Getoond aan wie de aanvraag goedkeurt en opgenomen in het auditlogboek."
+        invite_reason: "Een beheerder uitnodigen in een organisatie die al een team heeft, verloopt via een goedkeuringsaanvraag; deze reden gaat mee."
+        gated_dual: "Elke wijziging van beheerders verloopt via een aanvraag die een andere bevoegde persoon goedkeurt (goedkeuring door twee)."
+        gated_single: "Elke wijziging van beheerders verloopt via een aanvraag die u na herauthenticatie bevestigt (goedkeuring door één persoon)."
+        mode_single: "Terugkeren naar één persoon wordt aangevraagd: een andere bevoegde persoon moet het goedkeuren."
+        scope: "Deze instelling geldt ook voor het uitnodigen, benoemen, intrekken en vervangen van de beheerders van de organisatie, het deactiveren en heractiveren van een beheerdersaccount, en de terugkeer naar één persoon."
+        wizard: "Een beheerder uitnodigen in een organisatie die al een team heeft, verloopt via een goedkeuringsaanvraag: bij de bevestiging bevestigt u ze na herauthenticatie (één persoon), of ze wacht op een andere bevoegde persoon (twee personen)."
+      confirm:
+        firm_invite: "Ik bevestig de uitnodiging als beheerder van de organisatie van"
+        firm_promote: "Ik bevestig de benoeming als beheerder van de organisatie van"
+        firm_demote: "Ik bevestig de intrekking als beheerder van de organisatie (het account wordt dossierbeheerder) van"
+        firm_replace: "Ik bevestig de uitnodiging als beheerder van de organisatie van"
+        admin_disable: "Ik bevestig de deactivering van het account van"
+        admin_enable: "Ik bevestig de heractivering van het account van"
+        mode_single: "Ik bevestig de terugkeer naar goedkeuring door één persoon voor"
     reauth:
       connect: "Bevestigen met mijn Partiduo-account"
       title: "Opnieuw aanmelden"
@@ -869,6 +903,8 @@ nl:
         reauth: "Sterke herauthenticatie vereist (minder dan vijf minuten geleden)."
         confirmation: "Vink het bevestigingsvakje aan."
         confirmation_slug: "Het getypte subdomein komt niet overeen met het dossier."
+        requester_gone: "De aanvrager kan deze organisatie niet meer beheren: de aanvraag is gesloten, dien ze opnieuw in."
+        target_changed: "Het doel is gewijzigd sinds de aanvraag: de aanvraag is gesloten, dien ze opnieuw in op de huidige toestand."
       backup:
         unusable: "Deze back-up is niet bruikbaar."
         none_before: "Geen back-up op of vóór deze datum."
@@ -892,6 +928,7 @@ nl:
         fleet_taken: "Het park zonder kantoor bestaat al."
       dual_approval:
         team: "Goedkeuring door twee vereist minstens twee bevoegde personen."
+        needs_approval: "Terugkeren naar één persoon wordt aangevraagd: een andere bevoegde persoon keurt het goed."
       reauth:
         no_totp: "Herauthenticatie met code niet mogelijk: gebruik uw toegangssleutel."
       server:

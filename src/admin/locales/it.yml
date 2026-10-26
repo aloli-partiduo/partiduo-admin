@@ -510,11 +510,20 @@ it:
       withdraw: "Ritira"
       approved: "Richiesta convalidata: l'attività è in coda."
       rejected: "Richiesta rifiutata."
+      target: "Oggetto"
+      firm_target: "Struttura"
       kinds:
         delete: "eliminazione definitiva"
         admin_invite: "ripristino dell'accesso"
         admin_add: "aggiunta di un amministratore"
         admin_remove: "rimozione di un amministratore"
+        firm_invite: "invito di un amministratore della struttura"
+        firm_promote: "nomina di un amministratore della struttura"
+        firm_demote: "revoca di un amministratore della struttura"
+        firm_replace: "sostituzione di un amministratore della struttura"
+        admin_disable: "disattivazione di un account di amministratore"
+        admin_enable: "riattivazione di un account di amministratore"
+        mode_single: "ritorno alla convalida da parte di una persona"
       states:
         pending: "in attesa"
         approved: "convalidata"
@@ -575,6 +584,31 @@ it:
       confirm_access_help: "L'invito viene inviato a questo indirizzo; la traccia va nel registro di audit e nel registro del dossier."
       confirm_button: "Conferma e avvia l'attività"
       confirmed: "Richiesta %{reference} confermata: l'attività è in coda."
+    firm_approvals:
+      waiting: "In attesa di convalida"
+      pending_title: "Richieste in attesa sulla struttura"
+      confirm_help: "L'azione viene eseguita alla conferma; la traccia va al registro di controllo."
+      confirm_button: "Conferma e applica"
+      done: "Richiesta %{reference} confermata: fatto."
+      approved: "Richiesta convalidata: fatto."
+      fields:
+        reason: "Motivo (facoltativo)"
+      help:
+        reason: "Mostrato a chi convaliderà la richiesta e registrato nel registro di controllo."
+        invite_reason: "Invitare un amministratore in una struttura che ha già la sua squadra passa per una richiesta di convalida; questo motivo la accompagna."
+        gated_dual: "Ogni modifica degli amministratori passa per una richiesta che un'altra persona abilitata convalida (convalida a due persone)."
+        gated_single: "Ogni modifica degli amministratori passa per una richiesta che lei conferma dopo una nuova autenticazione (convalida da parte di una persona)."
+        mode_single: "Il ritorno a una persona si richiede: un'altra persona abilitata deve convalidarlo."
+        scope: "Questa impostazione vale anche per l'invito, la nomina, la revoca e la sostituzione degli amministratori della struttura, la disattivazione e la riattivazione di un account di amministratore, e il ritorno a una persona."
+        wizard: "Invitare un amministratore in una struttura che ha già la sua squadra passa per una richiesta di convalida: alla conferma la confermerà dopo una nuova autenticazione (una persona), oppure attenderà un'altra persona abilitata (due persone)."
+      confirm:
+        firm_invite: "Confermo l'invito come amministratore della struttura di"
+        firm_promote: "Confermo la nomina come amministratore della struttura di"
+        firm_demote: "Confermo la revoca dagli amministratori della struttura (l'account diventa gestore di fascicoli) di"
+        firm_replace: "Confermo l'invito come amministratore della struttura di"
+        admin_disable: "Confermo la disattivazione dell'account di"
+        admin_enable: "Confermo la riattivazione dell'account di"
+        mode_single: "Confermo il ritorno alla convalida da parte di una persona per"
     reauth:
       connect: "Conferma con il mio account Partiduo"
       title: "Nuova autenticazione"
@@ -869,6 +903,8 @@ it:
         reauth: "Nuova autenticazione forte richiesta (meno di cinque minuti)."
         confirmation: "Spunti la casella di conferma."
         confirmation_slug: "Il sottodominio ridigitato non corrisponde al dossier."
+        requester_gone: "Il richiedente non può più gestire questa struttura: la richiesta è chiusa, ripresentarla."
+        target_changed: "L'oggetto è cambiato dalla richiesta: la richiesta è chiusa, ripresentarla sullo stato attuale."
       backup:
         unusable: "Questo backup non è utilizzabile."
         none_before: "Nessun backup in questa data o prima."
@@ -892,6 +928,7 @@ it:
         fleet_taken: "Il parco senza studio esiste già."
       dual_approval:
         team: "La doppia convalida richiede almeno due persone autorizzate."
+        needs_approval: "Il ritorno a una persona si richiede: un'altra persona abilitata lo convalida."
       reauth:
         no_totp: "Nuova autenticazione tramite codice impossibile: usi la Sua passkey."
       server:
