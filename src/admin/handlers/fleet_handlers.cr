@@ -4,14 +4,21 @@ module PartiduoAdmin
   class ApprovalsHandler < ScreenHandler
     def get
       approvals = Approvals.visible(user).order("-id").to_a.first(100)
+      now = Config.now
       rows = approvals.map do |approval|
-        pending = approval.state == "pending"
-        {"approval" => approval, "can_decide" => pending && Access.can_approve?(user, approval),
+        pending = approval.state == "pending" && approval.expires_at! > now
+        decide = pending && Access.can_approve?(user, approval)
+        # Dernier recours du super-admin (D-ADM-024) : avant l'heure, elle
+        # est montrée à la place du bouton « Valider ».
+        waiting = decide && Approvals.recourse_waiting?(user, approval, now)
+        {"approval" => approval, "can_decide" => decide, "can_validate" => decide && !waiting,
+         "recourse" => decide && !waiting && Approvals.recourse?(user, approval),
+         "recourse_at" => waiting ? Approvals.recourse_at(approval).to_s("%Y-%m-%d %H:%M UTC") : nil,
          "can_withdraw" => pending && approval.requested_by_id == user.pk,
          "can_confirm" => pending && Approvals.can_confirm_alone?(user, approval),
          "firm_link" => firm_link(approval)}
       end
-      page("admin/approvals.html", {"rows" => rows})
+      page("admin/approvals.html", {"rows" => rows, "recourse_hours" => Config.recourse_delay.total_hours.to_i.to_s})
     end
 
     # Demande de structure (D-ADM-023) : lien vers l'écran de ses admins ou

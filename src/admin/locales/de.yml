@@ -529,6 +529,9 @@ de:
         approved: "freigegeben"
         rejected: "abgelehnt"
         expired: "abgelaufen"
+      approve_recourse: "Als letztes Mittel genehmigen"
+      recourse_at: "Letztes Mittel möglich ab"
+      recourse_help: "Der Super-Admin genehmigt einen Antrag einer Kanzlei oder eines selbstständigen Betreuers als letztes Mittel erst nach %{hours} Stunden ohne Entscheidung eines Admins der Struktur; deren Admins werden per E-Mail benachrichtigt, und das letzte Mittel wird im Prüfprotokoll vermerkt."
     dual_approval:
       title: "Vier-Augen-Freigabe"
       setting: "Einstellung"
@@ -814,6 +817,12 @@ de:
         intro: "Sie wurden eingeladen, den Partiduo-Mandanten %{host} zu verwalten. Öffnen Sie diesen Link, um Ihren Zugang einzurichten:"
       alert:
         subject: "[Partiduo] %{kind}: %{subject}"
+      recourse:
+        subject: "[Partiduo] Antrag %{reference} als letztes Mittel genehmigt"
+        intro: "Der Antrag %{reference} (%{kind}, %{target}) der Struktur %{structure} wurde von einem Super-Administrator als letztes Mittel genehmigt, da kein Admin der Struktur entschieden hat."
+        requested_by: "Beantragt von: %{person}"
+        decided_by: "Genehmigt von: %{person}, nach %{hours} Stunden Wartezeit."
+        audit: "Die Entscheidung ist im Prüfprotokoll der Struktur vermerkt (approval.recourse):"
     errors:
       administrators:
         duplicate: "Diese Adresse steht bereits in der Liste."
@@ -905,6 +914,7 @@ de:
         confirmation_slug: "Die eingegebene Subdomain stimmt nicht mit dem Mandanten überein."
         requester_gone: "Der Antragsteller kann diese Struktur nicht mehr verwalten: Der Antrag ist geschlossen, bitte neu stellen."
         target_changed: "Das Ziel hat sich seit dem Antrag geändert: Der Antrag ist geschlossen, bitte auf dem aktuellen Stand neu stellen."
+        recourse_wait: "Das letzte Mittel des Super-Admins ist erst nach der Wartezeit möglich: Der Zeitpunkt steht unter „Sensible Vorgänge“."
       backup:
         unusable: "Diese Sicherung ist nicht verwendbar."
         none_before: "Keine Sicherung an oder vor diesem Datum."

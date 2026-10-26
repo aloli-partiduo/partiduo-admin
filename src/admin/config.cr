@@ -34,6 +34,23 @@ module PartiduoAdmin
     # Double validation : une demande non validée expire.
     APPROVAL_TTL = 7.days
 
+    # Dernier recours du super-admin (D-ADM-024) : il ne valide la demande
+    # d'un cabinet (ou d'un gestionnaire indépendant) qu'après ce délai sans
+    # décision d'un admin habilité de la structure. Réglage de l'instance :
+    # `PARTIDUO_ADMIN_RECOURSE_DELAY_HOURS`, en heures, de 1 à 144 (le délai
+    # finit avant l'expiration de la demande, sept jours) ; défaut 48.
+    RECOURSE_DELAY_HOURS     =  48
+    RECOURSE_DELAY_MAX_HOURS = 144
+
+    class_property recourse_delay : Time::Span = recourse_delay_from(ENV["PARTIDUO_ADMIN_RECOURSE_DELAY_HOURS"]?)
+
+    # Délai lu dans le réglage ; absent ou hors bornes : le défaut.
+    def self.recourse_delay_from(value : String?) : Time::Span
+      hours = value.try(&.strip.to_i?)
+      return RECOURSE_DELAY_HOURS.hours if hours.nil? || hours < 1 || hours > RECOURSE_DELAY_MAX_HOURS
+      hours.hours
+    end
+
     # Opération sensible confirmée par une seule personne : authentification
     # forte (niveau exigé du rôle) datant de moins de cinq minutes
     # (D-VAL2-004).

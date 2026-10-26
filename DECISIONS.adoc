@@ -784,3 +784,58 @@ langues ; `administrators_spec`, `dual_approval_spec` et
 cabinet : c'est la règle des dossiers, mais il tient ainsi la seconde clé
 de tout cabinet. Variante possible : ne l'admettre qu'après un délai
 (demande en attente depuis N jours).
+
+=== D-ADM-024 — Dernier recours du super-admin après un délai (26 octobre 2026)
+
+Décision de l'utilisateur du 26 octobre 2026, point soumis par D-ADM-023
+(« le super-admin tient ainsi la seconde clé de tout cabinet »). Version
+0.1.60. ADR-008 D3 est amendé (partiduo-docs).
+
+*Règle.* Le super-admin valide la demande d'une structure dont il n'est
+pas membre — cabinet ou gestionnaire indépendant, demande d'un dossier ou
+de la structure elle-même — seulement après un *délai d'attente* sans
+décision d'un admin habilité de la structure (`Approvals.recourse?`,
+`recourse_at`). Une décision d'un admin (validation, refus) clôt la
+demande : tant qu'elle est en attente, aucun admin n'a décidé. Avant
+l'échéance, `Approvals.approve` refuse (`approval.recourse_wait`) ; le
+refus et le retrait restent possibles (ils ne lèvent aucune protection).
+
+* *Délai* : 48 heures par défaut, réglage de l'instance
+  `PARTIDUO_ADMIN_RECOURSE_DELAY_HOURS` (`Config.recourse_delay`), de 1 à
+  144 heures — il finit avant l'expiration de la demande (sept jours) ;
+  absent ou hors bornes, le défaut. Compté depuis l'heure de la demande
+  selon l'horloge de la console (`expires_at` moins `APPROVAL_TTL`), et non
+  `created_at` (horloge de la base, que les specs ne figent pas).
+* *Écran* : dans « Opérations sensibles », la ligne d'une demande que le
+  super-admin ne peut pas encore valider donne « Dernier recours possible
+  à partir du » et l'heure (UTC) à la place du bouton « Valider » ; après
+  l'échéance, le bouton devient « Valider en dernier recours ». Une
+  explication rappelle le délai en vigueur.
+* *Trace* : `approval.recourse` au lieu de `approval.approve` (portée de la
+  structure), avec le délai attendu, l'heure de la demande et les adresses
+  avisées (`notified`, `notice_failed` en cas d'échec d'envoi).
+* *Avis* : chaque admin actif de la structure *avant* la décision (le
+  compte qu'elle désactive compris) reçoit un courriel dans sa langue
+  (`Mailer.recourse`) — le canal des autres avis de la console
+  (invitations, alertes, compte SMTP de Partiduo). Un échec d'envoi ne
+  défait pas la décision : il est consigné.
+
+*Hors délai.* Le parc sans cabinet, structure des super-admins : ils y
+valident comme les admins d'un cabinet valident pour le leur (une demande
+qui touche un compte de super-admin en relève). La confirmation seule du
+demandeur (structure à une personne, D-VAL2-004) n'est pas un recours :
+inchangée. La ligne de commande `approval-mode-single` (D-ADM-023) reste
+le recours du parc sans cabinet.
+
+*Écartées.* Un délai compté depuis la dernière connexion des admins du
+cabinet : une connexion ne dit rien de la demande. Un délai stocké par
+demande : le réglage de l'instance suffit, et un changement de réglage
+vaut pour les demandes en attente, comme le mode (D-VAL2-006).
+
+*Specs* : `spec/admin/recourse_spec.cr` — recours refusé avant
+l'échéance (à la minute près, et par l'envoi direct du formulaire), fait
+à l'échéance, tracé `approval.recourse`, avis en français et en anglais ;
+demande d'un dossier ; l'autre admin du cabinet décide sans délai ; parc
+sans cabinet sans délai ; réglage et bornes ; écran (heure, puis bouton).
+Les specs où le super-admin valide la demande d'un cabinet le font après
+l'échéance (`AdminSpec.recourse_time`).

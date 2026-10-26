@@ -529,6 +529,9 @@ es:
         approved: "validada"
         rejected: "rechazada"
         expired: "caducada"
+      approve_recourse: "Validar como último recurso"
+      recourse_at: "Último recurso posible a partir del"
+      recourse_help: "El superadministrador solo valida como último recurso la solicitud de un despacho o de un gestor independiente tras %{hours} horas sin decisión de un administrador de la estructura; sus administradores reciben un aviso por correo electrónico y el recurso queda inscrito en el registro de auditoría."
     dual_approval:
       title: "Doble validación"
       setting: "Ajuste"
@@ -814,6 +817,12 @@ es:
         intro: "Se le invita a administrar el expediente Partiduo %{host}. Abra este enlace para crear su acceso:"
       alert:
         subject: "[Partiduo] %{kind}: %{subject}"
+      recourse:
+        subject: "[Partiduo] Solicitud %{reference} validada como último recurso"
+        intro: "La solicitud %{reference} (%{kind}, %{target}) de la estructura %{structure} ha sido validada como último recurso por un superadministrador, a falta de decisión de un administrador de la estructura."
+        requested_by: "Solicitada por: %{person}"
+        decided_by: "Validada por: %{person}, tras %{hours} horas de espera."
+        audit: "La decisión está inscrita en el registro de auditoría de la estructura (approval.recourse):"
     errors:
       administrators:
         duplicate: "Esta dirección ya figura en la lista."
@@ -905,6 +914,7 @@ es:
         confirmation_slug: "El subdominio escrito no coincide con el expediente."
         requester_gone: "El solicitante ya no puede gestionar esta estructura: la solicitud queda cerrada, vuelva a presentarla."
         target_changed: "El objeto ha cambiado desde la solicitud: la solicitud queda cerrada, vuelva a presentarla sobre el estado actual."
+        recourse_wait: "El último recurso del superadministrador solo es posible tras el plazo de espera: la hora se indica en «Operaciones sensibles»."
       backup:
         unusable: "Esta copia de seguridad no se puede utilizar."
         none_before: "Ninguna copia de seguridad en esta fecha o antes."

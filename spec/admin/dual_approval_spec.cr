@@ -253,7 +253,7 @@ describe "Opérations sensibles à deux personnes (fonctionnement inchangé)" do
     dossier = AdminSpec.dossier(firm, server, slug: "recours-deux")
     approval = PartiduoAdmin::Approvals.request_admin_invite(first, dossier, "gerant@demo.fr", "gérant parti").value!
     PartiduoAdmin::Approvals.confirm_alone(first, approval, true, "yes").ok?.should be_false
-    task = PartiduoAdmin::Approvals.approve(AdminSpec.super_admin, approval).value!
+    task = PartiduoAdmin::Approvals.approve(AdminSpec.super_admin, approval, AdminSpec.recourse_time).value!
     task.params_json["approval_mode"].should eq("dual")
   end
 end

@@ -62,7 +62,7 @@ describe "Administration : double validation et compte rendu atomiques (D-AFN-01
     first = PartiduoAdmin::Approval.get!(id: approval.pk)
     second = PartiduoAdmin::Approval.get!(id: approval.pk)
     PartiduoAdmin::Approvals.approve(AdminSpec.user(PartiduoAdmin::Config::FIRM_ADMIN, firm), first).ok?.should be_true
-    late = PartiduoAdmin::Approvals.approve(AdminSpec.super_admin, second)
+    late = PartiduoAdmin::Approvals.approve(AdminSpec.super_admin, second, AdminSpec.recourse_time)
     late.errors["base"].should eq(["admin.errors.approval.state"])
     PartiduoAdmin::Task.filter(kind: "instance.admin_invite").count.should eq(1)
     approval.reload.state.should eq("approved")

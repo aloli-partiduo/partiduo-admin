@@ -88,3 +88,11 @@ def with_dossier_package(package : String, &)
 ensure
   PartiduoAdmin::Config.dossier_package = previous if previous
 end
+
+module AdminSpec
+  # Heure où le dernier recours du super-admin est ouvert pour une demande
+  # faite à `SPEC_NOW` (D-ADM-024).
+  def self.recourse_time : Time
+    SPEC_NOW + PartiduoAdmin::Config.recourse_delay + 1.minute
+  end
+end

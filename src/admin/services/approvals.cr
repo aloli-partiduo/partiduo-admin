@@ -120,23 +120,75 @@ module PartiduoAdmin
         return Outcome(Task).failure("base", "admin.errors.approval.same_person")
       end
       return Outcome(Task).failure("base", "admin.errors.forbidden") unless Access.can_approve?(user, approval)
-      requester = approval.requested_by!
-      if approval.firm_target?
-        outcome = apply_firm(user, approval, ApprovalMode::DUAL, now)
-        if outcome.ok?
-          Audit.log(user, "approval.approve", target: approval,
-            detail: {"kind" => approval.kind.to_s, "requested_by" => requester.email.to_s,
-                     "firm" => approval.firm!.name.to_s, "mode" => ApprovalMode::DUAL})
-        end
-        return outcome
+      recourse = recourse?(user, approval)
+      if recourse && now < recourse_at(approval)
+        return Outcome(Task).failure("base", "admin.errors.approval.recourse_wait")
       end
-      outcome = issue(user, approval, [requester.email.to_s, user.email.to_s], ApprovalMode::DUAL, now)
-      if outcome.ok?
-        Audit.log(user, "approval.approve", target: approval,
-          detail: {"kind" => approval.kind.to_s, "requested_by" => requester.email.to_s,
-                   "dossier" => approval.dossier!.slug.to_s, "mode" => ApprovalMode::DUAL})
+      requester = approval.requested_by!
+      # Admins avisés d'un recours : ceux de la structure avant la décision
+      # (le compte qu'elle désactive compris).
+      notified = recourse ? firm_admins(approval.target_firm!) : [] of User
+      outcome = if approval.firm_target?
+                  apply_firm(user, approval, ApprovalMode::DUAL, now)
+                else
+                  issue(user, approval, [requester.email.to_s, user.email.to_s], ApprovalMode::DUAL, now)
+                end
+      return outcome unless outcome.ok?
+      detail = {"kind" => approval.kind.to_s, "requested_by" => requester.email.to_s, "mode" => ApprovalMode::DUAL}
+      if dossier = approval.dossier
+        detail["dossier"] = dossier.slug.to_s
+      else
+        detail["firm"] = approval.firm!.name.to_s
+      end
+      if recourse
+        recourse_done(user, approval, detail, notified)
+      else
+        Audit.log(user, "approval.approve", target: approval, detail: detail)
       end
       outcome
+    end
+
+    # --- Dernier recours du super-admin (D-ADM-024) ---------------------------
+
+    # Validation en dernier recours : un super-admin valide la demande d'une
+    # structure dont il n'est pas membre (cabinet, gestionnaire
+    # indépendant). Le parc sans cabinet est la structure des super-admins :
+    # ils y valident sans délai.
+    def self.recourse?(user : User, approval : Approval) : Bool
+      return false unless user.super_admin?
+      firm = approval.target_firm
+      !firm.nil? && !firm.fleet?
+    end
+
+    # Heure à partir de laquelle le recours est possible : la demande est
+    # restée `Config.recourse_delay` sans décision d'un admin habilité de la
+    # structure (une décision l'aurait close). Heure de la demande selon
+    # l'horloge de la console : son échéance moins sa durée de vie.
+    def self.recourse_at(approval : Approval) : Time
+      approval.expires_at! - Config::APPROVAL_TTL + Config.recourse_delay
+    end
+
+    # Le recours attend encore son heure (écrans : bouton « Valider »
+    # remplacé par l'heure du recours).
+    def self.recourse_waiting?(user : User, approval : Approval, now : Time = Config.now) : Bool
+      recourse?(user, approval) && now < recourse_at(approval)
+    end
+
+    # Admins actifs d'une structure (sans les super-admins du parc).
+    private def self.firm_admins(firm : Firm) : Array(User)
+      User.filter(firm_id: firm.pk, role: Config::FIRM_ADMIN, active: true).order("email").to_a
+    end
+
+    # Recours fait : tracé comme tel (`approval.recourse`, délai attendu),
+    # et les admins actifs de la structure en sont avisés par courriel, le
+    # canal des autres avis de la console.
+    private def self.recourse_done(user : User, approval : Approval, detail : Hash(String, String), recipients : Array(User)) : Nil
+      detail["recourse_after_hours"] = Config.recourse_delay.total_hours.to_i.to_s
+      detail["requested_at"] = (approval.expires_at! - Config::APPROVAL_TTL).to_s("%Y-%m-%d %H:%M")
+      notified, failed = Mailer.recourse(approval, user, recipients)
+      detail["notified"] = notified.join(',')
+      detail["notice_failed"] = failed.join(',') unless failed.empty?
+      Audit.log(user, "approval.recourse", target: approval, detail: detail)
     end
 
     # Confirmation par le demandeur seul (structure réglée sur « une

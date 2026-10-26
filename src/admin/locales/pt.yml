@@ -529,6 +529,9 @@ pt:
         approved: "validado"
         rejected: "recusado"
         expired: "expirado"
+      approve_recourse: "Validar em último recurso"
+      recourse_at: "Último recurso possível a partir de"
+      recourse_help: "O superadministrador só valida em último recurso o pedido de um gabinete ou de um gestor independente após %{hours} horas sem decisão de um administrador da estrutura; os seus administradores são avisados por correio eletrónico e o recurso fica inscrito no registo de auditoria."
     dual_approval:
       title: "Dupla validação"
       setting: "Definição"
@@ -814,6 +817,12 @@ pt:
         intro: "Recebeu um convite para administrar o dossier Partiduo %{host}. Abra esta ligação para criar o seu acesso:"
       alert:
         subject: "[Partiduo] %{kind}: %{subject}"
+      recourse:
+        subject: "[Partiduo] Pedido %{reference} validado em último recurso"
+        intro: "O pedido %{reference} (%{kind}, %{target}) da estrutura %{structure} foi validado em último recurso por um superadministrador, na falta de decisão de um administrador da estrutura."
+        requested_by: "Pedido por: %{person}"
+        decided_by: "Validado por: %{person}, após %{hours} horas de espera."
+        audit: "A decisão está inscrita no registo de auditoria da estrutura (approval.recourse):"
     errors:
       administrators:
         duplicate: "Este endereço já consta da lista."
@@ -905,6 +914,7 @@ pt:
         confirmation_slug: "O subdomínio escrito não corresponde ao dossier."
         requester_gone: "O requerente já não pode gerir esta estrutura: o pedido foi encerrado, volte a fazê-lo."
         target_changed: "O alvo mudou desde o pedido: o pedido foi encerrado, volte a fazê-lo sobre o estado atual."
+        recourse_wait: "O último recurso do superadministrador só é possível após o prazo de espera: a hora é indicada em «Operações sensíveis»."
       backup:
         unusable: "Esta cópia de segurança não é utilizável."
         none_before: "Nenhuma cópia de segurança nessa data ou antes."

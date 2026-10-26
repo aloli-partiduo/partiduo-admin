@@ -529,6 +529,9 @@ fr:
         approved: "validée"
         rejected: "refusée"
         expired: "expirée"
+      approve_recourse: "Valider en dernier recours"
+      recourse_at: "Dernier recours possible à partir du"
+      recourse_help: "Le super-admin ne valide en dernier recours la demande d'un cabinet ou d'un gestionnaire indépendant qu'après %{hours} heures sans décision d'un admin de la structure ; ses admins en sont avisés par courriel, et le recours est inscrit au journal d'audit."
     dual_approval:
       title: "Validation à deux"
       setting: "Réglage"
@@ -814,6 +817,12 @@ fr:
         intro: "Vous êtes invité à administrer le dossier Partiduo %{host}. Ouvrez ce lien pour créer votre accès :"
       alert:
         subject: "[Partiduo] %{kind} : %{subject}"
+      recourse:
+        subject: "[Partiduo] Demande %{reference} validée en dernier recours"
+        intro: "La demande %{reference} (%{kind}, %{target}) de la structure %{structure} a été validée en dernier recours par un super-administrateur, faute de décision d'un admin de la structure."
+        requested_by: "Demandée par : %{person}"
+        decided_by: "Validée par : %{person}, après %{hours} heures d'attente."
+        audit: "La décision est inscrite au journal d'audit de la structure (approval.recourse) :"
     errors:
       administrators:
         duplicate: "Cette adresse figure déjà dans la liste."
@@ -905,6 +914,7 @@ fr:
         confirmation_slug: "Le sous-domaine retapé ne correspond pas au dossier."
         requester_gone: "Le demandeur ne peut plus gérer cette structure : la demande est close, refaites-la."
         target_changed: "La cible a changé depuis la demande : la demande est close, refaites-la sur l'état présent."
+        recourse_wait: "Le dernier recours du super-admin n'est possible qu'après le délai d'attente : l'heure est indiquée dans « Opérations sensibles »."
       backup:
         unusable: "Cette sauvegarde n'est pas utilisable."
         none_before: "Aucune sauvegarde à cette date ou avant."

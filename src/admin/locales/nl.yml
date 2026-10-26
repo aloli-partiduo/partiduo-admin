@@ -529,6 +529,9 @@ nl:
         approved: "goedgekeurd"
         rejected: "geweigerd"
         expired: "verlopen"
+      approve_recourse: "Goedkeuren als laatste redmiddel"
+      recourse_at: "Laatste redmiddel mogelijk vanaf"
+      recourse_help: "De superbeheerder keurt een verzoek van een kantoor of een zelfstandige dossierbeheerder pas als laatste redmiddel goed na %{hours} uur zonder beslissing van een beheerder van de organisatie; de beheerders worden per e-mail verwittigd en het laatste redmiddel wordt in het auditlogboek opgenomen."
     dual_approval:
       title: "Goedkeuring door twee"
       setting: "Instelling"
@@ -814,6 +817,12 @@ nl:
         intro: "U bent uitgenodigd om het Partiduo-dossier %{host} te beheren. Open deze link om uw toegang aan te maken:"
       alert:
         subject: "[Partiduo] %{kind}: %{subject}"
+      recourse:
+        subject: "[Partiduo] Verzoek %{reference} goedgekeurd als laatste redmiddel"
+        intro: "Verzoek %{reference} (%{kind}, %{target}) van de organisatie %{structure} is als laatste redmiddel goedgekeurd door een superbeheerder, omdat geen beheerder van de organisatie een beslissing nam."
+        requested_by: "Aangevraagd door: %{person}"
+        decided_by: "Goedgekeurd door: %{person}, na %{hours} uur wachten."
+        audit: "De beslissing staat in het auditlogboek van de organisatie (approval.recourse):"
     errors:
       administrators:
         duplicate: "Dit adres staat al in de lijst."
@@ -905,6 +914,7 @@ nl:
         confirmation_slug: "Het getypte subdomein komt niet overeen met het dossier."
         requester_gone: "De aanvrager kan deze organisatie niet meer beheren: de aanvraag is gesloten, dien ze opnieuw in."
         target_changed: "Het doel is gewijzigd sinds de aanvraag: de aanvraag is gesloten, dien ze opnieuw in op de huidige toestand."
+        recourse_wait: "Het laatste redmiddel van de superbeheerder is pas mogelijk na de wachttijd: het tijdstip staat bij „Gevoelige handelingen”."
       backup:
         unusable: "Deze back-up is niet bruikbaar."
         none_before: "Geen back-up op of vóór deze datum."

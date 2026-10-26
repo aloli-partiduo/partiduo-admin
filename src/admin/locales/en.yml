@@ -529,6 +529,9 @@ en:
         approved: "approved"
         rejected: "rejected"
         expired: "expired"
+      approve_recourse: "Approve as a last resort"
+      recourse_at: "Last resort possible from"
+      recourse_help: "The super admin approves a request of a firm or an independent manager as a last resort only after %{hours} hours without a decision from an admin of the organisation; its admins are notified by email, and the last resort is recorded in the audit log."
     dual_approval:
       title: "Dual approval"
       setting: "Setting"
@@ -814,6 +817,12 @@ en:
         intro: "You are invited to administer the Partiduo company file %{host}. Open this link to create your access:"
       alert:
         subject: "[Partiduo] %{kind}: %{subject}"
+      recourse:
+        subject: "[Partiduo] Request %{reference} approved as a last resort"
+        intro: "Request %{reference} (%{kind}, %{target}) of the organisation %{structure} was approved as a last resort by a super admin, as no admin of the organisation decided on it."
+        requested_by: "Requested by: %{person}"
+        decided_by: "Approved by: %{person}, after waiting %{hours} hours."
+        audit: "The decision is recorded in the organisation's audit log (approval.recourse):"
     errors:
       administrators:
         duplicate: "This address is already in the list."
@@ -905,6 +914,7 @@ en:
         confirmation_slug: "The subdomain typed does not match the file."
         requester_gone: "The requester can no longer manage this organisation: the request is closed, please make it again."
         target_changed: "The target has changed since the request: the request is closed, please make it again on the current state."
+        recourse_wait: "The super admin's last resort is only possible after the waiting period: the time is shown under “Sensitive operations”."
       backup:
         unusable: "This backup cannot be used."
         none_before: "No backup on or before this date."

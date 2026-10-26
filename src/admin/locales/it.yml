@@ -529,6 +529,9 @@ it:
         approved: "convalidata"
         rejected: "rifiutata"
         expired: "scaduta"
+      approve_recourse: "Convalida come ultima istanza"
+      recourse_at: "Ultima istanza possibile dal"
+      recourse_help: "Il super amministratore convalida come ultima istanza la richiesta di uno studio o di un gestore indipendente solo dopo %{hours} ore senza decisione di un amministratore della struttura; i suoi amministratori ne sono avvisati per e-mail e il ricorso è registrato nel registro di controllo."
     dual_approval:
       title: "Doppia convalida"
       setting: "Impostazione"
@@ -814,6 +817,12 @@ it:
         intro: "È invitato ad amministrare il dossier Partiduo %{host}. Apra questo link per creare il Suo accesso:"
       alert:
         subject: "[Partiduo] %{kind}: %{subject}"
+      recourse:
+        subject: "[Partiduo] Richiesta %{reference} convalidata come ultima istanza"
+        intro: "La richiesta %{reference} (%{kind}, %{target}) della struttura %{structure} è stata convalidata come ultima istanza da un super amministratore, in mancanza di una decisione di un amministratore della struttura."
+        requested_by: "Richiesta da: %{person}"
+        decided_by: "Convalidata da: %{person}, dopo %{hours} ore di attesa."
+        audit: "La decisione è registrata nel registro di controllo della struttura (approval.recourse):"
     errors:
       administrators:
         duplicate: "Questo indirizzo è già nell'elenco."
@@ -905,6 +914,7 @@ it:
         confirmation_slug: "Il sottodominio ridigitato non corrisponde al dossier."
         requester_gone: "Il richiedente non può più gestire questa struttura: la richiesta è chiusa, ripresentarla."
         target_changed: "L'oggetto è cambiato dalla richiesta: la richiesta è chiusa, ripresentarla sullo stato attuale."
+        recourse_wait: "L'ultima istanza del super amministratore è possibile solo dopo il periodo di attesa: l'ora è indicata in «Operazioni sensibili»."
       backup:
         unusable: "Questo backup non è utilizzabile."
         none_before: "Nessun backup in questa data o prima."

@@ -198,8 +198,12 @@ le compte visé « En attente de validation ».
 * *Anti-blocage* : deux personnes exigent toujours deux personnes
   habilitées et se désactivent d'elles-mêmes sous deux ; le super-admin
   valide en dernier recours la demande d'un cabinet dont l'autre admin est
-  injoignable ; pour le parc sans cabinet, qui a la main sur le serveur
-  repasse la structure à une personne :
+  injoignable, mais seulement après un délai sans décision d'un admin de la
+  structure (D-ADM-024 : 48 heures, `PARTIDUO_ADMIN_RECOURSE_DELAY_HOURS`
+  de 1 à 144 ; heure affichée dans « Opérations sensibles », trace
+  `approval.recourse`, admins de la structure avisés par courriel) ; pour
+  le parc sans cabinet, qui a la main sur le serveur repasse la structure
+  à une personne :
 
 [source,sh]
 ----
@@ -918,6 +922,8 @@ Variables de l'application (fichier d'environnement lu par son script rc.d,
 voir le port) : `DATABASE_URL`, `MARTEN_SECRET_KEY`, `PARTIDUO_DOMAIN`
 (`partiduo.app`), `PARTIDUO_ADMIN_HOST`, `PARTIDUO_ADMIN_URL`,
 `PARTIDUO_ADMIN_MAIL_FROM`, `PARTIDUO_ADMIN_ALERTS_TO` ; au besoin
+`PARTIDUO_ADMIN_RECOURSE_DELAY_HOURS` (délai du dernier recours du
+super-admin, 48 heures par défaut, D-ADM-024),
 `PARTIDUO_ADMIN_ASSETS_ROOT` et `PARTIDUO_ADMIN_ARTIFACTS_ROOT`, prioritaires
 sur les fichiers du paquet.
 

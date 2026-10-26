@@ -56,6 +56,40 @@ module PartiduoAdmin
       TextEmail.new(email, subject.gsub(/[[:cntrl:]]/, " ").strip, body).deliver
     end
 
+    # Avis d'une validation en dernier recours par un super-admin
+    # (D-ADM-024) aux admins actifs de la structure, chacun dans sa langue.
+    # Un échec d'envoi ne défait pas la décision : il est rendu, pour le
+    # journal d'audit. Rend les adresses avisées et celles en échec.
+    def self.recourse(approval : Approval, decider : User, recipients : Array(User)) : {Array(String), Array(String)}
+      notified = [] of String
+      failed = [] of String
+      recipients.each do |recipient|
+        subject, body = recourse_text(approval, decider, recipient.locale.presence || "fr")
+        TextEmail.new(recipient.email.to_s, subject, body).deliver
+        notified << recipient.email.to_s
+      rescue ex
+        Log.warn { "avis de recours non envoyé à #{recipient.email} : #{ex.message}" }
+        failed << recipient.email.to_s
+      end
+      {notified, failed}
+    end
+
+    # Objet et texte de l'avis de recours dans une langue.
+    def self.recourse_text(approval : Approval, decider : User, locale : String) : {String, String}
+      I18n.with_locale(Config::LOCALES.includes?(locale) ? locale : "fr") do
+        target = approval.dossier.try(&.slug.to_s) || approval.target_firm.try(&.name.to_s) || ""
+        body = String.build do |io|
+          io << I18n.t("admin.emails.recourse.intro", reference: approval.reference.to_s, kind: I18n.t(approval.kind_key),
+            target: target, structure: approval.target_firm.try(&.name.to_s) || "") << "\n\n"
+          io << I18n.t("admin.emails.recourse.requested_by", person: approval.requested_by.try(&.email.to_s) || "") << "\n"
+          io << I18n.t("admin.emails.recourse.decided_by", person: decider.email.to_s,
+            hours: Config.recourse_delay.total_hours.to_i.to_s) << "\n\n"
+          io << I18n.t("admin.emails.recourse.audit") << "\n" << Config.base_url << "/approvals\n"
+        end
+        {I18n.t("admin.emails.recourse.subject", reference: approval.reference.to_s), body}
+      end
+    end
+
     def self.alert(alert : Alert) : Nil
       recipients = Config.alert_recipients
       return if recipients.empty?

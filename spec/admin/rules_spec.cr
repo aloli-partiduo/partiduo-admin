@@ -266,7 +266,7 @@ describe "Double validation : cas limites" do
     approval = PartiduoAdmin::Approvals.request_admin_invite(requester, dossier, "gerant@demo.fr", "gérant parti").value!
     dossier.state = "suspended"
     dossier.save!
-    outcome = PartiduoAdmin::Approvals.approve(AdminSpec.super_admin, approval)
+    outcome = PartiduoAdmin::Approvals.approve(AdminSpec.super_admin, approval, AdminSpec.recourse_time)
     outcome.errors["base"].should eq(["admin.errors.dossier.not_active"])
     approval.reload.state.should eq("pending")
     PartiduoAdmin::Task.filter(kind: "instance.admin_invite").exists?.should be_false
@@ -282,7 +282,7 @@ describe "Double validation : cas limites" do
     approval = PartiduoAdmin::Approvals.request_delete(requester, dossier, "fin de conservation").value!
     dossier.state = "active"
     dossier.save!
-    PartiduoAdmin::Approvals.approve(AdminSpec.super_admin, approval).errors["base"]
+    PartiduoAdmin::Approvals.approve(AdminSpec.super_admin, approval, AdminSpec.recourse_time).errors["base"]
       .should eq(["admin.errors.dossier.retention_running"])
   end
 

@@ -208,13 +208,14 @@ describe PartiduoAdmin::Approvals do
     other_manager = AdminSpec.user(PartiduoAdmin::Config::FILE_MANAGER, firm)
     PartiduoAdmin::Assignment.create!(user: other_manager, dossier: dossier)
     PartiduoAdmin::Approvals.approve(other_manager, approval).errors["base"].should eq(["admin.errors.forbidden"])
-    task = PartiduoAdmin::Approvals.approve(AdminSpec.super_admin, approval).value!
+    task = PartiduoAdmin::Approvals.approve(AdminSpec.super_admin, approval, AdminSpec.recourse_time).value!
     task.kind.should eq("instance.admin_invite")
     task.params_json["email"].should eq("nouveau@demo.fr")
     finish(task, true, {"email" => "nouveau@demo.fr", "url" => "https://x/invitation/TOKEN", "usable_admins" => "0"})
     task.result.to_s.should_not contain("TOKEN")
     Marten::Spec.delivered_emails.last.to.map(&.address).should eq(["nouveau@demo.fr"])
-    PartiduoAdmin::AuditEntry.filter(action: "approval.approve").count.should eq(1)
+    # Cabinet sans admin : le super-admin valide en dernier recours (D-ADM-024).
+    PartiduoAdmin::AuditEntry.filter(action: "approval.recourse").count.should eq(1)
   end
 end
 

@@ -148,7 +148,7 @@ describe "Structure à une personne : le demandeur confirme seul (D-ADM-023, D-V
     Approvals.confirm_alone(admin, first, true, "yes").ok?.should be_true
     Approvals.confirm_alone(other.reload, second, true, "yes").errors["base"].should eq(["admin.errors.approval.needs_admin"])
     # Validée par un autre (le super-admin) : le demandeur n'est plus admin.
-    Approvals.approve(AdminSpec.super_admin, second).errors["base"].should eq(["admin.errors.approval.requester_gone"])
+    Approvals.approve(AdminSpec.super_admin, second, AdminSpec.recourse_time).errors["base"].should eq(["admin.errors.approval.requester_gone"])
     admin.reload.role.should eq(Cfg::FIRM_ADMIN)
     second.reload.state.should eq("expired")
   end
@@ -262,7 +262,7 @@ describe "Retour à une personne et règle anti-blocage (D-ADM-023)" do
     firm, first, second = dual_firm("Cabinet Injoignable")
     approval = Admins.request_active(first, second, false, "a quitté le cabinet").value!
     approval.mode.should eq("dual")
-    Approvals.approve(AdminSpec.super_admin, approval).ok?.should be_true
+    Approvals.approve(AdminSpec.super_admin, approval, AdminSpec.recourse_time).ok?.should be_true
     second.reload.active.should be_false
     firm.reload.dual_approval.should be_false
     PartiduoAdmin::AuditEntry.filter(action: "dual_approval.auto_off").count.should eq(1)
