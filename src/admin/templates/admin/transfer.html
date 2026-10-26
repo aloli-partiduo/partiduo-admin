@@ -1,0 +1,66 @@
+{# SPDX-License-Identifier: AGPL-3.0-or-later. Transfert d'un dossier vers une autre structure (DECISIONS D-ADM-027) : accord des deux structures, chacune selon son réglage (une ou deux personnes), après ré-authentification forte ; conséquences rappelées ; refus par l'une des deux, retrait par le demandeur. #}{% extend "admin/base.html" %}
+{% block title %}{% translate "admin.transfers.title" %}{% endblock title %}
+{% block crumbs %}<li><a href="{% url 'approvals' %}">{% translate "admin.approvals.title" %}</a></li><li>{{ approval.reference }}</li>{% endblock crumbs %}
+{% block heading %}{% translate "admin.transfers.title" %} · {{ dossier.slug }}{% endblock heading %}
+{% block content %}
+{% if errors %}<div class="notification is-danger is-light" role="alert">{% for message in errors %}<p>{{ message }}</p>{% endfor %}</div>{% endif %}
+<div class="pd-grid">
+  <section class="pd-panel" aria-labelledby="pd-transfer-summary-title">
+    <h2 id="pd-transfer-summary-title">{% translate "admin.dual_approval.summary" %}</h2>
+    <dl class="pd-dl">
+      <dt>{% translate "admin.approvals.reference" %}</dt><dd class="pd-mono">{{ approval.reference }}</dd>
+      <dt>{% translate "admin.tasks.dossier" %}</dt><dd>{% if dossier_link %}<a href="{% url 'dossier' id: dossier.id %}">{{ dossier.slug }}</a>{% else %}{{ dossier.slug }}{% endif %} — {{ dossier.label }}</dd>
+      <dt>{% translate "admin.transfers.from_to" %}</dt><dd>{{ approval.detail_text }}</dd>
+      <dt>{% translate "admin.dossiers.fields.payer" %}</dt><dd>{{ approval.param_previous_payer }} → {{ approval.param_payer_name }}</dd>
+      <dt>{% translate "admin.encryption.title" %}</dt><dd>{% translate encryption_from %} → {% translate encryption_to %}</dd>
+      <dt>{% translate "admin.reason" %}</dt><dd>{% if approval.reason %}{{ approval.reason }}{% else %}<span class="pd-muted">—</span>{% endif %}</dd>
+      <dt>{% translate "admin.approvals.requested_by" %}</dt><dd>{{ approval.requested_by.email }}</dd>
+      <dt>{% translate "admin.approvals.state" %}</dt><dd><span class="pd-state pd-state-{{ approval.state }}">{% translate approval.state_key %}</span></dd>
+    </dl>
+  </section>
+  <section class="pd-panel" aria-labelledby="pd-transfer-sides-title">
+    <h2 id="pd-transfer-sides-title">{% translate "admin.transfers.agreements" %}</h2>
+    <ul class="pd-list">{% for side in sides %}<li><strong>{% translate side.key %}</strong> — {{ side.firm }} · <span class="pd-mode pd-mode-{{ side.mode }}">{% if side.mode == "dual" %}{% translate "admin.dual_approval.modes.dual" %}{% else %}{% translate "admin.dual_approval.modes.single" %}{% endif %}</span> · {% translate "admin.transfers.given" given: side.given, needed: side.needed %}{% if side.names %} <span class="pd-muted">({{ side.names }})</span>{% endif %}</li>{% endfor %}</ul>
+    <p class="help mt-2">{% translate "admin.transfers.agreements_help" %}</p>
+  </section>
+</div>
+
+<section class="pd-panel" aria-labelledby="pd-transfer-effects-title">
+  <h2 id="pd-transfer-effects-title">{% translate "admin.transfers.effects_title" %}</h2>
+  <ul class="pd-list">
+    <li>{% translate "admin.transfers.effects.rights" %}</li>
+    <li>{% translate "admin.transfers.effects.managers" number: approval.param_managers %}</li>
+    <li>{% translate "admin.transfers.effects.payer" %}</li>
+    <li>{% translate "admin.transfers.effects.encryption" %}</li>
+    <li>{% translate "admin.transfers.effects.backups" %}</li>
+    <li>{% translate "admin.transfers.effects.admins" %}</li>
+    <li>{% translate "admin.transfers.effects.requests" %}</li>
+    <li>{% translate "admin.transfers.effects.audit" %}</li>
+  </ul>
+</section>
+
+{% if not pending %}
+<p class="notification is-light is-info" role="status">{% translate "admin.dual_approval.not_pending" %}</p>
+{% elsif can_consent %}
+{% include "admin/_reauth.html" %}
+<form method="post" action="{{ confirm_path }}" class="pd-panel" aria-labelledby="pd-transfer-consent-title">
+  <h2 id="pd-transfer-consent-title">{% translate "admin.transfers.consent_title" %}</h2>
+  {% csrf_input %}
+  <div class="field">
+    <label class="pd-choice"><input type="checkbox" name="confirm" value="yes" required aria-describedby="pd-transfer-consent-help{% if confirm_errors %} pd-transfer-consent-error{% endif %}"{% if confirm_errors %} aria-invalid="true"{% endif %}><span>{% translate "admin.transfers.consent_label" %} <strong>{{ dossier.slug }}</strong> ({{ approval.detail_text }})</span></label>
+    <p class="help" id="pd-transfer-consent-help">{% translate "admin.transfers.consent_help" %}</p>
+    {% if confirm_errors %}<p class="help is-danger" id="pd-transfer-consent-error">{% for message in confirm_errors %}{{ message }} {% endfor %}</p>{% endif %}
+  </div>
+  <div class="buttons">
+    <button class="button is-primary" type="submit"{% if not recent %} aria-describedby="pd-transfer-reauth-note"{% endif %}>{% translate "admin.transfers.consent_button" %}</button>
+    <a class="button" href="{% url 'approvals' %}">{% translate "admin.cancel" %}</a>
+  </div>
+  {% if not recent %}<p class="help" id="pd-transfer-reauth-note">{% translate "admin.reauth.before_confirm" %}</p>{% endif %}
+</form>
+{% elsif is_requester %}
+<p class="notification is-light is-info" role="status">{% translate "admin.transfers.requester_waits" %}</p>
+{% else %}
+<p class="notification is-light is-info" role="status">{% translate "admin.transfers.nothing_to_do" %}</p>
+{% endif %}
+{% if can_reject %}<form method="post" action="{% url 'approval_decision' id: approval.id, decision: 'reject' %}" class="mt-2">{% csrf_input %}<button class="button is-small" type="submit">{% if is_requester %}{% translate "admin.approvals.withdraw" %}{% else %}{% translate "admin.approvals.reject" %}{% endif %}</button></form>{% endif %}
+{% endblock content %}

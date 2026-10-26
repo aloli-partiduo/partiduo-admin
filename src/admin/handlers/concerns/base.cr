@@ -229,7 +229,7 @@ module PartiduoAdmin
         # listes et menu.
         wizards = Wizards::KINDS.select { |kind| Wizards.allowed?(current, kind) }
         context["wizard_links"] = wizards.empty? ? nil : wizards.map { |kind| {"kind" => kind, "key" => "admin.wizards.#{kind}.new"} }
-        %w[server restore move archive user].each { |kind| context["wizard_#{kind}"] = wizards.includes?(kind) }
+        %w[server restore move archive transfer user].each { |kind| context["wizard_#{kind}"] = wizards.includes?(kind) }
         context["open_alerts"] = Alerts.visible(current).count
         context["pending_approvals"] = Approvals.visible(current).filter(state: "pending").count
       end

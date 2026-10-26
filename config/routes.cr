@@ -45,6 +45,8 @@ Marten.routes.draw do
   path "/backups/<id:int>/capsule", PartiduoAdmin::BackupCapsuleHandler, name: "backup_capsule"
   path "/approvals", PartiduoAdmin::ApprovalsHandler, name: "approvals"
   path "/approvals/<id:int>/confirm", PartiduoAdmin::ApprovalConfirmHandler, name: "approval_confirm"
+  # Transfert d'un dossier : accords des deux structures (D-ADM-027).
+  path "/approvals/<id:int>/transfer", PartiduoAdmin::TransferHandler, name: "approval_transfer"
   path "/approvals/<id:int>/<decision:str>", PartiduoAdmin::ApprovalDecisionHandler, name: "approval_decision"
   path "/reauth/totp", PartiduoAdmin::ReauthTotpHandler, name: "reauth_totp"
   path "/tasks", PartiduoAdmin::TasksHandler, name: "tasks"

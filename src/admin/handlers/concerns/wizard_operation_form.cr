@@ -116,12 +116,46 @@ module PartiduoAdmin
 
     def fields(step : String) : Array(FormField)
       case kind
-      when "server"  then server_fields(step)
-      when "restore" then restore_fields(step)
-      when "move"    then move_fields(step)
-      when "archive" then archive_fields(step)
-      else                user_fields(step)
+      when "server"   then server_fields(step)
+      when "restore"  then restore_fields(step)
+      when "move"     then move_fields(step)
+      when "archive"  then archive_fields(step)
+      when "transfer" then transfer_fields(step)
+      else                 user_fields(step)
       end
+    end
+
+    # Transfert vers une autre structure (D-ADM-027).
+    private def transfer_fields(step : String) : Array(FormField)
+      case step
+      when "dossier"      then [dossier_field]
+      when "firm"         then [transfer_firm_field]
+      when "payer"        then [transfer_payer_field]
+      when "consequences" then [reason_field]
+      else                     [confirm_field]
+      end
+    end
+
+    # Structures d'accueil : actives, autres que celle du dossier.
+    private def transfer_firm_field : FormField
+      current = text("firm_id")
+      firms = Firm.filter(active: true).exclude(id: dossier.try(&.firm_id) || 0_i64).order("name").map do |firm|
+        option(firm.pk.to_s, "#{firm.name} — #{I18n.t(firm.kind_key)}", current)
+      end
+      FormField.new("firm_id", I18n.t("admin.wizards.transfer.firm"), current, "select",
+        [option("", I18n.t("admin.choose"), "x")] + firms, e("firm_id"), required: true,
+        help: firms.empty? ? t("no_firm") : t("firm_help"))
+    end
+
+    # Donneurs d'ordre de la structure d'accueil.
+    private def transfer_payer_field : FormField
+      current = text("payer_id")
+      firm = Wizards.transfer_firm(@draft)
+      payers = firm ? Payer.filter(firm_id: firm.pk).order("name").to_a : [] of Payer
+      options = payers.map { |payer| option(payer.pk.to_s, "#{payer.name} — #{I18n.t(payer.kind_key)}", current) }
+      FormField.new("payer_id", I18n.t("admin.dossiers.fields.payer"), current, "select",
+        [option("", I18n.t("admin.choose"), "x")] + options, e("payer_id"), required: true,
+        help: options.empty? ? t("no_payer") : t("payer_help"))
     end
 
     private def server_fields(step : String) : Array(FormField)
@@ -432,6 +466,51 @@ module PartiduoAdmin
         [note("warning", t("warn_stop")), note("info", t("warn_kept")), note("info", t("warn_restore")), note("info", t("warn_delete"))])]
     end
 
+    private def transfer_step_sections(step : String) : Array(WizardSection)
+      case step
+      when "firm"         then transfer_firm_sections
+      when "consequences" then transfer_sections
+      when "summary"      then summary_sections
+      else                     [] of WizardSection
+      end
+    end
+
+    # Structure d'accueil : réglage de validation, chiffrement, clé.
+    private def transfer_firm_sections : Array(WizardSection)
+      firm = Wizards.transfer_firm(@draft) || return [] of WizardSection
+      chosen = dossier
+      after = chosen ? Transfers.encryption_after(chosen, firm) : firm.backup_encryption.to_s
+      [WizardSection.new(t("destination_title"),
+        [item(I18n.t("admin.firms.kind"), I18n.t(firm.kind_key)),
+         item(I18n.t("admin.wizards.approval.mode"), I18n.t("admin.dual_approval.modes.#{ApprovalMode.mode(firm)}")),
+         item(I18n.t("admin.encryption.title"), I18n.t("admin.encryption.modes.#{after}"))],
+        firm.has_backup_key ? [] of WizardNote : [note("info", t("destination_no_key"))])]
+    end
+
+    # Conséquences du transfert : accès, donneur d'ordre, chiffrement et
+    # sauvegardes, administrateurs du dossier, demandes en attente, accords.
+    private def transfer_sections : Array(WizardSection)
+      chosen = dossier || return [] of WizardSection
+      firm = Wizards.transfer_firm(@draft) || return [] of WizardSection
+      managers = Transfers.managers(chosen)
+      after = Transfers.encryption_after(chosen, firm)
+      [
+        WizardSection.new(t("access_title"),
+          [item(t("managers"), managers.map(&.email.to_s).join(", ")), item(I18n.t("admin.administrators.title"), Administrators.emails(chosen).join(", "))],
+          [note("warning", t("warn_managers")), note("info", t("warn_admins")), note("info", t("warn_requests"))]),
+        WizardSection.new(t("payer_title"),
+          [item(t("payer_before"), chosen.payer_name), item(t("payer_after"), Wizards.transfer_payer(@draft).try(&.name.to_s) || "")],
+          [note("info", t("warn_payer"))]),
+        WizardSection.new(I18n.t("admin.encryption.title"),
+          [item(t("encryption_before"), I18n.t(chosen.effective_encryption_key)), item(t("encryption_after"), I18n.t("admin.encryption.modes.#{after}"))],
+          [note("info", t("warn_encryption")), note("warning", t("warn_backups")), note("info", t("warn_backup_now"))]),
+        WizardSection.new(I18n.t("admin.wizards.approval.title"),
+          [item(chosen.firm_name, I18n.t("admin.dual_approval.modes.#{ApprovalMode.mode_for(chosen)}")),
+           item(firm.name.to_s, I18n.t("admin.dual_approval.modes.#{ApprovalMode.mode(firm)}"))],
+          [note("info", I18n.t("admin.wizards.approval.transfer_note"))]),
+      ]
+    end
+
     private def user_scope_sections : Array(WizardSection)
       return [] of WizardSection if Wizards.user_role(@draft) == Config::FILE_MANAGER
       [WizardSection.new(I18n.t("admin.wizards.steps.dossiers"), notes: [note("info", t("scope.#{Wizards.user_role(@draft)}"))])]
@@ -445,17 +524,29 @@ module PartiduoAdmin
         [note("info", t("connect_language")), note("info", t("signup_code"))])]
     end
 
-    # Validation : mode de la structure du dossier ; ces opérations ne sont
-    # pas des opérations sensibles (D-VAL2-001).
+    # Validation : mode de la structure du dossier. Archivage et déplacement
+    # sont des opérations sensibles à deux personnes (une demande, D-ADM-027) ;
+    # la restauration reste hors de la validation à deux (la clé d'une
+    # sauvegarde chiffrée n'est jamais conservée) ; le transfert exige
+    # l'accord des deux structures.
     private def summary_sections : Array(WizardSection)
       return gated_invite_sections if kind == "user"
-      return [] of WizardSection unless %w[restore move archive].includes?(kind)
+      return [] of WizardSection unless %w[restore move archive transfer].includes?(kind)
       chosen = dossier || return [] of WizardSection
       mode = ApprovalMode.mode_for(chosen)
-      notes = [note("info", I18n.t("admin.wizards.approval.note"))]
+      key = case kind
+            when "restore"  then "admin.wizards.approval.note"
+            when "transfer" then "admin.wizards.approval.transfer_note"
+            else                 "admin.wizards.approval.#{mode}_note"
+            end
+      notes = [note("info", I18n.t(key))]
       notes.unshift(note("warning", I18n.t("admin.wizards.restore.replace_warning"))) if kind == "restore" && Wizards.restore_target(@draft) == "replace"
-      [WizardSection.new(I18n.t("admin.wizards.approval.title"),
-        [item(I18n.t("admin.wizards.approval.mode"), I18n.t("admin.dual_approval.modes.#{mode}"))], notes)]
+      items = [item(I18n.t("admin.wizards.approval.mode"), I18n.t("admin.dual_approval.modes.#{mode}"))]
+      if kind == "transfer"
+        items = [item(chosen.firm_name, I18n.t("admin.dual_approval.modes.#{mode}"))]
+        Wizards.transfer_firm(@draft).try { |firm| items << item(firm.name.to_s, I18n.t("admin.dual_approval.modes.#{ApprovalMode.mode(firm)}")) }
+      end
+      [WizardSection.new(I18n.t("admin.wizards.approval.title"), items, notes)]
     end
 
     # Invitation d'un admin dans une structure qui a déjà son équipe : une
@@ -493,12 +584,18 @@ module PartiduoAdmin
       return [item(I18n.t("admin.wizards.dossier"), dossier.try { |chosen| "#{chosen.slug} — #{chosen.label}" } || "")] if step == "dossier"
       return [item(I18n.t("admin.reason"), text("reason"))] if step == "consequences"
       case kind
-      when "server"  then server_items
-      when "restore" then restore_items(step)
-      when "move"    then [item(I18n.t("admin.move.server"), text("server_id").to_i64?.try { |id| Server.filter(id: id).first.try(&.name.to_s) } || "")]
-      when "user"    then user_items(step)
-      else                [] of Item
+      when "server"   then server_items
+      when "restore"  then restore_items(step)
+      when "move"     then [item(I18n.t("admin.move.server"), text("server_id").to_i64?.try { |id| Server.filter(id: id).first.try(&.name.to_s) } || "")]
+      when "transfer" then transfer_items(step)
+      when "user"     then user_items(step)
+      else                 [] of Item
       end
+    end
+
+    private def transfer_items(step : String) : Array(Item)
+      return [item(I18n.t("admin.wizards.transfer.firm"), Wizards.transfer_firm(@draft).try(&.name.to_s) || "")] if step == "firm"
+      [item(I18n.t("admin.dossiers.fields.payer"), Wizards.transfer_payer(@draft).try(&.name.to_s) || "")]
     end
 
     private def server_items : Array(Item)

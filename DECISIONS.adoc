@@ -646,6 +646,11 @@ déplacement et l'archivage parmi les opérations sensibles (validation à
 deux selon la structure) ? Difficulté : la clé d'une sauvegarde chiffrée
 n'est jamais conservée, la personne qui valide devrait donc la fournir.
 
+*Tranché par D-ADM-027* (26 octobre 2026) : archivage et déplacement
+entrent dans les opérations sensibles à deux personnes, la restauration
+reste hors de la validation à deux ; le transfert vers une autre structure
+existe.
+
 === D-ADM-023 — Validation des actions propres à une structure (26 octobre 2026)
 
 Décision de l'utilisateur du 26 octobre 2026 : étendre la validation à
@@ -784,6 +789,10 @@ langues ; `administrators_spec`, `dual_approval_spec` et
 cabinet : c'est la règle des dossiers, mais il tient ainsi la seconde clé
 de tout cabinet. Variante possible : ne l'admettre qu'après un délai
 (demande en attente depuis N jours).
+
+*Tranché le 26 octobre 2026* : délai du dernier recours (D-ADM-024),
+affaiblissement du chiffrement (D-ADM-025), réinvitation, désactivation et
+nature d'une structure (D-ADM-026) soumis à validation.
 
 === D-ADM-024 — Dernier recours du super-admin après un délai (26 octobre 2026)
 
@@ -1004,3 +1013,157 @@ refusé, deux personnes (admin de la structure, autre super-admin après le
 délai, autre structure refusée), nature (refus, cible changée par un
 gestionnaire arrivé ou par la désactivation, expiration), fiche réservée
 au super-admin et rendue dans les sept langues.
+
+=== D-ADM-027 — Archivage et déplacement à deux personnes, transfert d'un dossier vers une autre structure (26 octobre 2026)
+
+Décision de l'utilisateur du 26 octobre 2026, points laissés « à
+trancher » et « proposés » par D-ADM-022. Version 0.1.64. ADR-008 D3 et
+D5 sont amendés (partiduo-docs).
+
+==== Archivage et déplacement
+
+*Règle.* Quand la structure du dossier est réglée sur deux personnes
+(`Fleet.dual?`), l'archivage et le déplacement vers un autre serveur
+(ADR-013 D7) sont des opérations sensibles au sens de D-VAL2 : demandes de
+dossier `archive` et `move` (`Approvals.request_archive`,
+`request_move`), validées par une autre personne habilitée (admin de la
+structure, ou super-admin en dernier recours après le délai, D-ADM-024 ;
+jamais le demandeur). `Fleet.lifecycle` (archivage) et `Fleet.move`
+refusent eux-mêmes le geste direct (`approval.needs_request`). À une
+personne, rien ne change : geste direct, comme D-ADM-022 (confirmation
+explicite dans l'assistant).
+
+* *Décision* : archivage — tâche `instance.archive` au nom de qui valide,
+  avec la référence, le mode et les personnes (comme les autres opérations
+  sensibles), après recontrôle (`Fleet.lifecycle_refusal` relu pour le
+  demandeur : droits, état actif ou suspendu, clé du cabinet si
+  nécessaire) ; trace `dossier.archive` avec la référence. Déplacement —
+  bascule dans la transaction de la décision (aucune tâche), après
+  recontrôle : demandeur encore super-admin, dossier suspendu et toujours
+  sur son serveur d'origine (`from_server_id`), serveur d'accueil actif,
+  aucune tâche en cours ; sinon la demande est close. Le nom suit hors de
+  la transaction (`Dns.request`), et l'assistant de restauration
+  « déplacement » est préparé pour le demandeur
+  (`Wizards.prepare_move_restore`).
+* *Formulaires et assistants* : la fiche du dossier et les assistants
+  « Archiver » et « Déplacer » créent la demande et mènent à « Opérations
+  sensibles ». Le texte de l'assistant (« ces opérations ne sont pas
+  sensibles », D-ADM-022) est remplacé : à une personne, opération faite à
+  la validation ; à deux, demande à valider ; restauration hors de la
+  validation à deux, et pourquoi.
+* *Restauration* : hors de la validation à deux, avec sa confirmation
+  renforcée (D-ADM-022) : la clé d'une sauvegarde chiffrée n'est jamais
+  conservée (D-CHF-005), la personne qui validerait devrait la fournir.
+
+==== Transfert vers une autre structure
+
+Il n'existait pas (D-ADM-022 : aucun service ne changeait `firm_id`). Il
+change la structure d'un dossier, donc ses droits, son donneur d'ordre, la
+clé de ses sauvegardes suivantes et ses journaux.
+
+*Initiative : le super-admin seul.* Il voit les deux structures, leurs
+donneurs d'ordre et leurs clés ; un admin de cabinet ne voit pas les
+autres structures (`Access.firms`), ni leurs donneurs d'ordre : lui ouvrir
+l'initiative exposerait la liste des cabinets du parc. Le super-admin
+n'emporte rien par sa demande : il faut l'accord des deux structures.
+Écartée : l'initiative de l'admin d'origine (fuite de la liste des
+structures, donneur d'ordre d'accueil inconnu de lui).
+
+*Accord des deux structures* (`Approval` `transfer`, qui vise le dossier
+*et* la structure d'accueil, `Approval#firm` ; contrainte
+`admin_approval_target` élargie à ce seul cas, migration 0013). Chaque
+structure donne son accord selon son propre réglage, lu à chaque accord :
+une personne habilitée de la structure (admin actif ; super-admin pour le
+parc sans cabinet) à une personne, deux personnes distinctes à deux. Un
+accord (`ApprovalConsent`, une ligne par personne) exige une
+ré-authentification forte récente et la case cochée (page
+`/approvals/<id>/transfer`). Le demandeur ne donne jamais d'accord, même
+pour le parc sans cabinet (un autre super-admin le donne) ; aucun dernier
+recours du super-admin : c'est l'accord de la structure elle-même qui est
+demandé (`Approvals.approve` et `confirm_alone` refusent un transfert). Un
+refus d'une personne habilitée de l'une ou l'autre structure, ou le
+retrait du demandeur, clôt la demande ; elle expire au bout de sept jours.
+Défense en base (migration 0013) : un accord du demandeur, d'une structure
+étrangère au transfert ou sur une demande close est refusé par un
+déclencheur ; un transfert ne passe à « validé » qu'avec au moins un accord
+de chaque côté.
+
+*Exécution* au dernier accord, dans une transaction (mise à jour
+conditionnelle de la demande, jamais rejouée), après les recontrôles
+relus en base : état du dossier inchangé depuis la demande (structure,
+donneur d'ordre, état, serveur, surcharge du chiffrement), demandeur
+encore super-admin, structure d'accueil active, donneur d'ordre de
+l'accueil, clé de l'accueil si nécessaire, chiffrement d'arrivée inchangé ;
+seuls comptent les accords de personnes encore habilitées. Sinon la
+demande est close (`approval.stale`, des deux côtés).
+
+*Conséquences.*
+
+* *Accès* : le dossier passe à la structure d'accueil ; ses gestionnaires
+  de dossiers dans l'ancienne structure perdent leur accès (affectations
+  supprimées, adresses tracées) ; les admins de l'origine ne le voient
+  plus.
+* *Donneur d'ordre et facturation* : redemandés — le super-admin choisit
+  le donneur d'ordre parmi ceux de la structure d'accueil (la facturation
+  le suit). Écarté : faire suivre l'ancien, qui relève de l'origine (sa
+  portée de droits) et peut payer d'autres dossiers.
+* *Chiffrement des sauvegardes suivantes* : jamais affaibli par un
+  transfert (D-ADM-025) — si le réglage de l'accueil protège moins que le
+  chiffrement effectif du dossier, celui-ci devient sa surcharge ;
+  l'accueil pourra demander un affaiblissement, validé par lui. En « clé du
+  cabinet », les sauvegardes suivantes sont chiffrées pour la clé de
+  l'accueil, qui doit l'avoir déposée (sinon refus,
+  `transfer.no_key`).
+* *Sauvegardes déjà prises et leurs clés : pas de re-chiffrement.* Les
+  fichiers et leurs capsules restent tels quels (manifestes signés,
+  empreintes inchangés, D-CHF-014). Une capsule « clé du cabinet » ne
+  s'ouvre qu'avec la clé privée de l'origine ; la re-chiffrer pour la clé
+  de l'accueil exigerait d'ouvrir chaque capsule avec la clé privée de
+  l'origine — dans le navigateur de son admin, comme D-CHF-005 —, une
+  opération par sauvegarde que la console ne peut pas faire seule (elle
+  n'a jamais de clé privée ni de clé de sauvegarde) et qui ferait circuler
+  des clés de sauvegarde pour rien. Les capsules « clé d'exploitation »
+  ne dépendent pas de la structure. En sécurité : rien n'est déchiffré ni
+  rechiffré ; une sauvegarde est prise *aussitôt* après le transfert avec
+  le chiffrement de l'accueil, première sauvegarde que l'accueil peut
+  restaurer seul ; les anciennes restent restaurables par l'origine sur
+  demande (hors console) ou par l'exploitant pour la clé d'exploitation.
+  À soumettre : un re-chiffrement assisté des capsules dans le
+  navigateur de l'admin d'origine.
+* *Administrateurs du dossier* (`DossierAdmin`, instance) : inchangés.
+* *Demandes en attente sur le dossier* : closes (décidées dans l'ancienne
+  structure, elles ne doivent pas l'être par la nouvelle), trace
+  `approval.stale` des deux côtés.
+* *Traces des deux côtés* : `approval.request`, `transfer.consent`,
+  `dossier.transfer` (origine, accueil, donneurs d'ordre, chiffrements,
+  gestionnaires retirés, demandes closes, accords), `approval.reject`,
+  `approval.stale`, inscrits dans le journal de chacune des deux
+  structures (`firm_id`).
+
+*Exécutant et instance : inchangés.* Le transfert est un changement de
+rattachement dans la console ; aucun paquet ni protocole n'est à publier.
+
+*Assistant « Transférer un dossier »* (D-ADM-018/022) : dossier, structure
+d'accueil (réglage de validation, chiffrement d'arrivée, clé), donneur
+d'ordre, conséquences (gestionnaires qui perdent leur accès,
+administrateurs du dossier, donneur d'ordre avant et après, chiffrement
+avant et après, sauvegardes, accords attendus) et motif, récapitulatif
+avec confirmation ; la validation enregistre la demande. Accès : menu et
+tableau de bord (assistants ouverts), liste des dossiers, fiche du
+dossier (`?dossier=`). Page du transfert : résumé, accords de chaque
+structure (modes, nombre ; noms pour sa propre structure et le
+super-admin), conséquences, accord, refus ou retrait. « Opérations
+sensibles » : « Donner l'accord » ou « Suivre ». Les lignes de cette liste
+sont des objets (`ApprovalRow`) : au-delà de huit clés, Marten ne retrouve
+plus une clé d'un `Hash` de gabarit (index par empreinte de `Value`). Sept
+langues.
+
+*Specs* : `spec/admin/transfers_spec.cr` — archivage et déplacement à une
+et deux personnes (même personne, recours avant le délai, rejeu, cible
+modifiée, formulaires et assistant), transfert (initiative, refus, accords
+des deux structures, conséquences, deux personnes distinctes), specs
+d'attaque (accord d'une seule structure par le service et par la base,
+demandeur et structure étrangère par le service et par la base, rejeu,
+refus, expiration, cible modifiée, chiffrement jamais affaibli et clé de
+l'accueil exigée), écrans et assistant dans les sept langues ;
+`translations_spec` parcourt l'assistant et la page du transfert.

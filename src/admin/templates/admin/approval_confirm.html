@@ -24,25 +24,7 @@
 {% elsif needs_admin %}
 <p class="notification is-light is-warning" role="status">{% translate "admin.dual_approval.needs_admin" %}</p>
 {% else %}
-<section class="pd-panel" aria-labelledby="pd-reauth-title">
-  <h2 id="pd-reauth-title">{% translate "admin.reauth.title" %}</h2>
-  {% if recent %}<p class="pd-ok-text" role="status">{% translate "admin.reauth.recent" %} <span class="pd-mono">{{ strong_at }}</span></p>
-  {% else %}<p class="mb-3">{% translate "admin.reauth.needed" %} ({{ window }} min)</p>
-    {% if connect_reauth %}<div class="buttons"><a class="button is-link" href="{{ connect_reauth }}">{% translate "admin.reauth.connect" %}</a></div>{% endif %}
-    {% if has_passkey %}<div class="buttons">
-      <button type="button" class="button is-link" data-passkey="elevate" data-options-url="{% url 'elevate_options' %}" data-submit-url="{% url 'elevate' %}" data-next="{{ confirm_path }}" data-status="pd-reauth-status">{% translate "admin.reauth.passkey" %}</button>
-    </div>
-    <p class="help" id="pd-reauth-status" role="status" aria-live="polite" data-unsupported="{% translate 'admin.passkey.unsupported' %}" data-failed="{% translate 'admin.passkey.failed' %}" data-waiting="{% translate 'admin.passkey.waiting' %}"></p>{% endif %}
-    {% if has_totp %}<form method="post" action="{% url 'reauth_totp' %}" class="pd-inline{% if has_passkey %} mt-3{% endif %}">
-      {% csrf_input %}
-      <input type="hidden" name="next" value="{{ confirm_path }}">
-      <div class="field"><label class="label" for="pd-reauth-code">{% translate "admin.reauth.totp" %}</label><div class="control"><input class="input pd-mono" id="pd-reauth-code" name="code" type="text" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9 ]{6,7}" required aria-describedby="pd-reauth-code-help"></div></div>
-      <button class="button is-link" type="submit">{% translate "admin.login.verify" %}</button>
-    </form>
-    <p class="help" id="pd-reauth-code-help">{% translate "admin.reauth.totp_help" %}</p>{% endif %}
-    {% if not has_passkey %}{% if not has_totp %}<p class="help">{% translate "admin.reauth.no_means" %}</p>{% endif %}{% endif %}
-  {% endif %}
-</section>
+{% include "admin/_reauth.html" %}
 
 <form method="post" action="{{ confirm_path }}" class="pd-panel" aria-labelledby="pd-confirm-title">
   <h2 id="pd-confirm-title">{% translate "admin.dual_approval.confirm_step" %}</h2>
@@ -57,8 +39,8 @@
   </div>
   {% else %}
   <div class="field">
-    <label class="pd-choice"><input type="checkbox" name="confirm" value="yes" required aria-describedby="pd-confirm-help{% if confirm_errors %} pd-confirmation-error{% endif %}"{% if confirm_errors %} aria-invalid="true"{% endif %}><span>{% translate approval.confirm_key %}{% if dossier %} <strong>{{ approval.param_email }}</strong>{% elsif approval.target_label %} <strong>{{ approval.target_label }}</strong>{% else %} <strong>{{ firm.name }}</strong>{% endif %}{% if approval.param_replaces %} ({% translate "admin.administrators.replacing" %} <strong>{{ approval.param_replaces }}</strong>){% endif %}{% if approval.removal_key %} — {% translate approval.removal_key %}{% endif %}{% if approval.detail_text %} ({{ approval.detail_text }}){% endif %}</span></label>
-    <p class="help" id="pd-confirm-help">{% if dossier %}{% translate "admin.dual_approval.confirm_access_help" %}{% else %}{% translate "admin.firm_approvals.confirm_help" %}{% endif %}</p>
+    <label class="pd-choice"><input type="checkbox" name="confirm" value="yes" required aria-describedby="pd-confirm-help{% if confirm_errors %} pd-confirmation-error{% endif %}"{% if confirm_errors %} aria-invalid="true"{% endif %}><span>{% translate approval.confirm_key %}{% if dossier %} <strong>{% if approval.param_email %}{{ approval.param_email }}{% else %}{{ dossier.slug }}{% endif %}</strong>{% elsif approval.target_label %} <strong>{{ approval.target_label }}</strong>{% else %} <strong>{{ firm.name }}</strong>{% endif %}{% if approval.param_replaces %} ({% translate "admin.administrators.replacing" %} <strong>{{ approval.param_replaces }}</strong>){% endif %}{% if approval.removal_key %} — {% translate approval.removal_key %}{% endif %}{% if approval.detail_text %} ({{ approval.detail_text }}){% endif %}</span></label>
+    <p class="help" id="pd-confirm-help">{% if dossier %}{% translate approval.confirm_help_key %}{% else %}{% translate "admin.firm_approvals.confirm_help" %}{% endif %}</p>
     {% if confirm_errors %}<p class="help is-danger" id="pd-confirmation-error">{% for message in confirm_errors %}{{ message }} {% endfor %}</p>{% endif %}
   </div>
   {% endif %}

@@ -30,11 +30,12 @@ module PartiduoAdmin
     # Erreurs de la saisie entière d'un parcours d'opération.
     def self.operation_errors(user : User, draft : WizardDraft) : Errors
       case draft.kind!
-      when "server"  then server_errors(user, draft)
-      when "restore" then restore_errors(user, draft)
-      when "move"    then move_errors(user, draft)
-      when "archive" then archive_errors(user, draft)
-      else                user_errors(user, draft)
+      when "server"   then server_errors(user, draft)
+      when "restore"  then restore_errors(user, draft)
+      when "move"     then move_errors(user, draft)
+      when "archive"  then archive_errors(user, draft)
+      when "transfer" then transfer_errors(user, draft)
+      else                 user_errors(user, draft)
       end
     end
 
@@ -43,7 +44,7 @@ module PartiduoAdmin
     # suivante si le dossier convient. Les saisies qui dépendaient d'un
     # autre dossier sont oubliées.
     def self.preselect(user : User, draft : WizardDraft, dossier_id : Int64) : Nil
-      return unless %w[restore move archive].includes?(draft.kind!)
+      return unless %w[restore move archive transfer].includes?(draft.kind!)
       return if draft.text("dossier_id") == dossier_id.to_s && !draft.new_record?
       draft.data = {"dossier_id" => dossier_id.to_s}.to_json
       draft.step = 1
@@ -219,20 +220,44 @@ module PartiduoAdmin
     # Bascule (ADR-013 D7) : le service du formulaire ; la restauration sur
     # le nouveau serveur suit, par l'assistant de restauration préparé pour
     # ce dossier (cible « déplacement »).
-    def self.finish_move(user : User, draft : WizardDraft, confirmed : Bool) : {Errors, Dossier?}
+    #
+    # Structure du dossier à deux personnes (D-ADM-027) : une demande, qu'une
+    # autre personne habilitée valide ; rendue à la place du dossier.
+    def self.finish_move(user : User, draft : WizardDraft, confirmed : Bool) : {Errors, Dossier?, Approval?}
       errors = move_errors(user, draft).merge(confirm_errors(confirmed))
-      return {errors, nil} unless errors.empty?
-      dossier = chosen_dossier(user, draft) || return {Errors{"dossier_id" => ["admin.errors.required"]}, nil}
+      return {errors, nil, nil} unless errors.empty?
+      dossier = chosen_dossier(user, draft) || return {Errors{"dossier_id" => ["admin.errors.required"]}, nil, nil}
+      if Fleet.dual?(dossier)
+        request = Approvals.request_move(user, dossier, draft.text("server_id").to_i64?, draft.text("reason"))
+        return {request.errors, nil, nil} unless request.ok?
+        finished(user, draft, dossier, request.value!)
+        return {Errors.new, nil, request.value!}
+      end
       outcome = Fleet.move(user, dossier, draft.text("server_id").to_i64?, draft.text("reason"))
-      return {outcome.errors, nil} unless outcome.ok?
+      return {outcome.errors, nil, nil} unless outcome.ok?
       Audit.log(user, "wizard.finish", target: dossier, detail: {"wizard" => "move"})
       discard(draft)
+      prepare_move_restore(user, dossier)
+      {Errors.new, dossier, nil}
+    end
+
+    # Assistant terminé par une demande (D-ADM-027) : trace et brouillon
+    # effacé.
+    private def self.finished(user : User, draft : WizardDraft, dossier : Dossier, approval : Approval) : Nil
+      Audit.log(user, "wizard.finish", target: dossier,
+        detail: {"wizard" => draft.kind!.to_s, "approval" => approval.reference.to_s})
+      discard(draft)
+    end
+
+    # Restauration « déplacement » préparée pour ce dossier : l'assistant de
+    # restauration s'ouvre à l'étape de la sauvegarde (après un déplacement
+    # fait aussitôt, ou validé par une autre personne, D-ADM-027).
+    def self.prepare_move_restore(user : User, dossier : Dossier) : Nil
       following = Wizards.draft(user, "restore")
       following.data = {"dossier_id" => dossier.pk.to_s, "target" => "move"}.to_json
       following.step = 2
       following.reached = 2
       following.save!
-      {Errors.new, dossier}
     end
 
     # --- Archivage --------------------------------------------------------------------
@@ -250,15 +275,60 @@ module PartiduoAdmin
       errors
     end
 
-    def self.finish_archive(user : User, draft : WizardDraft, confirmed : Bool) : {Errors, Task?}
+    # Structure du dossier à deux personnes (D-ADM-027) : une demande.
+    def self.finish_archive(user : User, draft : WizardDraft, confirmed : Bool) : {Errors, Task?, Approval?}
       errors = archive_errors(user, draft).merge(confirm_errors(confirmed))
-      return {errors, nil} unless errors.empty?
-      dossier = chosen_dossier(user, draft) || return {Errors{"dossier_id" => ["admin.errors.required"]}, nil}
+      return {errors, nil, nil} unless errors.empty?
+      dossier = chosen_dossier(user, draft) || return {Errors{"dossier_id" => ["admin.errors.required"]}, nil, nil}
+      if Fleet.dual?(dossier)
+        request = Approvals.request_archive(user, dossier, draft.text("reason"))
+        return {request.errors, nil, nil} unless request.ok?
+        finished(user, draft, dossier, request.value!)
+        return {Errors.new, nil, request.value!}
+      end
       outcome = Fleet.lifecycle(user, dossier, "archive", draft.text("reason"))
-      return {outcome.errors, nil} unless outcome.ok?
+      return {outcome.errors, nil, nil} unless outcome.ok?
       Audit.log(user, "wizard.finish", target: dossier, detail: {"wizard" => "archive"})
       discard(draft)
-      {Errors.new, outcome.value!}
+      {Errors.new, outcome.value!, nil}
+    end
+
+    # --- Transfert vers une autre structure (D-ADM-027) -------------------------------
+
+    def self.transfer_firm(draft : WizardDraft) : Firm?
+      draft.text("firm_id").to_i64?.try { |id| Firm.filter(id: id).first }
+    end
+
+    def self.transfer_payer(draft : WizardDraft) : Payer?
+      draft.text("payer_id").to_i64?.try { |id| Payer.filter(id: id).first }
+    end
+
+    # Contrôles du service (`Transfers.refusal`), rangés sous leur étape :
+    # dossier, structure d'accueil, donneur d'ordre ; motif exigé.
+    private def self.transfer_errors(user : User, draft : WizardDraft) : Errors
+      errors = Errors.new
+      dossier = chosen_dossier(user, draft)
+      refused(errors, "dossier_id", {"dossier_id", "admin.errors.required"}) if dossier.nil?
+      if dossier
+        refusal = Transfers.refusal(user, dossier, transfer_firm(draft), transfer_payer(draft))
+        refusal.try { |field, key| add(errors, field, key) }
+        if Approval.filter(dossier_id: dossier.pk, kind: Approval::TRANSFER, state: "pending", expires_at__gt: Config.now).exists?
+          add(errors, "base", "admin.errors.approval.already_pending")
+        end
+      end
+      add(errors, "reason", "admin.errors.required") if draft.text("reason").strip.size < 5
+      errors
+    end
+
+    # Demande de transfert : l'accord des deux structures la décide.
+    def self.finish_transfer(user : User, draft : WizardDraft, confirmed : Bool) : {Errors, Approval?}
+      errors = transfer_errors(user, draft).merge(confirm_errors(confirmed))
+      return {errors, nil} unless errors.empty?
+      dossier = chosen_dossier(user, draft) || return {Errors{"dossier_id" => ["admin.errors.required"]}, nil}
+      request = Transfers.request(user, dossier, draft.text("firm_id").to_i64?, draft.text("payer_id").to_i64?, draft.text("reason"))
+      return {request.errors, nil} unless request.ok?
+      finished(user, draft, dossier, request.value!)
+      {Errors.new, request.value!}
     end
 
     # --- Invitation d'un utilisateur --------------------------------------------------

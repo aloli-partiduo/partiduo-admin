@@ -159,11 +159,12 @@ module PartiduoAdmin
     private def finish_operation(draft : WizardDraft, step : String, number : Int32)
       return render_step(draft, number) unless finishing?(draft, step)
       case draft.kind!
-      when "server"  then finish_server(draft, step, number)
-      when "restore" then finish_restore(draft, number)
-      when "move"    then finish_move(draft, number)
-      when "archive" then finish_archive(draft, number)
-      else                finish_user(draft, number)
+      when "server"   then finish_server(draft, step, number)
+      when "restore"  then finish_restore(draft, number)
+      when "move"     then finish_move(draft, number)
+      when "archive"  then finish_archive(draft, number)
+      when "transfer" then finish_transfer(draft, number)
+      else                 finish_user(draft, number)
       end
     end
 
@@ -189,7 +190,8 @@ module PartiduoAdmin
     end
 
     private def finish_move(draft : WizardDraft, number : Int32)
-      errors, dossier = Wizards.finish_move(user, draft, confirmed?)
+      errors, dossier, approval = Wizards.finish_move(user, draft, confirmed?)
+      return requested(approval) if approval
       return render_step(draft, number, errors, 422) if dossier.nil?
       failed = dossier.dns_state == "error"
       flash[failed ? "warning" : "success"] = I18n.t(failed ? "admin.move.done_dns_error" : "admin.move.done")
@@ -198,10 +200,24 @@ module PartiduoAdmin
     end
 
     private def finish_archive(draft : WizardDraft, number : Int32)
-      errors, task = Wizards.finish_archive(user, draft, confirmed?)
+      errors, task, approval = Wizards.finish_archive(user, draft, confirmed?)
+      return requested(approval) if approval
       return render_step(draft, number, errors, 422) if task.nil?
       flash["success"] = I18n.t("admin.tasks.enqueued")
       go("/dossiers/#{task.dossier_id}")
+    end
+
+    private def finish_transfer(draft : WizardDraft, number : Int32)
+      errors, approval = Wizards.finish_transfer(user, draft, confirmed?)
+      return render_step(draft, number, errors, 422) if approval.nil?
+      requested(approval)
+    end
+
+    # Opération devenue une demande (structure à deux personnes, transfert,
+    # D-ADM-027) : elle attend la validation dans « Opérations sensibles ».
+    private def requested(approval : Approval)
+      flash["success"] = I18n.t("admin.approvals.requested", reference: approval.reference.to_s)
+      go("/approvals")
     end
 
     private def finish_user(draft : WizardDraft, number : Int32)

@@ -407,8 +407,9 @@ module PartiduoAdmin
   class Approval < Marten::Model
     MODES = %w[single dual]
 
-    # Demandes portant sur un dossier.
-    DOSSIER_KINDS = %w[delete admin_invite admin_add admin_remove]
+    # Demandes portant sur un dossier ; archivage et déplacement depuis
+    # D-ADM-027, quand la structure est à deux personnes.
+    DOSSIER_KINDS = %w[delete admin_invite admin_add admin_remove archive move]
     # Demandes portant sur une structure (D-ADM-023) : inviter, promouvoir,
     # retirer (rôle de gestionnaire) ou remplacer un admin, désactiver ou
     # réactiver un compte d'admin, repasser à une personne.
@@ -427,7 +428,12 @@ module PartiduoAdmin
     # jamais pour quitter la clé du cabinet (D-CHF-008).
     MEMBER_KINDS = %w[backup_weaken]
 
-    KINDS  = DOSSIER_KINDS + FIRM_KINDS
+    # Transfert d'un dossier vers une autre structure (D-ADM-027) : le
+    # dossier *et* la structure d'accueil, accord de chacune des deux
+    # (`ApprovalConsent`).
+    TRANSFER = "transfer"
+
+    KINDS  = DOSSIER_KINDS + FIRM_KINDS + [TRANSFER]
     STATES = %w[pending approved rejected expired]
 
     field :id, :big_int, primary_key: true, auto: true
@@ -469,6 +475,19 @@ module PartiduoAdmin
       param("email").presence
     end
 
+    # Paramètres d'un transfert affichés (D-ADM-027).
+    def param_previous_payer : String
+      param("previous_payer")
+    end
+
+    def param_payer_name : String
+      param("payer_name")
+    end
+
+    def param_managers : String
+      param("managers").presence || "0"
+    end
+
     # Administrateur remplacé et mode de retrait (D-ADM-017), `nil` sinon.
     def param_replaces : String?
       param("replaces").presence
@@ -477,11 +496,21 @@ module PartiduoAdmin
     # Phrase de la confirmation seule (D-VAL2-004), avant l'adresse.
     def confirm_key : String
       case kind
-      when "admin_add"      then "admin.administrators.confirm.add"
-      when "admin_remove"   then "admin.administrators.confirm.remove"
-      when .in?(FIRM_KINDS) then "admin.firm_approvals.confirm.#{kind}"
-      else                       "admin.dual_approval.confirm_access"
+      when "admin_add"       then "admin.administrators.confirm.add"
+      when "admin_remove"    then "admin.administrators.confirm.remove"
+      when .in?(FIRM_KINDS)  then "admin.firm_approvals.confirm.#{kind}"
+      when "archive", "move" then "admin.approvals.confirm.#{kind}"
+      else                        "admin.dual_approval.confirm_access"
       end
+    end
+
+    # Aide de la confirmation seule d'une demande de dossier.
+    def confirm_help_key : String
+      %w[archive move].includes?(kind) ? "admin.approvals.confirm.help" : "admin.dual_approval.confirm_access_help"
+    end
+
+    def transfer? : Bool
+      kind == TRANSFER
     end
 
     def removal_key : String?
@@ -537,8 +566,30 @@ module PartiduoAdmin
         slug.empty? ? text : "#{text} · #{slug}"
       when "firm_kind"
         "#{I18n.t("admin.firms.kinds.#{param("kind_from")}")} → #{I18n.t("admin.firms.kinds.#{param("kind_to")}")}"
+      when "move", TRANSFER
+        "#{param("from_name")} → #{param("to_name")}"
       end
     end
+  end
+
+  # Accord d'une structure à un transfert de dossier (D-ADM-027) : une ligne
+  # par personne, côté origine ou côté accueil ; une structure à une
+  # personne donne son accord par une ligne, une structure à deux par deux
+  # lignes de personnes distinctes. La base refuse l'accord du demandeur,
+  # d'une structure étrangère au transfert ou d'une demande close
+  # (migration 0013).
+  class ApprovalConsent < Marten::Model
+    SIDES = %w[origin destination]
+
+    field :id, :big_int, primary_key: true, auto: true
+    field :approval, :many_to_one, to: PartiduoAdmin::Approval, related: :consents, on_delete: :cascade
+    field :firm, :many_to_one, to: PartiduoAdmin::Firm, on_delete: :protect
+    field :side, :string, max_size: 16
+    field :user, :many_to_one, to: PartiduoAdmin::User, on_delete: :protect
+    field :mode, :string, max_size: 8
+    field :created_at, :date_time, auto_now_add: true
+
+    db_unique_constraint :admin_approval_consent_unique, field_names: [:approval, :user]
   end
 
   # Alerte de supervision (ADR-008 D5), affichée et envoyée par courriel.

@@ -134,7 +134,7 @@ describe "Désactivation, réactivation et nature d'une structure soumises à va
     Firms.set_kind(root, firm, "independent").errors["base"].should eq(["admin.errors.approval.needs_request"])
     Firms.request_kind(root, firm, "fleet").errors["kind"].should eq(["admin.errors.firm.fleet_fixed"])
     approval = Firms.request_kind(root, firm, "independent", "une seule personne").value!
-    approval.detail_text.should eq("Cabinet → Gestionnaire indépendant")
+    I18n.with_locale("fr") { approval.detail_text }.should eq("Cabinet → Gestionnaire indépendant")
     # Attaque : cible modifiée — un gestionnaire arrive entre la demande et la décision.
     manager = AdminSpec.user(Cfg::FILE_MANAGER, firm)
     Approvals.confirm_alone(root, approval, true, "yes").errors["kind"].should eq(["admin.errors.firm.independent_single"])

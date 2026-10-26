@@ -131,6 +131,15 @@ describe "Traductions de toutes les pages de la console (fr, en, nl, de, es, it,
     explorer.visit(root, variant, wizard_steps("move", 1..4))
     seed_wizard("archive", {"dossier_id" => active.pk.to_s, "reason" => "fin de mission"} of String => String | Array(String), 3)
     explorer.visit(root, variant, wizard_steps("archive", 1..3))
+    # Transfert vers une autre structure (D-ADM-027) : assistant, et demande
+    # dont la page d'accords est atteinte depuis « Opérations sensibles ».
+    south = AdminSpec.firm("Cabinet Sud")
+    AdminSpec.user(Config::FIRM_ADMIN, south)
+    south_payer = AdminSpec.payer(south)
+    seed_wizard("transfer", {"dossier_id" => active.pk.to_s, "firm_id" => south.pk.to_s, "payer_id" => south_payer.pk.to_s,
+                             "reason" => "rachat du cabinet"} of String => String | Array(String), 5)
+    explorer.visit(root, variant, wizard_steps("transfer", 1..5))
+    PartiduoAdmin::Transfers.request(AdminSpec.super_admin, suspended, south.pk.as(Int64), south_payer.pk.as(Int64), "rachat du cabinet").value!
     {Config::FILE_MANAGER, Config::FIRM_ADMIN}.each do |role|
       seed_wizard("user", {"email" => "etapes-#{role}@demo.fr", "first_name" => "Eva", "last_name" => "Étapes", "role" => role,
                            "firm_id" => firm.pk.to_s, "dossier_ids" => [active.pk.to_s], "locale" => "nl"} of String => String | Array(String), 5)

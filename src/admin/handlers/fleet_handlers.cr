@@ -1,24 +1,60 @@
 # SPDX-License-Identifier: AGPL-3.0-or-later
 
 module PartiduoAdmin
+  # Ligne de la liste des opérations sensibles. Un objet plutôt qu'un
+  # `Hash` : au-delà de huit clés, la recherche d'une clé d'un `Hash` par le
+  # moteur de gabarits de Marten échoue (index par empreinte, clé `Value`).
+  class ApprovalRow
+    include Marten::Template::Object::Auto
+
+    getter approval : Approval
+    getter can_decide : Bool
+    getter can_validate : Bool
+    getter recourse : Bool
+    getter recourse_at : String?
+    getter can_withdraw : Bool
+    getter can_confirm : Bool
+    getter firm_link : String?
+    getter is_transfer : Bool
+    getter can_consent : Bool
+    getter dossier_link : Bool
+
+    def initialize(@approval, *, @can_decide, @can_validate, @recourse, @recourse_at, @can_withdraw, @can_confirm,
+                   @firm_link, @is_transfer, @can_consent, @dossier_link)
+    end
+  end
+
   class ApprovalsHandler < ScreenHandler
     def get
       approvals = Approvals.visible(user).order("-id").to_a.first(100)
       now = Config.now
-      rows = approvals.map do |approval|
-        pending = approval.state == "pending" && approval.expires_at! > now
-        decide = pending && Access.can_approve?(user, approval)
-        # Dernier recours du super-admin (D-ADM-024) : avant l'heure, elle
-        # est montrée à la place du bouton « Valider ».
-        waiting = decide && Approvals.recourse_waiting?(user, approval, now)
-        {"approval" => approval, "can_decide" => decide, "can_validate" => decide && !waiting,
-         "recourse" => decide && !waiting && Approvals.recourse?(user, approval),
-         "recourse_at" => waiting ? Approvals.recourse_at(approval).to_s("%Y-%m-%d %H:%M UTC") : nil,
-         "can_withdraw" => pending && approval.requested_by_id == user.pk,
-         "can_confirm" => pending && Approvals.can_confirm_alone?(user, approval),
-         "firm_link" => firm_link(approval)}
-      end
+      rows = approvals.map { |approval| row(approval, now) }
       page("admin/approvals.html", {"rows" => rows, "recourse_hours" => Config.recourse_delay.total_hours.to_i.to_s})
+    end
+
+    # Gestes ouverts à l'utilisateur sur une demande.
+    private def row(approval : Approval, now : Time) : ApprovalRow
+      pending = approval.state == "pending" && approval.expires_at! > now
+      decide = pending && Access.can_approve?(user, approval)
+      transfer = approval.transfer?
+      # Dernier recours du super-admin (D-ADM-024) : avant l'heure, elle
+      # est montrée à la place du bouton « Valider ».
+      waiting = decide && Approvals.recourse_waiting?(user, approval, now)
+      ApprovalRow.new(approval, can_decide: decide, can_validate: decide && !waiting && !transfer,
+        recourse: decide && !waiting && Approvals.recourse?(user, approval),
+        recourse_at: waiting ? Approvals.recourse_at(approval).to_s("%Y-%m-%d %H:%M UTC") : nil,
+        can_withdraw: pending && approval.requested_by_id == user.pk,
+        can_confirm: pending && Approvals.can_confirm_alone?(user, approval),
+        firm_link: firm_link(approval), is_transfer: transfer,
+        can_consent: transfer && Transfers.can_consent?(user, approval, now),
+        dossier_link: dossier_link?(approval))
+    end
+
+    # Le dossier d'une demande s'ouvre-t-il à l'utilisateur ? (L'admin de la
+    # structure d'accueil d'un transfert ne le voit pas encore.)
+    private def dossier_link?(approval : Approval) : Bool
+      dossier = approval.dossier
+      !dossier.nil? && Access.in_scope?(user, dossier)
     end
 
     # Demande de structure (D-ADM-023) : lien vers l'écran de ses admins ou
@@ -36,6 +72,73 @@ module PartiduoAdmin
       else
         Administrators.can_manage_firm?(user, firm) ? "/firms/#{firm.pk}/admins" : nil
       end
+    end
+  end
+
+  # Transfert d'un dossier vers une autre structure (D-ADM-027) : suivi des
+  # accords des deux structures, et accord d'une personne habilitée de
+  # l'une d'elles (ré-authentification forte récente, case cochée).
+  class TransferHandler < ScreenHandler
+    def get
+      render_page(approval!)
+    end
+
+    def post
+      approval = approval!
+      outcome = Transfers.consent(user, approval, Auth::Sessions.recent_strong?(session_record, Config.now),
+        field("confirm") == "yes" ? "yes" : "")
+      if outcome.ok?
+        flash["success"] = I18n.t(outcome.value ? "admin.transfers.done" : "admin.transfers.consented",
+          reference: approval.reference.to_s)
+        return redirect("/approvals/#{approval.pk}/transfer")
+      end
+      approval.reload
+      render_page(approval, translate(outcome.errors), 422)
+    end
+
+    private def approval! : Approval
+      approval = Approvals.visible(user).filter(id: id_param, kind: Approval::TRANSFER).first
+      raise Access::Denied.new("approval") if approval.nil?
+      approval
+    end
+
+    private def render_page(approval : Approval, errors = {} of String => Array(String), status : Int32 = 200)
+      now = Config.now
+      session = session_record
+      mine = Transfers.side_of(user, approval)
+      sides = Transfers::SIDES.map do |side|
+        firm = Transfers.side_firm(approval, side)
+        consents = ApprovalConsent.filter(approval_id: approval.pk, side: side).order("id").to_a
+        # Noms des personnes : pour sa propre structure et le super-admin.
+        names = mine == side || user.super_admin? ? consents.compact_map(&.user.try(&.email.to_s)).join(", ") : ""
+        {"key" => "admin.transfers.sides.#{side}", "firm" => firm.try(&.name.to_s) || "",
+         "mode" => firm ? ApprovalMode.mode(firm, now) : ApprovalMode::SINGLE,
+         "needed" => (firm ? Transfers.needed(firm, now) : 1).to_s, "given" => consents.size.to_s,
+         "names" => names.presence, "mine" => mine == side}
+      end
+      dossier = approval.dossier!
+      confirm_path = "/approvals/#{approval.pk}/transfer"
+      page("admin/transfer.html", {
+        "approval"        => approval,
+        "dossier"         => dossier,
+        "dossier_link"    => Access.in_scope?(user, dossier),
+        "sides"           => sides,
+        "pending"         => approval.state == "pending" && approval.expires_at! > now,
+        "can_consent"     => Transfers.can_consent?(user, approval, now),
+        "can_reject"      => approval.state == "pending" && Transfers.can_reject?(user, approval),
+        "is_requester"    => approval.requested_by_id == user.pk,
+        "encryption_from" => "admin.encryption.modes.#{approval.param("encryption_from")}",
+        "encryption_to"   => "admin.encryption.modes.#{approval.param("encryption_to")}",
+        "recent"          => Auth::Sessions.recent_strong?(session, now),
+        "strong_at"       => session.try(&.strong_auth_at).try(&.to_s("%H:%M")),
+        "window"          => Config::REAUTH_WINDOW.total_minutes.to_i.to_s,
+        "has_passkey"     => Passkey.filter(user_id: user.pk).exists?,
+        "has_totp"        => !user.super_admin? && user.totp_enabled?,
+        "confirm_path"    => confirm_path,
+        "connect_reauth"  => Connect.configured? ? "/login/connect?acr=#{Auth.required_level(user)}&fresh=1&next=#{URI.encode_www_form(confirm_path)}" : nil,
+        "errors"          => errs(errors, "base") + errs(errors, "reauth") + errs(errors, "firm_id") + errs(errors, "payer_id") + errs(errors, "dossier_id"),
+        "confirm_errors"  => errs(errors, "confirmation"),
+      }, status: status)
     end
   end
 

@@ -226,17 +226,33 @@ module PartiduoAdmin
       if refused = lifecycle_refusal(user, dossier, action)
         return Outcome(Task).failure(*refused)
       end
+      # Archivage d'un dossier d'une structure à deux personnes : une
+      # demande (`Approvals.request_archive`), jamais le geste direct
+      # (D-ADM-027).
+      return Outcome(Task).failure("base", "admin.errors.approval.needs_request") if action == "archive" && dual?(dossier)
       kind, _ = TRANSITIONS[action]
+      params = lifecycle_params(dossier, action, reason) || return Outcome(Task).failure("base", "admin.errors.encryption.no_key")
+      task = Tasks.enqueue(kind, dossier.server!, params, user, dossier)
+      Audit.log(user, "dossier.#{action}", target: dossier, detail: {"reason" => reason})
+      Outcome(Task).new(task)
+    end
+
+    # Paramètres de la tâche d'une action du cycle de vie ; `nil` si
+    # l'archive exige la clé du cabinet, absente.
+    def self.lifecycle_params(dossier : Dossier, action : String, reason : String) : Tasks::Params?
       params = Tasks.dossier_params(dossier)
       params["reason"] = any(reason.presence || action)
       if action == "archive"
         # Archive chiffrée selon le réglage du dossier (D-CHF-001).
-        settings = BackupEncryption.task_settings(dossier) || return Outcome(Task).failure("base", "admin.errors.encryption.no_key")
-        params["encryption"] = settings
+        params["encryption"] = BackupEncryption.task_settings(dossier) || return
       end
-      task = Tasks.enqueue(kind, dossier.server!, params, user, dossier)
-      Audit.log(user, "dossier.#{action}", target: dossier, detail: {"reason" => reason})
-      Outcome(Task).new(task)
+      params
+    end
+
+    # Archivage et déplacement soumis à la validation à deux (D-ADM-027) :
+    # la structure du dossier est réglée sur deux personnes.
+    def self.dual?(dossier : Dossier, now : Time = Config.now) : Bool
+      ApprovalMode.mode_for(dossier, now) == ApprovalMode::DUAL
     end
 
     # Premier refus d'une action du cycle de vie (champ, clé), sans rien
@@ -385,17 +401,32 @@ module PartiduoAdmin
     # retrait de l'ancienne instance.
     def self.move(user : User, dossier : Dossier, server_id : Int64?, reason : String,
                   now : Time = Config.now) : Outcome(Dossier)
-      refused = move_dossier_refusal(user, dossier) || move_server_refusal(dossier, server_id) ||
-                move_reason_refusal(reason) || move_busy_refusal(dossier)
-      return Outcome(Dossier).failure(*refused) if refused
-      target = Server.get!(id: server_id)
+      if refused = move_refusal(user, dossier, server_id, reason)
+        return Outcome(Dossier).failure(*refused)
+      end
+      # Structure à deux personnes : une demande (`Approvals.request_move`,
+      # D-ADM-027).
+      return Outcome(Dossier).failure("base", "admin.errors.approval.needs_request") if dual?(dossier, now)
+      switch_server(user, dossier, Server.get!(id: server_id), reason)
+      Dns.request(dossier, user, now)
+      Outcome(Dossier).new(dossier)
+    end
+
+    # Premier refus d'un déplacement, toutes parties confondues.
+    def self.move_refusal(user : User, dossier : Dossier, server_id : Int64?, reason : String) : {String, String}?
+      move_dossier_refusal(user, dossier) || move_server_refusal(dossier, server_id) ||
+        move_reason_refusal(reason) || move_busy_refusal(dossier)
+    end
+
+    # Bascule du dossier vers son serveur d'accueil (le nom suit, par
+    # `Dns.request`, hors de la transaction d'une décision).
+    def self.switch_server(user : User, dossier : Dossier, target : Server, reason : String, approval : Approval? = nil) : Nil
       origin = dossier.server!
       dossier.server = target
       dossier.save!
-      Audit.log(user, "dossier.move", target: dossier,
-        detail: {"from" => origin.name.to_s, "to" => target.name.to_s, "reason" => reason.strip})
-      Dns.request(dossier, user, now)
-      Outcome(Dossier).new(dossier)
+      detail = {"from" => origin.name.to_s, "to" => target.name.to_s, "reason" => reason.strip}
+      approval.try { |decided| detail["approval"] = decided.reference.to_s }
+      Audit.log(user, "dossier.move", target: dossier, detail: detail)
     end
 
     # Refus d'un déplacement, par partie (le service et chaque étape de

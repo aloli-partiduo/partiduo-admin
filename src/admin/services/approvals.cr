@@ -43,6 +43,29 @@ module PartiduoAdmin
       create(user, dossier, "admin_invite", reason, {"email" => email.strip.downcase}, now)
     end
 
+    # Archivage d'un dossier d'une structure à deux personnes (D-ADM-027) :
+    # mêmes contrôles que le geste direct, motif exigé.
+    def self.request_archive(user : User, dossier : Dossier, reason : String, now : Time = Config.now) : Outcome(Approval)
+      if refused = Fleet.lifecycle_refusal(user, dossier, "archive")
+        return Outcome(Approval).failure(*refused)
+      end
+      create(user, dossier, "archive", reason, {} of String => String, now)
+    end
+
+    # Déplacement d'un dossier suspendu vers un autre serveur, structure à
+    # deux personnes (D-ADM-027) : mêmes contrôles que le geste direct ;
+    # serveur d'origine retenu pour le recontrôle.
+    def self.request_move(user : User, dossier : Dossier, server_id : Int64?, reason : String,
+                          now : Time = Config.now) : Outcome(Approval)
+      if refused = Fleet.move_refusal(user, dossier, server_id, reason)
+        return Outcome(Approval).failure(*refused)
+      end
+      target = Server.get!(id: server_id)
+      params = {"server_id" => target.pk.to_s, "from_server_id" => dossier.server_id.to_s,
+                "from_name" => dossier.server_name, "to_name" => target.name.to_s}
+      create(user, dossier, "move", reason, params, now)
+    end
+
     # Demande d'une autre opération sensible déjà contrôlée par son service
     # (administrateurs du dossier, D-ADM-017) : même motif exigé, une seule
     # demande en attente par type et par dossier, mode de la structure.
@@ -91,6 +114,7 @@ module PartiduoAdmin
     # dossier ou super-admin) : un gestionnaire de dossiers qui demande un
     # recours d'accès attend toujours un admin.
     def self.can_confirm_alone?(user : User, approval : Approval, now : Time = Config.now) : Bool
+      return false if approval.transfer?
       return false unless approval.state == "pending" && approval.requested_by_id == user.pk
       return false unless habilitated?(user, approval)
       ApprovalMode.mode(approval.target_firm!, now) == ApprovalMode::SINGLE
@@ -126,6 +150,8 @@ module PartiduoAdmin
       if failure = open_failure(approval, now)
         return failure
       end
+      # Transfert : l'accord de chaque structure (`Transfers.consent`).
+      return Outcome(Task).failure("base", "admin.errors.transfer.consent_only") if approval.transfer?
       if approval.requested_by_id == user.pk
         return Outcome(Task).failure("base", "admin.errors.approval.same_person")
       end
@@ -212,6 +238,7 @@ module PartiduoAdmin
       if failure = open_failure(approval, now)
         return failure
       end
+      return Outcome(Task).failure("base", "admin.errors.transfer.consent_only") if approval.transfer?
       return Outcome(Task).failure("base", "admin.errors.forbidden") unless approval.requested_by_id == user.pk
       return Outcome(Task).failure("base", "admin.errors.approval.needs_admin") unless habilitated?(user, approval)
       if ApprovalMode.mode(approval.target_firm!, now) != ApprovalMode::SINGLE
@@ -242,6 +269,11 @@ module PartiduoAdmin
           detail: {"kind" => approval.kind.to_s, "firm" => approval.firm!.name.to_s, "mode" => ApprovalMode::SINGLE})
       end
       outcome
+    end
+
+    # Demande encore ouverte ? Sinon la clé du refus (transfert, D-ADM-027).
+    def self.closed_failure(approval : Approval, now : Time) : String?
+      open_failure(approval, now).try(&.errors["base"]?.try(&.first?))
     end
 
     # Demande encore ouverte ? Sinon l'échec à rendre (une demande échue
@@ -307,30 +339,15 @@ module PartiduoAdmin
     # (`approvers`) dans les paramètres de la tâche.
     private def self.issue(user : User, approval : Approval, approvers : Array(String), mode : String,
                            now : Time) : Outcome(Task)
+      return apply_move(user, approval, mode, now) if approval.kind == "move"
       dossier = approval.dossier!
       params = Tasks.dossier_params(dossier)
       params["approval_ref"] = Tasks.any(approval.reference)
       params["approval_mode"] = Tasks.any(mode)
       params["approvers"] = Tasks.any(approvers)
       params["reason"] = Tasks.any(approval.reason)
-      kind = case approval.kind
-             when "delete"
-               # Recontrôle : l'état a pu changer depuis la demande.
-               unless dossier.delete_state? && dossier.retention_elapsed?(now)
-                 return Outcome(Task).failure("base", "admin.errors.dossier.retention_running")
-               end
-               params["backups"] = Tasks.any(Backup.filter(dossier_id: dossier.pk).exclude(state: "pruned")
-                 .flat_map { |backup| [backup.path.to_s, backup.media_path.to_s] }.reject(&.empty?))
-               "instance.delete"
-             when "admin_add", "admin_remove"
-               return Outcome(Task).failure("base", "admin.errors.dossier.not_active") unless dossier.state == "active"
-               Administrators.task_params(approval, params)
-             else
-               # Recontrôle : le dossier a pu être suspendu ou archivé depuis.
-               return Outcome(Task).failure("base", "admin.errors.dossier.not_active") unless dossier.state == "active"
-               params["email"] = Tasks.any(approval.param("email"))
-               "instance.admin_invite"
-             end
+      kind, refused = task_kind(approval, dossier, params, now)
+      return Outcome(Task).failure(*refused) if refused
       # La demande passe à « validée » par une mise à jour conditionnelle,
       # dans la transaction qui enregistre la tâche : de deux décisions
       # simultanées, une seule crée la tâche (D-AFN-010).
@@ -354,7 +371,82 @@ module PartiduoAdmin
         approval.reload
         return Outcome(Task).failure("base", "admin.errors.approval.state")
       end
+      if approval.kind == "archive"
+        Audit.log(approval.requested_by, "dossier.archive", target: dossier,
+          detail: {"reason" => approval.reason.to_s, "approval" => approval.reference.to_s})
+      end
       Outcome(Task).new(issued)
+    end
+
+    # Type de la tâche d'une demande décidée et ses paramètres propres, après
+    # les recontrôles de l'état présent ; ou le refus (champ, clé).
+    private def self.task_kind(approval : Approval, dossier : Dossier, params : Tasks::Params,
+                               now : Time) : {String, {String, String}?}
+      case approval.kind
+      when "delete"
+        # Recontrôle : l'état a pu changer depuis la demande.
+        return {"", {"base", "admin.errors.dossier.retention_running"}} unless dossier.delete_state? && dossier.retention_elapsed?(now)
+        params["backups"] = Tasks.any(Backup.filter(dossier_id: dossier.pk).exclude(state: "pruned")
+          .flat_map { |backup| [backup.path.to_s, backup.media_path.to_s] }.reject(&.empty?))
+        {"instance.delete", nil}
+      when "admin_add", "admin_remove"
+        return {"", {"base", "admin.errors.dossier.not_active"}} unless dossier.state == "active"
+        {Administrators.task_params(approval, params), nil}
+      when "archive"
+        # Recontrôle (D-ADM-027) : le demandeur peut encore archiver, le
+        # dossier est encore actif ou suspendu, la clé est là.
+        if refused = Fleet.lifecycle_refusal(approval.requested_by!, dossier, "archive")
+          return {"", refused}
+        end
+        params["encryption"] = BackupEncryption.task_settings(dossier) || return {"", {"base", "admin.errors.encryption.no_key"}}
+        {"instance.archive", nil}
+      else
+        # Recontrôle : le dossier a pu être suspendu ou archivé depuis.
+        return {"", {"base", "admin.errors.dossier.not_active"}} unless dossier.state == "active"
+        params["email"] = Tasks.any(approval.param("email"))
+        {"instance.admin_invite", nil}
+      end
+    end
+
+    # Déplacement décidé (D-ADM-027) : la demande passe à « validée » et le
+    # dossier bascule dans la même transaction, après les recontrôles
+    # (demandeur encore super-admin, dossier suspendu et toujours sur son
+    # serveur d'origine, serveur d'accueil actif, aucune tâche en cours) ;
+    # sinon la demande est close. Le nom suit hors de la transaction, et
+    # l'assistant de restauration « déplacement » est préparé pour le
+    # demandeur. Aucune tâche : la valeur rendue est vide.
+    private def self.apply_move(user : User, approval : Approval, mode : String, now : Time) : Outcome(Task)
+      failure = Fleet::Errors.new
+      done = false
+      dossier = Dossier.get!(id: approval.dossier_id)
+      requester = User.get!(id: approval.requested_by_id)
+      Marten::DB::Connection.default.transaction do
+        claimed = Approval.filter(id: approval.pk, state: "pending")
+          .update(state: "approved", decided_at: now, mode: mode, decided_by_id: user.pk)
+        if claimed == 1
+          refused = if dossier.server_id.to_s != approval.param("from_server_id")
+                      {"base", "admin.errors.approval.target_changed"}
+                    else
+                      Fleet.move_refusal(requester, dossier, approval.param("server_id").to_i64?, approval.reason.to_s)
+                    end
+          if refused
+            failure = Fleet::Errors{refused[0] => [refused[1]]}
+            raise Marten::DB::Errors::Rollback.new
+          end
+          Fleet.switch_server(requester, dossier, Server.get!(id: approval.param("server_id").to_i64), approval.reason.to_s, approval)
+          done = true
+        end
+      end
+      unless done
+        approval.reload
+        return Outcome(Task).failure("base", "admin.errors.approval.state") if failure.empty?
+        stale(user, approval, failure, now)
+        return Outcome(Task).new(nil, failure)
+      end
+      approval.reload
+      Dns.request(dossier, requester, now)
+      Wizards.prepare_move_restore(requester, dossier)
+      Outcome(Task).new(nil)
     end
 
     def self.reject(user : User, approval : Approval, now : Time = Config.now) : Bool
@@ -373,6 +465,9 @@ module PartiduoAdmin
       approval.decided_at = now
       approval.save!
       Audit.log(user, "approval.reject", target: approval)
+      # Transfert : tracé aussi dans le journal de la structure d'accueil
+      # (D-ADM-027).
+      Audit.log(user, "approval.reject", target: approval, firm_id: PartiduoAdmin.id?(approval.firm_id)) if approval.transfer?
       true
     end
 
@@ -389,6 +484,7 @@ module PartiduoAdmin
 
     # Écran où revenir après la décision d'une demande de structure.
     def self.back_path(approval : Approval) : String
+      return "/dossiers/#{approval.dossier_id}" unless approval.firm_target?
       case approval.kind
       when "mode_single"                   then "/firms/#{approval.firm_id}/approval-mode"
       when .in?(Approval::STRUCTURE_KINDS) then "/firms/#{approval.firm_id}/settings"

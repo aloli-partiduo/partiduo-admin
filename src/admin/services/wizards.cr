@@ -13,7 +13,7 @@ module PartiduoAdmin
   module Wizards
     alias Errors = Fleet::Errors
 
-    KINDS = %w[firm company household server restore move archive user]
+    KINDS = %w[firm company household server restore move archive transfer user]
 
     # Étapes de chaque parcours. Serveur : la validation est au
     # récapitulatif (le jeton de l'exécutant n'existe qu'une fois le serveur
@@ -28,6 +28,7 @@ module PartiduoAdmin
       "restore"   => %w[dossier backup target check summary key],
       "move"      => %w[dossier server consequences summary],
       "archive"   => %w[dossier consequences summary],
+      "transfer"  => %w[dossier firm payer consequences summary],
       "user"      => %w[identity role dossiers language summary],
     }
 
@@ -58,11 +59,13 @@ module PartiduoAdmin
           payer_contact_email server_id backup_schedule backup_retention_days],
         "admins" => %w[admin_email],
       },
-      "server"  => {"identity" => %w[name hostname domain]},
-      "restore" => {"dossier" => %w[dossier_id], "backup" => %w[backup_id], "target" => %w[target new_slug]},
-      "move"    => {"dossier" => %w[dossier_id], "server" => %w[server_id], "consequences" => %w[reason]},
-      "archive" => {"dossier" => %w[dossier_id], "consequences" => %w[reason]},
-      "user"    => {"identity" => %w[email first_name last_name], "role" => %w[role firm_id], "language" => %w[locale]},
+      "server"   => {"identity" => %w[name hostname domain]},
+      "restore"  => {"dossier" => %w[dossier_id], "backup" => %w[backup_id], "target" => %w[target new_slug]},
+      "move"     => {"dossier" => %w[dossier_id], "server" => %w[server_id], "consequences" => %w[reason]},
+      "archive"  => {"dossier" => %w[dossier_id], "consequences" => %w[reason]},
+      "transfer" => {"dossier" => %w[dossier_id], "firm" => %w[firm_id], "payer" => %w[payer_id],
+                     "consequences" => %w[reason]},
+      "user" => {"identity" => %w[email first_name last_name], "role" => %w[role firm_id], "language" => %w[locale]},
     }
 
     LISTS = {
@@ -100,6 +103,7 @@ module PartiduoAdmin
       when "company", "household"       then !user.file_manager? && Access.firms(user).filter(active: true).exists?
       when "restore", "archive", "user" then !user.file_manager?
       when "move"                       then user.super_admin?
+      when "transfer"                   then Transfers.can_request?(user)
       else                                   false
       end
     end

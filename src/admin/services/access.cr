@@ -21,6 +21,8 @@ module PartiduoAdmin
   # |valider un affaiblissement du chiffrement (D-ADM-025) |dernier recours, jamais hors clé du cabinet |la sienne |—
   # |utilisateurs, affectations, donneurs d'ordre |tous |son cabinet |—
   # |administrateurs d'une structure |toutes |la sienne |—
+  # |demander le transfert d'un dossier vers une autre structure (D-ADM-027) |oui |— |—
+  # |donner l'accord de sa structure à un transfert |parc sans cabinet |la sienne |—
   # |cabinets, serveurs |oui |— |—
   # |désactiver, réactiver une structure, changer sa nature (D-ADM-026) |oui, soumis à validation |— |—
   # |journal d'audit |tout |son cabinet |—
@@ -130,6 +132,9 @@ module PartiduoAdmin
     # touche un compte de super-admin.
     def self.can_approve?(user : User, approval : Approval) : Bool
       return false if approval.requested_by_id == user.pk
+      # Transfert (D-ADM-027) : une personne habilitée de l'une des deux
+      # structures (son accord se donne sur la page du transfert).
+      return !Transfers.side_of(user, approval).nil? if approval.transfer?
       if dossier = approval.dossier
         return can?(user, :approve, dossier)
       end

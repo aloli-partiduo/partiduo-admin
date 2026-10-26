@@ -217,6 +217,29 @@ le compte visé « En attente de validation ».
 partiduo-admin-manage approval-mode-single --firm=<id> --reason="second super-admin injoignable"
 ----
 
+=== Archivage, déplacement et transfert d'un dossier (D-ADM-027)
+
+* *Archivage et déplacement* : dans une structure réglée sur deux
+  personnes, ce sont des opérations sensibles — la fiche du dossier et les
+  assistants enregistrent une demande, qu'une autre personne habilitée
+  valide (recontrôle à la décision ; le déplacement bascule alors le nom et
+  prépare l'assistant de restauration du demandeur). À une personne, geste
+  direct. La restauration reste hors de la validation à deux (la clé d'une
+  sauvegarde chiffrée n'est jamais conservée).
+* *Transfert vers une autre structure* (assistant « Transférer un
+  dossier », super-admin) : demande qui vise le dossier et la structure
+  d'accueil, avec le donneur d'ordre choisi dans l'accueil ; chaque
+  structure donne son accord sur la page du transfert
+  (`/approvals/<id>/transfer`), selon son réglage (une personne, ou deux
+  personnes distinctes), après ré-authentification forte ; jamais le
+  demandeur, jamais de dernier recours. Au dernier accord : rattachement et
+  donneur d'ordre changés, gestionnaires de l'ancienne structure retirés,
+  administrateurs du dossier inchangés, demandes en attente closes,
+  chiffrement jamais affaibli (clé de l'accueil exigée pour « clé du
+  cabinet »), sauvegardes passées laissées telles quelles (pas de
+  re-chiffrement), sauvegarde prise aussitôt, traces dans les journaux des
+  deux structures. Exécutant et instance inchangés.
+
 == Sauvegardes et chiffrement
 
 Chaque sauvegarde d'un dossier est un `pg_dump -Fc` de sa base et une

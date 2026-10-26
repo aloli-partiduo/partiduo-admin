@@ -200,6 +200,7 @@ module PartiduoAdmin
         "access"          => Access.can?(user, :request_admin_invite, dossier) && dossier.state == "active",
         "assign"          => !user.file_manager?,
         "encryption"      => encryption?(dossier),
+        "transfer"        => Transfers.can_request?(user) && Transfers::STATES.includes?(dossier.state),
       })
     end
   end
@@ -248,6 +249,11 @@ module PartiduoAdmin
     def post
       dossier = dossier!
       action = params["action"].to_s
+      # Archivage d'une structure à deux personnes : une demande (D-ADM-027).
+      if action == "archive" && Fleet.dual?(dossier)
+        request = Approvals.request_archive(user, dossier, field("reason"))
+        return DossierApprovalRequestHandler.requested(self, request, dossier)
+      end
       outcome = case action
                 when "backup" then Fleet.backup_now(user, dossier)
                 else               Fleet.lifecycle(user, dossier, action, field("reason"))
@@ -296,6 +302,11 @@ module PartiduoAdmin
   class DossierMoveHandler < ScreenHandler
     def post
       dossier = dossier!
+      # Structure à deux personnes : une demande (D-ADM-027).
+      if Fleet.dual?(dossier)
+        request = Approvals.request_move(user, dossier, field("server_id").to_i64?, field("reason"))
+        return DossierApprovalRequestHandler.requested(self, request, dossier)
+      end
       outcome = Fleet.move(user, dossier, field("server_id").to_i64?, field("reason"))
       if outcome.ok?
         flash[dossier.dns_state == "error" ? "warning" : "success"] =
@@ -310,6 +321,17 @@ module PartiduoAdmin
   # Opérations sensibles : suppression définitive, recours d'accès, à une
   # ou deux personnes selon le réglage de la structure (D-VAL2-001).
   class DossierApprovalRequestHandler < ScreenHandler
+    # Demande d'archivage ou de déplacement enregistrée (D-ADM-027), ou son
+    # refus, sur la fiche du dossier.
+    def self.requested(handler : ScreenHandler, request : Fleet::Outcome(Approval), dossier : Dossier) : Marten::HTTP::Response
+      if request.ok?
+        handler.flash["success"] = I18n.t("admin.approvals.requested", reference: request.value!.reference.to_s)
+      else
+        handler.flash["danger"] = request.errors.values.flatten.map { |key| I18n.t(key) }.join(" ")
+      end
+      handler.go("/dossiers/#{dossier.pk}")
+    end
+
     def post
       dossier = dossier!
       outcome = case params["kind"].to_s

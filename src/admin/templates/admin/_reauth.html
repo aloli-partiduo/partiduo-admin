@@ -1,0 +1,19 @@
+{# SPDX-License-Identifier: AGPL-3.0-or-later. Ré-authentification forte avant une décision prise seul ou un accord (D-VAL2-004, D-ADM-027) : connect, clé d'accès ou code TOTP ; retour à `confirm_path`. #}<section class="pd-panel" aria-labelledby="pd-reauth-title">
+  <h2 id="pd-reauth-title">{% translate "admin.reauth.title" %}</h2>
+  {% if recent %}<p class="pd-ok-text" role="status">{% translate "admin.reauth.recent" %} <span class="pd-mono">{{ strong_at }}</span></p>
+  {% else %}<p class="mb-3">{% translate "admin.reauth.needed" %} ({{ window }} min)</p>
+    {% if connect_reauth %}<div class="buttons"><a class="button is-link" href="{{ connect_reauth }}">{% translate "admin.reauth.connect" %}</a></div>{% endif %}
+    {% if has_passkey %}<div class="buttons">
+      <button type="button" class="button is-link" data-passkey="elevate" data-options-url="{% url 'elevate_options' %}" data-submit-url="{% url 'elevate' %}" data-next="{{ confirm_path }}" data-status="pd-reauth-status">{% translate "admin.reauth.passkey" %}</button>
+    </div>
+    <p class="help" id="pd-reauth-status" role="status" aria-live="polite" data-unsupported="{% translate 'admin.passkey.unsupported' %}" data-failed="{% translate 'admin.passkey.failed' %}" data-waiting="{% translate 'admin.passkey.waiting' %}"></p>{% endif %}
+    {% if has_totp %}<form method="post" action="{% url 'reauth_totp' %}" class="pd-inline{% if has_passkey %} mt-3{% endif %}">
+      {% csrf_input %}
+      <input type="hidden" name="next" value="{{ confirm_path }}">
+      <div class="field"><label class="label" for="pd-reauth-code">{% translate "admin.reauth.totp" %}</label><div class="control"><input class="input pd-mono" id="pd-reauth-code" name="code" type="text" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9 ]{6,7}" required aria-describedby="pd-reauth-code-help"></div></div>
+      <button class="button is-link" type="submit">{% translate "admin.login.verify" %}</button>
+    </form>
+    <p class="help" id="pd-reauth-code-help">{% translate "admin.reauth.totp_help" %}</p>{% endif %}
+    {% if not has_passkey %}{% if not has_totp %}<p class="help">{% translate "admin.reauth.no_means" %}</p>{% endif %}{% endif %}
+  {% endif %}
+</section>

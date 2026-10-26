@@ -45,7 +45,7 @@ describe "Affaiblissement du chiffrement soumis à validation (D-ADM-025)" do
 
     approval = Enc.request_firm_weaken(admin, firm, "exploitation", "clé perdue").value!
     approval.kind.should eq("backup_weaken")
-    approval.detail_text.should eq("Clé du cabinet → Clé d'exploitation")
+    I18n.with_locale("fr") { approval.detail_text }.should eq("Clé du cabinet → Clé d'exploitation")
     Approvals.confirm_alone(admin, approval, false, "yes").errors["reauth"].should eq(["admin.errors.approval.reauth"])
     Approvals.confirm_alone(admin, approval, true, "yes").ok?.should be_true
     firm.reload.backup_encryption.should eq("exploitation")
@@ -104,7 +104,7 @@ describe "Affaiblissement du chiffrement soumis à validation (D-ADM-025)" do
     Enc.set_dossier_mode(admin, dossier, "").errors["mode"].should eq(["admin.errors.encryption.needs_approval"])
     Enc.set_dossier_mode(admin, dossier, "none").errors["mode"].should eq(["admin.errors.encryption.needs_approval"])
     approval = Enc.request_dossier_weaken(admin, dossier, "", "retour au réglage").value!
-    approval.detail_text.should eq("Clé du cabinet → Clé d'exploitation · #{dossier.slug}")
+    I18n.with_locale("fr") { approval.detail_text }.should eq("Clé du cabinet → Clé d'exploitation · #{dossier.slug}")
     Approvals.confirm_alone(admin, approval, true, "yes").ok?.should be_true
     dossier.reload.backup_encryption.should eq("")
     dossier.effective_encryption.should eq("exploitation")
