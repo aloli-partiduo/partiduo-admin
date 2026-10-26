@@ -104,7 +104,17 @@ module PartiduoAdmin
         return Access.can?(user, :approve, dossier)
       end
       firm = approval.firm
-      !firm.nil? && Administrators.can_request_firm?(user, firm, approval.super_scope?)
+      return false if firm.nil?
+      return member?(user, firm) if Approval::MEMBER_KINDS.includes?(approval.kind)
+      Administrators.can_request_firm?(user, firm, approval.super_scope?)
+    end
+
+    # Membre habilité de la structure : admin actif de la structure ;
+    # super-admin actif pour le parc sans cabinet.
+    def self.member?(user : User, firm : Firm) : Bool
+      return false unless user.active == true
+      return user.super_admin? if firm.fleet?
+      user.firm_admin? && user.firm_id == firm.pk
     end
 
     # Validation par une *autre* personne habilitée : toujours possible,
@@ -380,7 +390,10 @@ module PartiduoAdmin
     # Écran où revenir après la décision d'une demande de structure.
     def self.back_path(approval : Approval) : String
       case approval.kind
-      when "mode_single"                   then "/firms/#{approval.firm_id}/approval-mode"
+      when "mode_single" then "/firms/#{approval.firm_id}/approval-mode"
+      when "backup_weaken"
+        dossier = approval.param("dossier_id")
+        dossier.empty? ? "/firms/#{approval.firm_id}/backups" : "/dossiers/#{dossier}"
       when "admin_disable", "admin_enable" then "/users"
       else                                      "/firms/#{approval.firm_id}/admins"
       end

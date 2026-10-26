@@ -12,6 +12,12 @@ module PartiduoAdmin
 
     def post
       firm = firm!
+      # Affaiblissement : une demande, validée par la structure (D-ADM-025).
+      if BackupEncryption.firm_request?(firm, field("mode"))
+        request = BackupEncryption.request_firm_weaken(user, firm, field("mode"), field("reason"))
+        return ApprovalConfirmHandler.after_firm_request(self, request.value!) if request.ok?
+        return render_page(firm, translate(request.errors), status: 422)
+      end
       outcome = BackupEncryption.set_firm_mode(user, firm, field("mode"))
       if outcome.ok?
         flash["success"] = I18n.t("admin.encryption.saved")
@@ -42,6 +48,9 @@ module PartiduoAdmin
         "can_deposit" => BackupEncryption.can_deposit_key?(user, firm),
         "dossiers"    => dossiers,
         "set_at"      => firm.backup_key_set_at.try(&.to_s("%Y-%m-%d %H:%M")),
+        "gated"       => Administrators.firm_gated?(firm),
+        "weakenings"  => ApprovalMode.pending(firm).select(&.kind.==("backup_weaken")),
+        "reason"      => field("reason"),
       }, status: status)
     end
   end
@@ -68,6 +77,13 @@ module PartiduoAdmin
   class DossierEncryptionHandler < ScreenHandler
     def post
       dossier = dossier!
+      # Affaiblissement du chiffrement effectif : une demande (D-ADM-025).
+      if BackupEncryption.dossier_request?(dossier, field("mode"))
+        request = BackupEncryption.request_dossier_weaken(user, dossier, field("mode"), field("reason"))
+        return ApprovalConfirmHandler.after_firm_request(self, request.value!) if request.ok?
+        flash["danger"] = request.errors.values.flatten.map { |key| I18n.t(key) }.join(" ")
+        return go("/dossiers/#{dossier.pk}")
+      end
       outcome = BackupEncryption.set_dossier_mode(user, dossier, field("mode"))
       if outcome.ok?
         flash["success"] = I18n.t("admin.encryption.saved")

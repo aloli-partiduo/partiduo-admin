@@ -135,10 +135,10 @@ es:
         help: "Registro del inmovilizado, planes de amortización y dotaciones."
       crm:
         name: "Relación con clientes"
-        help: "Seguimiento comercial de clientes y prospectos."
+        help: "Seguimiento comercial de clientes y clientes potenciales."
       teledec:
         name: "TELEDEC"
-        help: "Declaraciones fiscales (cuentas anuales, IVA, 2035) presentadas por TELEDEC."
+        help: "Declaraciones fiscales (liasses fiscales, IVA, 2035) presentadas por TELEDEC."
       urssaf:
         name: "URSSAF"
         help: "Declaración por terceros del microempresario ante la URSSAF."
@@ -495,6 +495,10 @@ es:
         bad_key: "Clave privada ilegible o frase de contraseña incorrecta."
         wrong_key: "Esta clave no es la de la copia de seguridad (huella diferente)."
         missing_key: "Elija el archivo de la clave privada o péguela."
+      order: "Orden de protección, de más a menos protector: clave del despacho, clave de explotación, clave del servidor (retirada), ninguno."
+      weaken_gated: "Pasar a un modo menos protector se solicita y lo valida la estructura (una o dos personas según su configuración); el refuerzo y el cambio de la clave del despacho siguen siendo inmediatos."
+      weaken_reason_help: "Acompaña la solicitud de debilitamiento; inscrito en el registro de auditoría."
+      weaken_pending: "Solicitudes de debilitamiento pendientes"
     approvals:
       title: "Operaciones sensibles"
       help: "Una eliminación definitiva o una recuperación de acceso requiere una solicitud. Dos personas: otra persona autorizada la valida. Una persona: el solicitante la confirma solo, tras volver a autenticarse."
@@ -524,6 +528,7 @@ es:
         admin_disable: "desactivación de una cuenta de administrador"
         admin_enable: "reactivación de una cuenta de administrador"
         mode_single: "vuelta a la validación por una persona"
+        backup_weaken: "debilitamiento del cifrado de las copias de seguridad"
       states:
         pending: "pendiente"
         approved: "validada"
@@ -590,20 +595,20 @@ es:
     firm_approvals:
       waiting: "Pendiente de validación"
       pending_title: "Solicitudes pendientes sobre la estructura"
-      confirm_help: "La acción se realiza al confirmar; el rastro va al registro de auditoría."
+      confirm_help: "La acción se realiza al confirmar; queda constancia en el registro de auditoría."
       confirm_button: "Confirmar y aplicar"
-      done: "Solicitud %{reference} confirmada: hecho."
-      approved: "Solicitud validada: hecho."
+      done: "Solicitud %{reference} confirmada: acción realizada."
+      approved: "Solicitud validada: acción realizada."
       fields:
         reason: "Motivo (opcional)"
       help:
         reason: "Se muestra a quien valide la solicitud y se inscribe en el registro de auditoría."
         invite_reason: "Invitar a un administrador a una estructura que ya tiene su equipo pasa por una solicitud de validación; este motivo la acompaña."
-        gated_dual: "Cada cambio de administradores pasa por una solicitud que valida otra persona habilitada (validación por dos personas)."
+        gated_dual: "Cada cambio de administradores pasa por una solicitud que valida otra persona autorizada (validación por dos personas)."
         gated_single: "Cada cambio de administradores pasa por una solicitud que usted confirma tras volver a autenticarse (validación por una persona)."
-        mode_single: "Volver a una persona se solicita: otra persona habilitada debe validarlo."
+        mode_single: "La vuelta a la validación por una persona requiere una solicitud: otra persona autorizada debe validarla."
         scope: "Este ajuste rige también la invitación, el nombramiento, la retirada y la sustitución de los administradores de la estructura, la desactivación y la reactivación de una cuenta de administrador, y la vuelta a una persona."
-        wizard: "Invitar a un administrador a una estructura que ya tiene su equipo pasa por una solicitud de validación: al validar, la confirmará tras volver a autenticarse (una persona), o esperará a otra persona habilitada (dos personas)."
+        wizard: "Invitar a un administrador a una estructura que ya tiene su equipo pasa por una solicitud de validación: al validar, la confirmará tras volver a autenticarse (una persona), o esperará a otra persona autorizada (dos personas)."
       confirm:
         firm_invite: "Confirmo la invitación como administrador de la estructura de"
         firm_promote: "Confirmo el nombramiento como administrador de la estructura de"
@@ -612,6 +617,7 @@ es:
         admin_disable: "Confirmo la desactivación de la cuenta de"
         admin_enable: "Confirmo la reactivación de la cuenta de"
         mode_single: "Confirmo la vuelta a la validación por una persona para"
+        backup_weaken: "Confirmo el debilitamiento del cifrado de las copias de seguridad de"
     reauth:
       connect: "Confirmar con mi cuenta Partiduo"
       title: "Reautenticación"
@@ -924,6 +930,7 @@ es:
         public_key: "Clave pública rechazada: PEM «PUBLIC KEY», RSA de 3072 bits como mínimo."
         key_required: "Esta copia de seguridad está cifrada: proporcione su clave (cápsula abierta con una clave de explotación o con la clave del despacho)."
         wrong_key: "Esta clave no descifra la copia de seguridad."
+        needs_approval: "Pasar a un cifrado menos protector exige una solicitud validada por la estructura."
       signing_key:
         invalid: "Clave rechazada: se espera una clave pública «ssh-ed25519 …»."
         taken: "Esta clave de firma ya está declarada."
@@ -938,7 +945,7 @@ es:
         fleet_taken: "El parque sin despacho ya existe."
       dual_approval:
         team: "La doble validación exige al menos dos personas autorizadas."
-        needs_approval: "Volver a una persona se solicita: otra persona habilitada lo valida."
+        needs_approval: "La vuelta a la validación por una persona requiere una solicitud: otra persona autorizada la valida."
       reauth:
         no_totp: "No es posible la reautenticación por código: utilice su llave de acceso."
       server:
@@ -992,7 +999,7 @@ es:
         unknown: "sin releer"
       removals:
         revoke: "Revocar el acceso"
-        demote: "Degradar (perfil contable)"
+        demote: "Degradar (perfil de contable)"
       confirm:
         add: "Confirmo el alta del administrador"
         remove: "Confirmo la baja del administrador"
@@ -1006,7 +1013,7 @@ es:
       track: "Pasos"
       done: "hecho"
       step_of: "Paso %{number} de %{total}"
-      edit: "Modificar"
+      edit: "Editar"
       nothing_yet: "Todavía no se ha creado nada: la creación tiene lugar en la validación."
       previous: "Anterior"
       next: "Siguiente"
@@ -1135,7 +1142,7 @@ es:
         config_title: "Conexión del agente"
         admin_url: "Dirección de la administración"
         token_file: "Archivo del token (recomendado)"
-        command: "Orden"
+        command: "Comando"
         token_lost: "El token solo se muestra una vez. Si no se ha copiado, regenérelo: el anterior deja de valer de inmediato."
         connection_title: "Conexión del agente"
         mode: "Modo"
@@ -1147,7 +1154,7 @@ es:
         waiting: "Esperando al agente: todavía ninguna visita con este token."
         agent_title: "Agente"
         version_differs: "Versión distinta de la de la consola (%{console}): actualice el paquete partiduo-admin del servidor."
-        dry_run: "Agente en simulación: no se hará ningún gesto real en este servidor."
+        dry_run: "Agente en simulación: no se realizará ninguna acción real en este servidor."
         disk_title: "Disco"
         disk_unknown: "Todavía no hay medición: solicite un primer control."
         no_signing_key: "Ninguna clave de firma declarada: las copias de seguridad de este servidor no podrán restaurarse (D-CHF-018). Pegue la clave pública que instaló beryl."
@@ -1191,7 +1198,7 @@ es:
         signature_agent: "El agente verifica la firma del manifiesto y las huellas antes de cualquier lectura (D-CHF-018)."
         integrity_title: "Integridad"
         key_cabinet: "Cifrada con la clave del despacho: su clave privada se pedirá en el último paso, se usará en este navegador y nunca se enviará."
-        key_exploitation: "Cifrada con la clave de explotación: la cápsula se abre en el puesto del explotador; la clave de copia obtenida se pega en el último paso."
+        key_exploitation: "Cifrada con la clave de explotación: la cápsula se abre en el equipo del operador; la clave de copia obtenida se pega en el último paso."
         key_none: "Copia sin cifrar: no hace falta ninguna clave."
         replace_warning: "Sustitución: la instancia actual será sustituida por la copia; justo antes se toma una copia de seguridad previa."
         errors:

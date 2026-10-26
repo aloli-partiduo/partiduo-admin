@@ -86,9 +86,10 @@
       <option value=""{% if dossier.encryption_inherited %} selected{% endif %}>{% translate "admin.encryption.inherit" %} — {% translate firm_mode_key %}</option>
       {% for mode in encryption_modes %}<option value="{{ mode.value }}"{% if mode.selected %} selected{% endif %}>{% translate mode.key %}</option>{% endfor %}
     </select></div></div>
+    {% if encryption_gated %}<div class="field"><label class="label" for="pd-encryption-reason">{% translate "admin.firm_approvals.fields.reason" %}</label><div class="control"><input class="input" id="pd-encryption-reason" name="reason" type="text"></div></div>{% endif %}
     <button class="button" type="submit">{% translate "admin.save" %}</button>
   </form>
-  <p class="help" id="pd-encryption-help">{% translate "admin.encryption.dossier_help" %}</p>
+  <p class="help" id="pd-encryption-help">{% translate "admin.encryption.dossier_help" %}{% if encryption_gated %} {% translate "admin.encryption.weaken_gated" %}{% endif %}</p>
 </section>
 {% endif %}
 

@@ -62,6 +62,14 @@ private def sealed_backup(dossier : PartiduoAdmin::Dossier, key : Crypto::Public
   {PartiduoAdmin::Tasks::Effects.record_backup(task, dossier, "manual", data, SPEC_NOW), backup_key.identity}
 end
 
+# Affaiblissement du réglage du cabinet : demandé puis confirmé seul par
+# son admin (structure à une personne, D-ADM-025).
+private def weaken_firm(admin : PartiduoAdmin::User, firm : PartiduoAdmin::Firm, mode : String) : Nil
+  approval = PartiduoAdmin::BackupEncryption.request_firm_weaken(admin, firm, mode).value!
+  PartiduoAdmin::Approvals.confirm_alone(admin, approval, true, "yes").ok?.should be_true
+  firm.reload.backup_encryption.should eq(mode)
+end
+
 describe "Chiffrement des sauvegardes : réglages (D-CHF-001, D-CHF-008, D-CHF-015)" do
   it "chiffre par défaut pour les clés d'exploitation, et le dossier peut surcharger le cabinet" do
     firm = AdminSpec.firm
@@ -73,7 +81,11 @@ describe "Chiffrement des sauvegardes : réglages (D-CHF-001, D-CHF-008, D-CHF-0
     task.params_json["encryption"].as_h.should eq({"mode" => JSON::Any.new("exploitation")})
 
     admin = AdminSpec.user(Config::FIRM_ADMIN, firm)
-    PartiduoAdmin::BackupEncryption.set_dossier_mode(admin, dossier, "none").ok?.should be_true
+    # Affaiblissement : une demande, confirmée seule (D-ADM-025).
+    PartiduoAdmin::BackupEncryption.set_dossier_mode(admin, dossier, "none").errors["mode"]
+      .should eq(["admin.errors.encryption.needs_approval"])
+    weaken = PartiduoAdmin::BackupEncryption.request_dossier_weaken(admin, dossier, "none").value!
+    PartiduoAdmin::Approvals.confirm_alone(admin, weaken, true, "yes").ok?.should be_true
     dossier.reload.effective_encryption.should eq("none")
     PartiduoAdmin::Fleet.backup_now(nil, dossier, "scheduled").value!.params_json["encryption"]["mode"].should eq("none")
     audits("backup_encryption.dossier").last.detail.to_s.should contain(%("to":"none"))
@@ -130,7 +142,7 @@ describe "Chiffrement des sauvegardes : réglages (D-CHF-001, D-CHF-008, D-CHF-0
     dossier = AdminSpec.dossier(firm, server)
     PartiduoAdmin::BackupEncryption.set_dossier_mode(root, dossier, "none").errors["mode"]
       .should eq(["admin.errors.encryption.leave_cabinet"])
-    PartiduoAdmin::BackupEncryption.set_firm_mode(admin, firm, "exploitation").ok?.should be_true
+    weaken_firm(admin, firm, "exploitation")
   end
 
   it "garde à chaque sauvegarde son mode, sa capsule et son serveur d'origine quand le réglage change" do
@@ -140,7 +152,7 @@ describe "Chiffrement des sauvegardes : réglages (D-CHF-001, D-CHF-008, D-CHF-0
     old = AdminSpec.backup(dossier, SPEC_NOW - 3.days)
     backup, identity = sealed_backup(dossier, key)
     PartiduoAdmin::BackupEncryption.set_firm_mode(admin, firm, "cabinet").ok?.should be_true
-    PartiduoAdmin::BackupEncryption.set_firm_mode(admin, firm, "none").ok?.should be_true
+    weaken_firm(admin, firm, "none")
     old.reload.encryption_mode.should eq("none")
     backup.reload.encryption_mode.should eq("cabinet")
     backup.key_fingerprint.should eq(key.fingerprint)

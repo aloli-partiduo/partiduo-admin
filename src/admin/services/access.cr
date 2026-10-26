@@ -18,6 +18,7 @@ module PartiduoAdmin
   # |confirmer seul sa demande (structure « une personne ») |tous |son cabinet |—
   # |régler la validation à deux |parc sans cabinet |sa structure |—
   # |demander ou valider une action de structure (D-ADM-023) |toutes |la sienne |—
+  # |valider un affaiblissement du chiffrement (D-ADM-025) |dernier recours, jamais hors clé du cabinet |la sienne |—
   # |utilisateurs, affectations, donneurs d'ordre |tous |son cabinet |—
   # |administrateurs d'une structure |toutes |la sienne |—
   # |cabinets, serveurs |oui |— |—
@@ -132,7 +133,15 @@ module PartiduoAdmin
         return can?(user, :approve, dossier)
       end
       firm = approval.firm
-      !firm.nil? && Administrators.can_request_firm?(user, firm, approval.super_scope?)
+      return false if firm.nil?
+      # Affaiblissement du chiffrement (D-ADM-025) : la structure ; le
+      # super-admin en dernier recours, jamais pour quitter la clé du
+      # cabinet (D-CHF-008).
+      if Approval::MEMBER_KINDS.includes?(approval.kind)
+        return true if Approvals.member?(user, firm)
+        return user.super_admin? && user.active == true && approval.param("from") != "cabinet"
+      end
+      Administrators.can_request_firm?(user, firm, approval.super_scope?)
     end
 
     def self.tasks(user : User) : Marten::DB::Query::Set(Task)

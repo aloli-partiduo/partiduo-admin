@@ -248,6 +248,17 @@ son navigateur.
   pour les clés d'exploitation du serveur ; `….key.rsa`, RSA-OAEP
   (SHA-256) pour la clé du cabinet. La capsule est déposée au stockage à
   côté des fichiers et gardée par l'administration.
+* *Affaiblissement soumis à validation* (D-ADM-025). Ordre de protection,
+  du plus au moins protecteur : clé du cabinet, clé d'exploitation, clé du
+  serveur (retirée, D-CHF-015), aucun. Passer à un mode de rang inférieur —
+  réglage du cabinet, ou chiffrement *effectif* d'un dossier (surcharge
+  quittée pour un réglage du cabinet plus faible compris) — est une demande
+  `backup_weaken`, décidée par la structure selon son réglage (une ou deux
+  personnes), dès qu'elle a une équipe ; le service refuse le geste direct.
+  Le super-admin peut la demander, jamais la confirmer seul ; il ne la
+  valide qu'en dernier recours (D-ADM-024), et jamais pour quitter la clé
+  du cabinet (D-CHF-008). Le renforcement et le changement de la clé du
+  cabinet (rotation après compromission) restent immédiats.
 * *Clés d'exploitation* (D-CHF-015) : paires `age` post-quantiques produites
   hors ligne, la clé privée chiffrée par une phrase de passe, en deux
   exemplaires au moins tenus par deux personnes. Seules les clés publiques

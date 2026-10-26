@@ -209,13 +209,17 @@ module PartiduoAdmin
           draft.text("kind").presence || "cabinet")
         raise Marten::DB::Errors::Rollback.new unless created.ok?
         record = created.value!
+        # Chiffrement réglé avant l'arrivée de l'équipe : la création est la
+        # décision (un affaiblissement se demanderait ensuite, D-ADM-025).
+        mode = draft.text("encryption").presence || "exploitation"
+        unless record.backup_encryption == mode || BackupEncryption.set_firm_mode(user, record, mode).ok?
+          raise Marten::DB::Errors::Rollback.new
+        end
         firm_admin_rows(draft).each do |row|
           invited = Directory.invite_user(user, firm_admin_input(row, PartiduoAdmin.id?(record.pk)))
           raise Marten::DB::Errors::Rollback.new unless invited.ok?
           invited.signup_code.try { |code| codes << "#{row.email} : #{code}" }
         end
-        mode = draft.text("encryption").presence || "exploitation"
-        BackupEncryption.set_firm_mode(user, record, mode) unless record.backup_encryption == mode
         Audit.log(user, "wizard.finish", target: record, detail: {"wizard" => "firm"})
         firm = record
       end

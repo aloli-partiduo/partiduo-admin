@@ -839,3 +839,102 @@ demande d'un dossier ; l'autre admin du cabinet décide sans délai ; parc
 sans cabinet sans délai ; réglage et bornes ; écran (heure, puis bouton).
 Les specs où le super-admin valide la demande d'un cabinet le font après
 l'échéance (`AdminSpec.recourse_time`).
+
+=== D-ADM-025 — Affaiblissement du chiffrement des sauvegardes soumis à validation (26 octobre 2026)
+
+Décision de l'utilisateur du 26 octobre 2026, point proposé par D-ADM-023
+(« remplacer la clé par la sienne ou passer en aucun chiffrement rendrait
+lisibles les sauvegardes suivantes »). Version 0.1.61. ADR-008 D3 est
+amendé (partiduo-docs).
+
+*Ordre de protection des modes*, établi depuis les décisions D-CHF de
+partiduo-app, du plus au moins protecteur (`BackupEncryption::STRENGTH`) :
+
+[cols="1,1,3",options="header"]
+|===
+|Rang |Mode |Qui peut lire les sauvegardes
+
+|3 |`cabinet` — clé du cabinet |L'admin du cabinet seul, clé privée dans
+son navigateur ; ni le serveur ni l'exploitant (D-CHF-002, D-CHF-005,
+D-CHF-014).
+
+|2 |`exploitation` — clé d'exploitation |L'exploitant, avec une clé
+privée gardée hors ligne ; le serveur n'a que des clés publiques et ne
+relit rien, pas même ses propres sauvegardes (D-CHF-015).
+
+|1 |`server` — clé du serveur |Le serveur lui-même, clé symétrique posée
+sur la production : un serveur compromis lit tout, passé compris
+(D-CHF-003, constat de D-CHF-012). Retiré par D-CHF-015 ; rang gardé pour
+les données anciennes.
+
+|0 |`none` — aucun |Quiconque a une copie (stockage, NAS).
+|===
+
+L'ordre est total : passer de A à B est un *affaiblissement* si le rang de
+B est inférieur à celui de A.
+
+*Règle.* Passer à un mode moins protecteur, ou retirer le chiffrement, est
+une demande de structure (`Approval` `backup_weaken`, D-ADM-023), décidée
+par la structure selon son réglage, dès qu'elle a une équipe (avant, rien
+à protéger) :
+
+* *réglage du cabinet* (`/firms/<id>/backups`) : rang du nouveau réglage
+  inférieur à l'actuel ;
+* *dossier* (fiche du dossier) : le chiffrement *effectif* compte, avant
+  et après — quitter une surcharge « clé du cabinet » pour un réglage du
+  cabinet plus faible est un affaiblissement, même si la surcharge est
+  seulement retirée.
+
+`set_firm_mode` et `set_dossier_mode` refusent eux-mêmes le geste direct
+(`encryption.needs_approval`), quel que soit l'appelant, et jugent sur
+l'état relu en base (un objet ancien ne fait pas passer un affaiblissement
+pour un renforcement). Restent immédiats : tout renforcement, et le
+*changement de clé du cabinet* (rotation), pour qu'une rotation après
+compromission ne soit jamais freinée.
+
+*Qui décide* (`Approval::MEMBER_KINDS`) : la structure. Confirmation seule
+(structure à une personne, ré-authentification forte récente, case cochée)
+par un *membre* de la structure seulement — admin actif ; super-admin pour
+le parc sans cabinet. Le super-admin peut demander un affaiblissement d'un
+cabinet (il règle ses modes, D-CHF-008), jamais le confirmer seul : un
+admin du cabinet le valide, ou un autre super-admin en dernier recours
+après le délai (D-ADM-024) — jamais pour quitter « clé du cabinet », que
+D-CHF-008 réserve à l'admin du cabinet. Le demandeur ne valide jamais sa
+propre demande (deux personnes) ; contrainte `admin_approval_other_person`
+inchangée.
+
+*Recontrôles à la décision* (`BackupEncryption.apply_weaken`, dans la
+transaction de la décision) : demandeur encore habilité à régler (et à
+quitter la clé du cabinet si c'en est la sortie) ; réglage présent égal à
+celui de la demande ; pour un dossier, surcharge et chiffrement effectif
+inchangés, dossier toujours dans la structure, et mode d'arrivée toujours
+celui de la demande (un « retour au réglage du cabinet » dont le réglage a
+baissé entre-temps est clos). Sinon la demande est close
+(`approval.target_changed`, `approval.stale`). Une seule demande en attente
+par cible (`encryption:firm`, `encryption:dossier:<id>`).
+
+*Enchaînements.* L'ordre étant total, aucune suite de gestes directs ne
+fait baisser le chiffrement effectif d'un dossier : chaque geste direct
+est un renforcement ou un statu quo. Une demande ne vaut que pour l'état
+où elle a été faite (recontrôle). Le transfert d'un dossier vers une autre
+structure ne l'affaiblit pas non plus (D-ADM-027).
+
+*Écrans.* Chiffrement du cabinet : ordre de protection, motif facultatif,
+« Demandes d'affaiblissement en attente » ; fiche du dossier : motif
+facultatif ; « Opérations sensibles » et « Confirmer seul » : modes avant
+et après (`Approval#detail_text`). Sept langues.
+
+*Écartée.* Soumettre aussi la rotation de la clé du cabinet : une clé
+compromise doit pouvoir être remplacée sans attendre. Le risque — un admin
+qui déposerait sa propre clé — reste celui de D-CHF-008 (B-CRA-001) ; à
+soumettre (empreinte de la nouvelle clé annoncée aux autres admins, par
+exemple).
+
+*Specs* : `spec/admin/encryption_weaken_spec.cr` — ordre, geste direct
+refusé, confirmation seule, rotation et renforcement immédiats, validation
+par l'autre admin, même personne, rejeu, super-admin (demande, pas de
+confirmation seule, recours avant le délai refusé, sortie de la clé du
+cabinet jamais), chiffrement effectif d'un dossier, enchaînements (surcharge
+puis affaiblissement du cabinet, étapes « plus fortes »), cible modifiée
+(cabinet passé à sa clé, réglage hérité baissé), écrans ;
+`encryption_spec` suit le nouveau parcours.

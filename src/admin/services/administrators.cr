@@ -474,8 +474,7 @@ module PartiduoAdmin
       # Relus en base : l'état présent fait foi, pas celui de la demande.
       firm = Firm.get!(id: approval.firm_id)
       requester = User.get!(id: approval.requested_by_id)
-      allowed = approval.kind == "mode_single" ? ApprovalMode.can_manage?(requester, firm) : can_request_firm?(requester, firm, approval.super_scope?)
-      return {Errors{"base" => ["admin.errors.approval.requester_gone"]}, nil} unless allowed
+      return {Errors{"base" => ["admin.errors.approval.requester_gone"]}, nil} unless requester_allowed?(approval, firm, requester)
       return apply_without_account(approval, firm, requester, now) if approval.param("user_id").empty?
       target = approval.target_user
       if target.nil? || account_state(target) != approval.param("user_state")
@@ -494,7 +493,18 @@ module PartiduoAdmin
       end
     end
 
-    # Demandes sans compte visé : invitation, retour à une personne.
+    # Le demandeur a-t-il encore le droit de demander cette action, relu à
+    # la décision ?
+    private def self.requester_allowed?(approval : Approval, firm : Firm, requester : User) : Bool
+      case approval.kind
+      when "mode_single"   then ApprovalMode.can_manage?(requester, firm)
+      when "backup_weaken" then BackupEncryption.requester_allowed?(requester, firm, approval)
+      else                      can_request_firm?(requester, firm, approval.super_scope?)
+      end
+    end
+
+    # Demandes sans compte visé : invitation, retour à une personne,
+    # affaiblissement du chiffrement.
     private def self.apply_without_account(approval : Approval, firm : Firm, requester : User, now : Time) : {Errors, String?}
       case approval.kind
       when "firm_invite"
@@ -502,6 +512,8 @@ module PartiduoAdmin
         {outcome.errors, outcome.signup_code}
       when "mode_single"
         {ApprovalMode.apply_single(requester, firm, approval, now), nil}
+      when "backup_weaken"
+        {BackupEncryption.apply_weaken(approval, firm, requester), nil}
       else
         {Errors{"base" => ["admin.errors.invalid"]}, nil}
       end

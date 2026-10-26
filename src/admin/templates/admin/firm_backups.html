@@ -20,8 +20,10 @@
         </div>
         {% if not firm.has_backup_key %}<p class="help" id="pd-enc-needs-key">{% translate "admin.encryption.cabinet_needs_key" %}</p>{% endif %}
         <p class="help" id="pd-enc-setting-help">{% translate "admin.encryption.firm_setting_help" %}</p>
+        <p class="help" id="pd-enc-order-help">{% translate "admin.encryption.order" %}{% if gated %} {% translate "admin.encryption.weaken_gated" %}{% endif %}</p>
         {% if mode_errors %}<p class="help is-danger" id="pd-enc-setting-error">{% for message in mode_errors %}{{ message }} {% endfor %}</p>{% endif %}
       </fieldset>
+      {% if gated %}<div class="field"><label class="label" for="pd-enc-reason">{% translate "admin.firm_approvals.fields.reason" %}</label><div class="control"><input class="input" id="pd-enc-reason" name="reason" type="text" value="{{ reason }}" aria-describedby="pd-enc-reason-help"></div><p class="help" id="pd-enc-reason-help">{% translate "admin.encryption.weaken_reason_help" %}</p></div>{% endif %}
       <button class="button is-primary" type="submit">{% translate "admin.save" %}</button>
     </form>
   </section>
@@ -77,6 +79,11 @@ openssl pkey -pubin -in cabinet-public.pem -outform DER | openssl dgst -sha256</
   <button class="button is-primary" type="submit">{% if firm.has_backup_key %}{% translate "admin.encryption.replace" %}{% else %}{% translate "admin.encryption.deposit" %}{% endif %}</button>
 </form>
 {% endif %}
+
+{% if weakenings %}<section class="pd-panel" aria-labelledby="pd-enc-pending-title">
+  <h2 id="pd-enc-pending-title">{% translate "admin.encryption.weaken_pending" %}</h2>
+  <ul>{% for approval in weakenings %}<li><span class="pd-state pd-state-pending">{% translate "admin.firm_approvals.waiting" %}</span> <span class="pd-mono">{{ approval.reference }}</span> — {{ approval.detail_text }} · {{ approval.requested_by.email }}{% if approval.reason %} · {{ approval.reason }}{% endif %} · <a href="{% url 'approvals' %}">{% translate "admin.approvals.title" %}</a></li>{% endfor %}</ul>
+</section>{% endif %}
 
 <section class="pd-panel" aria-labelledby="pd-enc-dossiers-title">
   <h2 id="pd-enc-dossiers-title">{% translate "admin.encryption.dossiers" %}</h2>

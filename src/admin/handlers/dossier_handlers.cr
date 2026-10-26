@@ -150,6 +150,7 @@ module PartiduoAdmin
         "managers"         => managers.map { |manager| {"id" => manager.pk.to_s, "email" => manager.email.to_s, "assigned" => assigned.includes?(manager.pk)} },
         "can"              => flags(dossier),
         "encryption_modes" => encryption_modes(dossier),
+        "encryption_gated" => Administrators.firm_gated?(dossier.firm!),
         "firm_mode_key"    => dossier.firm!.backup_encryption_key,
         "approval_mode"    => ApprovalMode.mode_for(dossier),
         "confirms_alone"   => Access.can?(user, :approve, dossier),

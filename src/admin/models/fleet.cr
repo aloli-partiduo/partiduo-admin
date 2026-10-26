@@ -412,7 +412,16 @@ module PartiduoAdmin
     # Demandes portant sur une structure (D-ADM-023) : inviter, promouvoir,
     # retirer (rôle de gestionnaire) ou remplacer un admin, désactiver ou
     # réactiver un compte d'admin, repasser à une personne.
-    FIRM_KINDS = %w[firm_invite firm_promote firm_demote firm_replace admin_disable admin_enable mode_single]
+    FIRM_KINDS = %w[firm_invite firm_promote firm_demote firm_replace admin_disable admin_enable mode_single
+      backup_weaken]
+
+    # Demandes décidées par les seuls membres de la structure (admins
+    # actifs ; super-admins pour le parc sans cabinet) : l'affaiblissement
+    # du chiffrement des sauvegardes est soumis à la validation *du
+    # cabinet* (D-ADM-025). Un super-admin peut le demander, jamais le
+    # confirmer seul ; il ne le valide qu'en dernier recours (D-ADM-024), et
+    # jamais pour quitter la clé du cabinet (D-CHF-008).
+    MEMBER_KINDS = %w[backup_weaken]
 
     KINDS  = DOSSIER_KINDS + FIRM_KINDS
     STATES = %w[pending approved rejected expired]
@@ -483,7 +492,7 @@ module PartiduoAdmin
     # Structure dont le réglage décide : celle de la demande, ou celle du
     # dossier.
     def target_firm : Firm?
-      firm || dossier.try(&.firm)
+      dossier.try(&.firm) || firm
     end
 
     def target_firm! : Firm
@@ -511,6 +520,18 @@ module PartiduoAdmin
     # ou celle du compte visé ; `nil` pour un changement de réglage.
     def target_label : String?
       param("email").presence || param("user_email").presence
+    end
+
+    # Précision d'une demande de structure sans compte visé (D-ADM-025,
+    # D-ADM-026) : modes de chiffrement, nature de la structure ; `nil`
+    # sinon.
+    def detail_text : String?
+      case kind
+      when "backup_weaken"
+        text = "#{I18n.t("admin.encryption.modes.#{param("from")}")} → #{I18n.t("admin.encryption.modes.#{param("to")}")}"
+        slug = param("dossier_slug")
+        slug.empty? ? text : "#{text} · #{slug}"
+      end
     end
   end
 

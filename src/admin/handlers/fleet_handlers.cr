@@ -26,10 +26,14 @@ module PartiduoAdmin
     private def firm_link(approval : Approval) : String?
       firm = approval.firm
       return if firm.nil?
-      if approval.kind == "mode_single"
-        return ApprovalMode.can_view?(user, firm) ? "/firms/#{firm.pk}/approval-mode" : nil
+      case approval.kind
+      when "mode_single"
+        ApprovalMode.can_view?(user, firm) ? "/firms/#{firm.pk}/approval-mode" : nil
+      when "backup_weaken"
+        BackupEncryption.can_manage?(user, firm) ? "/firms/#{firm.pk}/backups" : nil
+      else
+        Administrators.can_manage_firm?(user, firm) ? "/firms/#{firm.pk}/admins" : nil
       end
-      Administrators.can_manage_firm?(user, firm) ? "/firms/#{firm.pk}/admins" : nil
     end
   end
 

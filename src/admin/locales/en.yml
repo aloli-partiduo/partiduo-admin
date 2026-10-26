@@ -495,6 +495,10 @@ en:
         bad_key: "Unreadable private key or wrong passphrase."
         wrong_key: "This key is not the backup's key (different fingerprint)."
         missing_key: "Choose the private key file or paste it."
+      order: "Order of protection, from most to least protective: firm key, operations key, server key (retired), none."
+      weaken_gated: "Switching to a less protective mode is requested and approved by the organisation (one or two people depending on its setting); strengthening and changing the firm key remain immediate."
+      weaken_reason_help: "Accompanies the weakening request; recorded in the audit log."
+      weaken_pending: "Pending weakening requests"
     approvals:
       title: "Sensitive operations"
       help: "A permanent deletion or an access recovery starts with a request. Two people: another entitled person approves it. One person: the requester confirms it alone, after re-authenticating."
@@ -524,6 +528,7 @@ en:
         admin_disable: "deactivation of an admin account"
         admin_enable: "reactivation of an admin account"
         mode_single: "return to single-person approval"
+        backup_weaken: "weakening of backup encryption"
       states:
         pending: "pending"
         approved: "approved"
@@ -612,6 +617,7 @@ en:
         admin_disable: "I confirm the deactivation of the account of"
         admin_enable: "I confirm the reactivation of the account of"
         mode_single: "I confirm the return to single-person approval for"
+        backup_weaken: "I confirm weakening the backup encryption of"
     reauth:
       connect: "Confirm with my Partiduo account"
       title: "Re-authentication"
@@ -924,6 +930,7 @@ en:
         public_key: "Public key refused: PEM \"PUBLIC KEY\", RSA of at least 3072 bits."
         key_required: "This backup is encrypted: provide its key (capsule opened with an operations key or the firm key)."
         wrong_key: "This key does not decrypt the backup."
+        needs_approval: "Switching to a less protective encryption requires a request approved by the organisation."
       signing_key:
         invalid: "Key refused: a \"ssh-ed25519 …\" public key is expected."
         taken: "This signing key is already declared."
