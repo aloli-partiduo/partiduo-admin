@@ -1,0 +1,59 @@
+{# SPDX-License-Identifier: AGPL-3.0-or-later. Fiche d'une structure pour le super-admin (DECISIONS D-ADM-026) : nature et activité ; désactivation, réactivation et changement de nature, soumis au réglage « validation à deux » de la structure dès qu'elle a une équipe (D-ADM-023). #}{% extend "admin/base.html" %}
+{% block title %}{{ firm.name }}{% endblock title %}
+{% block crumbs %}<li><a href="{% url 'firms' %}">{% translate "admin.firms.title" %}</a></li><li>{{ firm.name }}</li>{% endblock crumbs %}
+{% block heading %}{{ firm.name }}{% if not firm.active %} <span class="pd-state pd-state-rejected">{% translate "admin.firms.inactive" %}</span>{% endif %}{% endblock heading %}
+{% block content %}
+{% if errors %}<div class="notification is-danger is-light" role="alert">{% for message in errors %}<p>{{ message }}</p>{% endfor %}</div>{% endif %}
+<div class="pd-grid">
+  <section class="pd-panel" aria-labelledby="pd-firm-identity-title">
+    <h2 id="pd-firm-identity-title">{% translate "admin.firms.settings.identity" %}</h2>
+    <dl class="pd-dl">
+      <dt>{% translate "admin.firms.kind" %}</dt><dd>{% translate firm.kind_key %}</dd>
+      <dt>{% translate "admin.users.fields.state" %}</dt><dd>{% if firm.active %}{% translate "admin.firms.active" %}{% else %}{% translate "admin.firms.inactive" %}{% endif %}</dd>
+      <dt>{% translate "admin.dual_approval.title" %}</dt><dd><a href="{% url 'firm_approval_mode' id: firm.id %}"><span class="pd-mode pd-mode-{{ mode }}">{% if mode == "dual" %}{% translate "admin.dual_approval.modes.dual" %}{% else %}{% translate "admin.dual_approval.modes.single" %}{% endif %}</span></a> <span class="pd-muted">({{ team_size }})</span></dd>
+      <dt>{% translate "admin.administrators.title" %}</dt><dd><a href="{% url 'firm_admins' id: firm.id %}">{% translate "admin.administrators.manage" %}<span class="is-sr-only"> — {{ firm.name }}</span></a></dd>
+      <dt>{% translate "admin.encryption.title" %}</dt><dd><a href="{% url 'firm_backups' id: firm.id %}">{% translate firm.backup_encryption_key %}<span class="is-sr-only"> — {{ firm.name }}</span></a></dd>
+    </dl>
+    <p class="help mt-2">{% if gated %}{% if mode == "dual" %}{% translate "admin.firms.settings.gated_dual" %}{% else %}{% translate "admin.firms.settings.gated_single" %}{% endif %}{% else %}{% translate "admin.firms.settings.not_gated" %}{% endif %}</p>
+  </section>
+
+  {% if is_fleet %}
+  <section class="pd-panel" aria-labelledby="pd-firm-fleet-title">
+    <h2 id="pd-firm-fleet-title">{% translate "admin.firms.settings.changes" %}</h2>
+    <p class="pd-muted">{% translate "admin.firms.settings.fleet_fixed" %}</p>
+  </section>
+  {% else %}
+  <section class="pd-panel" aria-labelledby="pd-firm-kind-title">
+    <h2 id="pd-firm-kind-title">{% translate "admin.firms.settings.kind_title" %}</h2>
+    <form method="post" action="{% url 'firm_settings' id: firm.id %}">
+      {% csrf_input %}
+      <input type="hidden" name="command" value="kind">
+      <div class="field"><label class="label" for="pd-firm-new-kind">{% translate "admin.firms.kind" %}</label><div class="select"><select id="pd-firm-new-kind" name="kind" aria-describedby="pd-firm-new-kind-help">{% for kind in kinds %}<option value="{{ kind.value }}"{% if kind.selected %} selected{% endif %}>{% translate kind.key %}</option>{% endfor %}</select></div>
+        <p class="help" id="pd-firm-new-kind-help">{% translate "admin.firms.settings.kind_help" %}</p></div>
+      {% if gated %}<div class="field"><label class="label" for="pd-firm-kind-reason">{% translate "admin.firm_approvals.fields.reason" %}</label><div class="control"><input class="input" id="pd-firm-kind-reason" name="reason" type="text" maxlength="500" value="{{ reason }}"></div></div>{% endif %}
+      <button class="button" type="submit">{% if gated %}{% translate "admin.approvals.request" %}{% else %}{% translate "admin.save" %}{% endif %}</button>
+    </form>
+  </section>
+  {% endif %}
+</div>
+
+{% if not is_fleet %}
+<section class="pd-panel" aria-labelledby="pd-firm-state-title">
+  <h2 id="pd-firm-state-title">{% if firm.active %}{% translate "admin.firms.settings.disable_title" %}{% else %}{% translate "admin.firms.settings.enable_title" %}{% endif %}</h2>
+  <p class="mb-2">{% if firm.active %}{% translate "admin.firms.settings.disable_help" %}{% else %}{% translate "admin.firms.settings.enable_help" %}{% endif %}</p>
+  <form method="post" action="{% url 'firm_settings' id: firm.id %}">
+    {% csrf_input %}
+    <input type="hidden" name="command" value="{% if firm.active %}disable{% else %}enable{% endif %}">
+    {% if gated %}<div class="field"><label class="label" for="pd-firm-state-reason">{% translate "admin.firm_approvals.fields.reason" %}</label><div class="control"><input class="input" id="pd-firm-state-reason" name="reason" type="text" maxlength="500" value="{{ reason }}"></div></div>{% endif %}
+    <button class="button{% if firm.active %} is-danger is-light{% endif %}" type="submit">{% if firm.active %}{% translate "admin.firms.settings.disable" %}{% else %}{% translate "admin.firms.settings.enable" %}{% endif %}</button>
+  </form>
+</section>
+{% endif %}
+
+{% if pending %}
+<section class="pd-panel" aria-labelledby="pd-firm-pending-title">
+  <h2 id="pd-firm-pending-title">{% translate "admin.firm_approvals.pending_title" %}</h2>
+  <ul>{% for approval in pending %}<li><span class="pd-state pd-state-pending">{% translate "admin.firm_approvals.waiting" %}</span> <span class="pd-mono">{{ approval.reference }}</span> — {% translate approval.kind_key %}{% if approval.detail_text %} ({{ approval.detail_text }}){% endif %} · {{ approval.requested_by.email }}{% if approval.reason %} · {{ approval.reason }}{% endif %} · <a href="{% url 'approvals' %}">{% translate "admin.approvals.title" %}</a></li>{% endfor %}</ul>
+</section>
+{% endif %}
+{% endblock content %}

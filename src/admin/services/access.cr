@@ -22,6 +22,7 @@ module PartiduoAdmin
   # |utilisateurs, affectations, donneurs d'ordre |tous |son cabinet |—
   # |administrateurs d'une structure |toutes |la sienne |—
   # |cabinets, serveurs |oui |— |—
+  # |désactiver, réactiver une structure, changer sa nature (D-ADM-026) |oui, soumis à validation |— |—
   # |journal d'audit |tout |son cabinet |—
   # |===
   module Access

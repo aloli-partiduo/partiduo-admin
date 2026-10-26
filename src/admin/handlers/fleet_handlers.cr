@@ -31,6 +31,8 @@ module PartiduoAdmin
         ApprovalMode.can_view?(user, firm) ? "/firms/#{firm.pk}/approval-mode" : nil
       when "backup_weaken"
         BackupEncryption.can_manage?(user, firm) ? "/firms/#{firm.pk}/backups" : nil
+      when .in?(Approval::STRUCTURE_KINDS)
+        Firms.can_manage?(user) ? "/firms/#{firm.pk}/settings" : nil
       else
         Administrators.can_manage_firm?(user, firm) ? "/firms/#{firm.pk}/admins" : nil
       end

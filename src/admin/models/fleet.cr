@@ -413,7 +413,11 @@ module PartiduoAdmin
     # retirer (rôle de gestionnaire) ou remplacer un admin, désactiver ou
     # réactiver un compte d'admin, repasser à une personne.
     FIRM_KINDS = %w[firm_invite firm_promote firm_demote firm_replace admin_disable admin_enable mode_single
-      backup_weaken]
+      backup_weaken admin_reinvite firm_disable firm_enable firm_kind]
+
+    # Gestes du super-admin sur la structure elle-même (D-ADM-026) :
+    # désactivation, réactivation, changement de nature.
+    STRUCTURE_KINDS = %w[firm_disable firm_enable firm_kind]
 
     # Demandes décidées par les seuls membres de la structure (admins
     # actifs ; super-admins pour le parc sans cabinet) : l'affaiblissement
@@ -531,6 +535,8 @@ module PartiduoAdmin
         text = "#{I18n.t("admin.encryption.modes.#{param("from")}")} → #{I18n.t("admin.encryption.modes.#{param("to")}")}"
         slug = param("dossier_slug")
         slug.empty? ? text : "#{text} · #{slug}"
+      when "firm_kind"
+        "#{I18n.t("admin.firms.kinds.#{param("kind_from")}")} → #{I18n.t("admin.firms.kinds.#{param("kind_to")}")}"
       end
     end
   end

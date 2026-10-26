@@ -135,6 +135,65 @@ module PartiduoAdmin
     end
   end
 
+  # Fiche d'une structure pour le super-admin (D-ADM-026) : nature,
+  # activité, désactivation, réactivation et changement de nature, soumis
+  # au réglage de la structure dès qu'elle a une équipe.
+  class FirmSettingsHandler < ScreenHandler
+    def get
+      render_page(firm!)
+    end
+
+    def post
+      firm = firm!
+      command = field("command")
+      gated = Administrators.firm_gated?(firm)
+      case command
+      when "disable", "enable"
+        active = command == "enable"
+        if gated
+          request = Firms.request_active(user, firm, active, field("reason"))
+          return ApprovalConfirmHandler.after_firm_request(self, request.value!) if request.ok?
+          return render_page(firm, translate(request.errors), 422)
+        end
+        outcome = Firms.set_active(user, firm, active)
+      when "kind"
+        if gated
+          request = Firms.request_kind(user, firm, field("kind"), field("reason"))
+          return ApprovalConfirmHandler.after_firm_request(self, request.value!) if request.ok?
+          return render_page(firm, translate(request.errors), 422)
+        end
+        outcome = Firms.set_kind(user, firm, field("kind"))
+      else
+        raise Access::Denied.new("command")
+      end
+      return render_page(firm, translate(outcome.errors), 422) unless outcome.ok?
+      flash["success"] = I18n.t("admin.saved")
+      redirect("/firms/#{firm.pk}/settings")
+    end
+
+    private def firm! : Firm
+      raise Access::Denied.new("firm") unless Firms.can_manage?(user)
+      Firm.filter(id: id_param).first || raise Access::Denied.new("firm")
+    end
+
+    private def render_page(firm : Firm, errors = {} of String => Array(String), status : Int32 = 200)
+      kinds = Firms::KINDS.map do |code|
+        {"value" => code, "key" => "admin.firms.kinds.#{code}", "selected" => code == firm.kind}
+      end
+      page("admin/firm_settings.html", {
+        "firm"      => firm,
+        "is_fleet"  => firm.fleet?,
+        "kinds"     => kinds,
+        "gated"     => Administrators.firm_gated?(firm),
+        "mode"      => ApprovalMode.mode(firm),
+        "team_size" => ApprovalMode.team_size(firm).to_s,
+        "pending"   => ApprovalMode.pending(firm).select { |approval| Approval::STRUCTURE_KINDS.includes?(approval.kind) },
+        "errors"    => errs(errors, "base") + errs(errors, "kind"),
+        "reason"    => field("reason"),
+      }, status: status)
+    end
+  end
+
   class UserCommandHandler < ScreenHandler
     def post
       require_admin!
@@ -163,12 +222,17 @@ module PartiduoAdmin
       go("/users")
     end
 
-    # Désactiver ou réactiver un compte d'admin : une demande, validée
-    # selon le réglage de sa structure (D-ADM-023) ; `nil` hors de ce cas.
+    # Désactiver, réactiver ou réinviter un compte d'admin : une demande,
+    # validée selon le réglage de sa structure (D-ADM-023, D-ADM-026) ;
+    # `nil` hors de ce cas.
     private def request_active(target : User) : Marten::HTTP::Response?
       command = params["command"].to_s
-      return unless %w[disable enable].includes?(command) && Administrators.account_gate(target)
-      request = Administrators.request_active(user, target, command == "enable", field("reason"))
+      return unless %w[disable enable reinvite].includes?(command) && Administrators.account_gate(target)
+      request = if command == "reinvite"
+                  Administrators.request_reinvite(user, target, field("reason"))
+                else
+                  Administrators.request_active(user, target, command == "enable", field("reason"))
+                end
       return ApprovalConfirmHandler.after_firm_request(self, request.value!) if request.ok?
       flash["danger"] = translate(request.errors).values.flatten.join(" ")
       go("/users")

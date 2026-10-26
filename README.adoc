@@ -186,6 +186,13 @@ personnes reste immédiat. Les demandes figurent dans « Opérations
 sensibles » (colonne « Cible » : la structure) ; l'écran des admins marque
 le compte visé « En attente de validation ».
 
+* *Autres actions sensibles* (D-ADM-026) : la réinvitation d'un admin
+  (elle révoque ses sessions et ses moyens d'authentification ; écran des
+  utilisateurs), la désactivation, la réactivation et le changement de
+  nature (cabinet, gestionnaire indépendant) d'une structure, gestes du
+  super-admin sur la fiche de la structure (`/firms/<id>/settings`, lien du
+  nom dans la liste des structures). Le parc sans cabinet ne se désactive
+  pas et ne change pas de nature.
 * *Une personne* : confirmation seule, ré-authentification forte de moins
   de cinq minutes et case cochée, puis l'action est faite aussitôt.
 * *Deux personnes* : un autre admin actif de la structure ou un

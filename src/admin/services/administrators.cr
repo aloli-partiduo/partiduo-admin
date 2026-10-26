@@ -463,6 +463,24 @@ module PartiduoAdmin
       Approvals.request_firm(actor, firm, active ? "admin_enable" : "admin_disable", reason, params, now)
     end
 
+    # Demande de réinvitation d'un admin (D-ADM-026) : la réinvitation
+    # révoque ses sessions et ses moyens d'authentification, ce qui
+    # écarterait un admin le temps d'une décision ; même porte que la
+    # désactivation (`account_gate`).
+    def self.request_reinvite(actor : User, target : User, reason : String = "",
+                              now : Time = Config.now) : Outcome(Approval)
+      firm = account_gate(target)
+      return Outcome(Approval).failure("base", "admin.errors.invalid") if firm.nil?
+      super_scope = target.super_admin?
+      unless Access.can_manage_user?(actor, target) && actor.pk != target.pk && can_request_firm?(actor, firm, super_scope)
+        return Outcome(Approval).failure("base", "admin.errors.forbidden")
+      end
+      params = account_params(target)
+      params["scope"] = super_scope ? "super" : "firm"
+      params["target"] = "user:#{target.pk}"
+      Approvals.request_firm(actor, firm, "admin_reinvite", reason, params, now)
+    end
+
     # Exécution d'une demande de structure décidée (`Approvals`), dans la
     # transaction de la décision. Recontrôles : le demandeur peut encore
     # gérer la structure, le compte visé n'a changé ni de rôle, ni d'état,
@@ -488,6 +506,10 @@ module PartiduoAdmin
         {set_role(requester, firm, target, approval.param("role"), true).errors, nil}
       when "admin_disable", "admin_enable"
         {apply_active(requester, target, approval.kind == "admin_enable"), nil}
+      when "admin_reinvite"
+        codes = [] of String
+        return {Errors{"base" => ["admin.errors.forbidden"]}, nil} unless Directory.reinvite(requester, target, now, codes)
+        {Errors.new, codes.first?}
       else
         {Errors{"base" => ["admin.errors.invalid"]}, nil}
       end
@@ -497,9 +519,10 @@ module PartiduoAdmin
     # la décision ?
     private def self.requester_allowed?(approval : Approval, firm : Firm, requester : User) : Bool
       case approval.kind
-      when "mode_single"   then ApprovalMode.can_manage?(requester, firm)
-      when "backup_weaken" then BackupEncryption.requester_allowed?(requester, firm, approval)
-      else                      can_request_firm?(requester, firm, approval.super_scope?)
+      when "mode_single"                   then ApprovalMode.can_manage?(requester, firm)
+      when "backup_weaken"                 then BackupEncryption.requester_allowed?(requester, firm, approval)
+      when .in?(Approval::STRUCTURE_KINDS) then Firms.can_manage?(requester)
+      else                                      can_request_firm?(requester, firm, approval.super_scope?)
       end
     end
 
@@ -514,6 +537,8 @@ module PartiduoAdmin
         {ApprovalMode.apply_single(requester, firm, approval, now), nil}
       when "backup_weaken"
         {BackupEncryption.apply_weaken(approval, firm, requester), nil}
+      when .in?(Approval::STRUCTURE_KINDS)
+        {Firms.apply_approval(approval, firm, requester, now), nil}
       else
         {Errors{"base" => ["admin.errors.invalid"]}, nil}
       end

@@ -67,6 +67,8 @@ Marten.routes.draw do
   path "/firms/<id:int>/backups", PartiduoAdmin::FirmBackupsHandler, name: "firm_backups"
   path "/firms/<id:int>/backups/key", PartiduoAdmin::FirmBackupKeyHandler, name: "firm_backup_key"
   path "/firms/<id:int>/approval-mode", PartiduoAdmin::FirmApprovalModeHandler, name: "firm_approval_mode"
+  # Fiche d'une structure : activité et nature (D-ADM-026).
+  path "/firms/<id:int>/settings", PartiduoAdmin::FirmSettingsHandler, name: "firm_settings"
   # Administrateurs d'une structure (D-ADM-017).
   path "/firms/<id:int>/admins", PartiduoAdmin::FirmAdminsHandler, name: "firm_admins"
   path "/firms/<id:int>/admins/<user_id:int>/<command:str>", PartiduoAdmin::FirmAdminCommandHandler, name: "firm_admin_command"

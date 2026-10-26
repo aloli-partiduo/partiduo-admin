@@ -390,12 +390,13 @@ module PartiduoAdmin
     # Écran où revenir après la décision d'une demande de structure.
     def self.back_path(approval : Approval) : String
       case approval.kind
-      when "mode_single" then "/firms/#{approval.firm_id}/approval-mode"
+      when "mode_single"                   then "/firms/#{approval.firm_id}/approval-mode"
+      when .in?(Approval::STRUCTURE_KINDS) then "/firms/#{approval.firm_id}/settings"
       when "backup_weaken"
         dossier = approval.param("dossier_id")
         dossier.empty? ? "/firms/#{approval.firm_id}/backups" : "/dossiers/#{dossier}"
-      when "admin_disable", "admin_enable" then "/users"
-      else                                      "/firms/#{approval.firm_id}/admins"
+      when "admin_disable", "admin_enable", "admin_reinvite" then "/users"
+      else                                                        "/firms/#{approval.firm_id}/admins"
       end
     end
   end

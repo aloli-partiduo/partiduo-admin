@@ -938,3 +938,69 @@ cabinet jamais), chiffrement effectif d'un dossier, enchaînements (surcharge
 puis affaiblissement du cabinet, étapes « plus fortes »), cible modifiée
 (cabinet passé à sa clé, réglage hérité baissé), écrans ;
 `encryption_spec` suit le nouveau parcours.
+
+=== D-ADM-026 — Réinvitation d'un admin, désactivation et nature d'une structure soumises à validation (26 octobre 2026)
+
+Décision de l'utilisateur du 26 octobre 2026, actions proposées par
+D-ADM-023. Version 0.1.62. ADR-008 D3 est amendé (partiduo-docs).
+
+*Actions soumises* (`Approval::FIRM_KINDS`), dès que la structure a une
+équipe (`Administrators.firm_gated?`), mêmes règles que D-ADM-023 :
+
+* `admin_reinvite` : réinviter un admin (écran des utilisateurs). La
+  réinvitation révoque ses sessions et ses moyens d'authentification : un
+  admin pourrait écarter l'autre le temps d'une décision. Même porte que
+  la désactivation (`account_gate` : admin de cabinet de la structure ;
+  compte de super-admin, parc sans cabinet, validé par un super-admin
+  seulement). Un gestionnaire de dossiers reste réinvité aussitôt.
+  Exécution : `Directory.reinvite` au nom du demandeur, code de création
+  du compte connect montré à qui décide.
+* `firm_disable`, `firm_enable` : désactiver, réactiver une structure. Une
+  structure désactivée ferme la connexion de ses utilisateurs
+  (`User#can_sign_in?`) et leurs sessions (révoquées) ; aucun dossier n'y
+  est créé ; ses dossiers continuent de servir leurs sociétés (ADR-008 D3).
+  La réactivation rend des droits : soumise de même (comme
+  `admin_enable`).
+* `firm_kind` : changer la nature, cabinet ↔ gestionnaire indépendant.
+  Le parc sans cabinet ne change pas de nature et aucune structure ne le
+  devient (un seul, D-VAL2-002) ; devenir gestionnaire indépendant exige
+  une seule personne active, admin de la structure (`independent_single`,
+  `independent_role`), et la validation à deux se désactive alors d'elle-même
+  (D-VAL2-003).
+
+Ces gestes n'existaient pas dans la console : ils sont créés ici, sur une
+*fiche de la structure* (`/firms/<id>/settings`, `FirmSettingsHandler`,
+lien du nom dans la liste des structures), réservée au super-admin, à qui
+les structures appartiennent (ADR-008 D2). Service `Firms`
+(`src/admin/services/firms.cr`) : `set_active` et `set_kind` refusent
+eux-mêmes le geste direct quand la structure a une équipe
+(`approval.needs_request`) ; `request_active`, `request_kind` ; sans
+équipe, le geste est fait aussitôt (rien à protéger, comme D-ADM-023).
+
+*Décision.* Une personne : le demandeur habilité (super-admin) confirme
+seul après ré-authentification forte récente et case cochée. Deux
+personnes : un admin actif de la structure valide, ou un autre super-admin
+en dernier recours après le délai (D-ADM-024) ; jamais le demandeur
+(service et contrainte de la base). *Relecture en base* à la décision :
+demandeur encore super-admin actif, état de la structure (nature et
+activité, `Firms.state`) inchangé depuis la demande, règles du service
+(`kind_refusal`, `active_refusal`) ; sinon la demande est close
+(`approval.stale`). Expiration au bout de sept jours, jamais rejouée.
+Traces : `firm.disable`, `firm.enable`, `firm.kind`, `user.reinvite`, avec
+la référence de la demande.
+
+*Écrans.* Fiche de la structure : nature, activité, réglage de
+validation, liens vers ses admins et son chiffrement, « Changer de
+nature », « Désactiver » ou « Réactiver » avec motif facultatif, demandes
+en attente ; mention « désactivée » dans la liste. « Opérations
+sensibles » : natures avant et après. Sept langues.
+
+*Specs* : `spec/admin/structure_approvals_spec.cr` — réinvitation (rien
+révoqué avant la décision, même personne par le service et par la base,
+recours avant le délai, rejeu, confirmation seule, compte changé, écran,
+gestionnaire sans demande), désactivation confirmée seule (sessions
+fermées, connexion refusée), sans équipe aussitôt, parc sans cabinet
+refusé, deux personnes (admin de la structure, autre super-admin après le
+délai, autre structure refusée), nature (refus, cible changée par un
+gestionnaire arrivé ou par la désactivation, expiration), fiche réservée
+au super-admin et rendue dans les sept langues.
