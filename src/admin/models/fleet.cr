@@ -192,6 +192,12 @@ module PartiduoAdmin
       health_key(database_state.to_s)
     end
 
+    # Extensions affichées, `nil` sans extension : une chaîne vide est vraie
+    # dans un gabarit de Marten.
+    def extensions_text : String?
+      extensions.to_s.presence
+    end
+
     private def health_key(value : String) : String?
       return if value.empty?
       %w[running stopped ok unavailable error].includes?(value) ? "admin.health.states.#{value}" : "admin.health.states.unknown"
@@ -468,6 +474,12 @@ module PartiduoAdmin
 
     def param(key : String) : String
       JSON.parse(params.presence || "{}")[key]?.try(&.as_s?) || ""
+    end
+
+    # Motif affiché, `nil` s'il est vide : une chaîne vide est vraie dans un
+    # gabarit de Marten (« — » à la place).
+    def reason_text : String?
+      reason.to_s.strip.presence
     end
 
     # `nil` si absente : une chaîne vide est vraie dans un gabarit.

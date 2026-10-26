@@ -236,10 +236,13 @@ module PartiduoAdmin
       render(template, listed(values), status: status)
     end
 
-    # Pour les gabarits de Marten, une liste vide est vraie dans un
-    # `{% if %}` : les listes vides passent comme `nil`.
+    # Pour les gabarits de Marten, une liste ou une chaîne vide est vraie
+    # dans un `{% if %}` : elles passent comme `nil` (un motif, un lien, un
+    # champ facultatif vide s'affichent comme absents). Les valeurs
+    # imbriquées (attributs des modèles) passent par leurs méthodes
+    # `…_text` ou `presence`.
     private def listed(values : Hash)
-      values.transform_values { |value| value.is_a?(Array) && value.empty? ? nil : value }
+      values.transform_values { |value| (value.is_a?(Array) || value.is_a?(String)) && value.empty? ? nil : value }
     end
 
     def error_page(status : Int32) : Marten::HTTP::Response

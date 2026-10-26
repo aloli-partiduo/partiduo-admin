@@ -194,7 +194,12 @@ le compte visé « En attente de validation ».
   nom dans la liste des structures). Le parc sans cabinet ne se désactive
   pas et ne change pas de nature.
 * *Une personne* : confirmation seule, ré-authentification forte de moins
-  de cinq minutes et case cochée, puis l'action est faite aussitôt.
+  de cinq minutes et case cochée, puis l'action est faite aussitôt. Quand
+  le demandeur est le super-admin, sur un cabinet ou un gestionnaire
+  indépendant qui a des admins actifs (D-ADM-028), ceux-ci sont prévenus
+  par courriel dès la demande et peuvent la valider ou la refuser pendant
+  le délai du dernier recours ; le super-admin ne la confirme seul
+  qu'ensuite (échéance affichée, trace `approval.recourse`).
 * *Deux personnes* : un autre admin actif de la structure ou un
   super-admin valide ; jamais le demandeur (refusé aussi par la base,
   contrainte `admin_approval_other_person`).
@@ -288,7 +293,11 @@ son navigateur.
   Le super-admin peut la demander, jamais la confirmer seul ; il ne la
   valide qu'en dernier recours (D-ADM-024), et jamais pour quitter la clé
   du cabinet (D-CHF-008). Le renforcement et le changement de la clé du
-  cabinet (rotation après compromission) restent immédiats.
+  cabinet (rotation après compromission) restent immédiats ; chaque
+  nouvelle clé est annoncée par courriel aux *autres* admins actifs du
+  cabinet — auteur, heure, ancienne et nouvelle empreinte, marche à suivre
+  si le changement n'est pas légitime — et les adresses avisées sont
+  inscrites au journal d'audit (D-ADM-029).
 * *Clés d'exploitation* (D-CHF-015) : paires `age` post-quantiques produites
   hors ligne, la clé privée chiffrée par une phrase de passe, en deux
   exemplaires au moins tenus par deux personnes. Seules les clés publiques
@@ -964,7 +973,8 @@ voir le port) : `DATABASE_URL`, `MARTEN_SECRET_KEY`, `PARTIDUO_DOMAIN`
 (`partiduo.app`), `PARTIDUO_ADMIN_HOST`, `PARTIDUO_ADMIN_URL`,
 `PARTIDUO_ADMIN_MAIL_FROM`, `PARTIDUO_ADMIN_ALERTS_TO` ; au besoin
 `PARTIDUO_ADMIN_RECOURSE_DELAY_HOURS` (délai du dernier recours du
-super-admin, 48 heures par défaut, D-ADM-024),
+super-admin, et de sa confirmation seule sur un cabinet, 48 heures par
+défaut, D-ADM-024, D-ADM-028),
 `PARTIDUO_ADMIN_ASSETS_ROOT` et `PARTIDUO_ADMIN_ARTIFACTS_ROOT`, prioritaires
 sur les fichiers du paquet.
 

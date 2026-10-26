@@ -153,7 +153,8 @@ module PartiduoAdmin
         "encryption_gated" => Administrators.firm_gated?(dossier.firm!),
         "firm_mode_key"    => dossier.firm!.backup_encryption_key,
         "approval_mode"    => ApprovalMode.mode_for(dossier),
-        "confirms_alone"   => Access.can?(user, :approve, dossier),
+        "confirms_alone"   => Access.can?(user, :approve, dossier) && !Approvals.held_firm?(user, dossier.firm!),
+        "held"             => Approvals.held_firm?(user, dossier.firm!),
         "today"            => Config.now.to_s("%F"),
         "move_servers"     => move_servers(dossier),
         "kind_key"         => "admin.kinds.#{dossier.kind.presence || "company"}",
@@ -347,8 +348,10 @@ module PartiduoAdmin
           flash["info"] = I18n.t("admin.dual_approval.requested_single", reference: approval.reference.to_s)
           return go("/approvals/#{approval.pk}/confirm")
         end
-        key = approval.mode == ApprovalMode::DUAL ? "admin.approvals.requested" : "admin.dual_approval.requested_admin"
-        flash["success"] = I18n.t(key, reference: approval.reference.to_s)
+        unless ApprovalConfirmHandler.held_notice(self, approval)
+          key = approval.mode == ApprovalMode::DUAL ? "admin.approvals.requested" : "admin.dual_approval.requested_admin"
+          flash["success"] = I18n.t(key, reference: approval.reference.to_s)
+        end
       else
         flash["danger"] = outcome.errors.values.flatten.map { |key| I18n.t(key) }.join(" ")
       end

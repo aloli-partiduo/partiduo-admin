@@ -553,9 +553,12 @@ module PartiduoAdmin
     # demande, validée selon le réglage de la structure (D-ADM-023).
     private def gated_invite_sections : Array(WizardSection)
       firm = Administrators.invite_gate(@handler.user, Wizards.user_input(@handler.user, @draft)) || return [] of WizardSection
+      mode = ApprovalMode.mode(firm)
+      # Demande du super-admin retenue jusqu'à l'échéance (D-ADM-028).
+      held = mode == ApprovalMode::SINGLE && Approvals.held_firm?(@handler.user, firm)
       [WizardSection.new(I18n.t("admin.wizards.approval.title"),
-        [item(I18n.t("admin.wizards.approval.mode"), I18n.t("admin.dual_approval.modes.#{ApprovalMode.mode(firm)}"))],
-        [note("info", I18n.t("admin.firm_approvals.help.wizard"))])]
+        [item(I18n.t("admin.wizards.approval.mode"), I18n.t("admin.dual_approval.modes.#{mode}"))],
+        [note("info", I18n.t(held ? "admin.dual_approval.note.held" : "admin.firm_approvals.help.wizard"))])]
     end
 
     # --- Clé de la sauvegarde ---------------------------------------------------------

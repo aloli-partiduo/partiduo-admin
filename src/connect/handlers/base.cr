@@ -81,10 +81,10 @@ module PartiduoConnect
       render(template, listed(values), status: status)
     end
 
-    # Une liste vide est vraie dans un `{% if %}` de Marten : elle passe
-    # comme `nil`.
+    # Une liste ou une chaîne vide est vraie dans un `{% if %}` de Marten :
+    # elles passent comme `nil`.
     private def listed(values : Hash)
-      values.transform_values { |value| value.is_a?(Array) && value.empty? ? nil : value }
+      values.transform_values { |value| (value.is_a?(Array) || value.is_a?(String)) && value.empty? ? nil : value }
     end
 
     def error_page(status : Int32, message_key : String? = nil) : Marten::HTTP::Response

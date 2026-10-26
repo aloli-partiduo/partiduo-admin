@@ -14,13 +14,16 @@ module PartiduoAdmin
     getter recourse_at : String?
     getter can_withdraw : Bool
     getter can_confirm : Bool
+    # Demande retenue du super-admin (D-ADM-028) : heure à partir de laquelle
+    # il pourra la confirmer seul, à la place du lien « Confirmer ».
+    getter confirm_at : String?
     getter firm_link : String?
     getter is_transfer : Bool
     getter can_consent : Bool
     getter dossier_link : Bool
 
     def initialize(@approval, *, @can_decide, @can_validate, @recourse, @recourse_at, @can_withdraw, @can_confirm,
-                   @firm_link, @is_transfer, @can_consent, @dossier_link)
+                   @confirm_at, @firm_link, @is_transfer, @can_consent, @dossier_link)
     end
   end
 
@@ -45,9 +48,17 @@ module PartiduoAdmin
         recourse_at: waiting ? Approvals.recourse_at(approval).to_s("%Y-%m-%d %H:%M UTC") : nil,
         can_withdraw: pending && approval.requested_by_id == user.pk,
         can_confirm: pending && Approvals.can_confirm_alone?(user, approval),
+        confirm_at: confirm_at(approval, now),
         firm_link: firm_link(approval), is_transfer: transfer,
         can_consent: transfer && Transfers.can_consent?(user, approval, now),
         dossier_link: dossier_link?(approval))
+    end
+
+    # Demande retenue de l'utilisateur (D-ADM-028) : heure à partir de
+    # laquelle il pourra la confirmer seul.
+    private def confirm_at(approval : Approval, now : Time) : String?
+      return unless Approvals.confirm_waiting?(user, approval, now)
+      Approvals.recourse_at(approval).to_s("%Y-%m-%d %H:%M UTC")
     end
 
     # Le dossier d'une demande s'ouvre-t-il à l'utilisateur ? (L'admin de la

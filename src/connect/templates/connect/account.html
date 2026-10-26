@@ -122,7 +122,7 @@
   {% if journal %}
   <div class="table-container"><table class="table is-fullwidth pd-journal">
     <thead><tr><th scope="col">{% translate "connect.account.journal_when" %}</th><th scope="col">{% translate "connect.account.journal_what" %}</th><th scope="col">{% translate "connect.account.journal_where" %}</th></tr></thead>
-    <tbody>{% for entry in journal %}<tr><td class="pd-mono">{{ entry.created_at|time:"%Y-%m-%d %H:%M" }}</td><td>{{ entry.action }}{% if entry.outcome != "ok" %} ({{ entry.outcome }}){% endif %}{% if entry.client_id %} · {{ entry.client_id }}{% endif %}</td><td class="pd-mono">{{ entry.ip|default:"—" }}</td></tr>{% endfor %}</tbody>
+    <tbody>{% for entry in journal %}<tr><td class="pd-mono">{{ entry.created_at|time:"%Y-%m-%d %H:%M" }}</td><td>{{ entry.action }}{% if entry.outcome != "ok" %} ({{ entry.outcome }}){% endif %}{% if entry.client_text %} · {{ entry.client_text }}{% endif %}</td><td class="pd-mono">{{ entry.ip|default:"—" }}</td></tr>{% endfor %}</tbody>
   </table></div>
   {% else %}<p class="pd-muted">—</p>{% endif %}
 </section>

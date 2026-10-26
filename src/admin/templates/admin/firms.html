@@ -13,7 +13,7 @@
   <caption id="pd-firms-caption" class="is-sr-only">{% translate "admin.firms.title" %}</caption>
   <thead><tr><th scope="col">{% translate "admin.firms.name" %}</th><th scope="col">{% translate "admin.firms.kind" %}</th><th scope="col" class="pd-hide-s">{% translate "admin.payers.fields.siren" %}</th><th scope="col">{% translate "admin.administrators.title" %}</th><th scope="col">{% translate "admin.dual_approval.title" %}</th><th scope="col">{% translate "admin.encryption.title" %}</th></tr></thead>
   <tbody>{% for row in firms %}<tr>
-    <th scope="row"><a href="{% url 'firm_settings' id: row.firm.id %}">{{ row.firm.name }}</a>{% if not row.firm.active %} <span class="pd-state pd-state-rejected">{% translate "admin.firms.inactive" %}</span>{% endif %}{% if row.firm.email %}<br><span class="pd-muted">{{ row.firm.email }}</span>{% endif %}</th>
+    <th scope="row"><a href="{% url 'firm_settings' id: row.firm.id %}">{{ row.firm.name }}</a>{% if not row.firm.active %} <span class="pd-state pd-state-rejected">{% translate "admin.firms.inactive" %}</span>{% endif %}{% if row.firm.email_text %}<br><span class="pd-muted">{{ row.firm.email_text }}</span>{% endif %}</th>
     <td>{% translate row.firm.kind_key %}</td>
     <td class="pd-mono pd-hide-s">{{ row.firm.siren|default:"—" }}</td>
     <td><a href="{% url 'firm_admins' id: row.firm.id %}">{{ row.admins }}<span class="is-sr-only"> {% translate "admin.administrators.title" %} — {{ row.firm.name }}</span></a></td>

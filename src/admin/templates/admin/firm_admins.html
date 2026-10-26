@@ -7,7 +7,7 @@
 <section class="pd-panel" aria-labelledby="pd-admins-title">
   <h2 id="pd-admins-title">{% translate "admin.administrators.list" %}</h2>
   <p class="help mb-3">{% if is_fleet %}{% translate "admin.administrators.help.fleet" %}{% else %}{% translate "admin.administrators.help.firm" %}{% endif %}</p>
-  {% if gated %}<p class="help mb-3" id="pd-firm-gated">{% if mode == "dual" %}{% translate "admin.firm_approvals.help.gated_dual" %}{% else %}{% translate "admin.firm_approvals.help.gated_single" %}{% endif %} <a href="{% url 'firm_approval_mode' id: firm.id %}">{% translate "admin.dual_approval.title" %}</a></p>{% endif %}
+  {% if gated %}<p class="help mb-3" id="pd-firm-gated">{% if mode == "dual" %}{% translate "admin.firm_approvals.help.gated_dual" %}{% elsif held %}{% translate "admin.firm_approvals.help.gated_held" %}{% else %}{% translate "admin.firm_approvals.help.gated_single" %}{% endif %} <a href="{% url 'firm_approval_mode' id: firm.id %}">{% translate "admin.dual_approval.title" %}</a></p>{% endif %}
   {% if rows %}<div class="table-container" tabindex="0" role="region" aria-labelledby="pd-admins-title"><table class="table is-fullwidth is-striped">
     <caption class="is-sr-only">{% translate "admin.administrators.list" %}</caption>
     <thead><tr><th scope="col">{% translate "admin.administrators.position" %}</th><th scope="col">{% translate "admin.users.fields.email" %}</th><th scope="col">{% translate "admin.users.fields.name" %}</th><th scope="col">{% translate "admin.users.fields.state" %}</th><th scope="col"><span class="is-sr-only">{% translate "admin.actions.title" %}</span></th></tr></thead>

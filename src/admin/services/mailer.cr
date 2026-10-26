@@ -61,17 +61,81 @@ module PartiduoAdmin
     # Un échec d'envoi ne défait pas la décision : il est rendu, pour le
     # journal d'audit. Rend les adresses avisées et celles en échec.
     def self.recourse(approval : Approval, decider : User, recipients : Array(User)) : {Array(String), Array(String)}
+      notify(recipients, "recours") { |locale| recourse_text(approval, decider, locale) }
+    end
+
+    # Avis d'une demande du super-admin sur une structure à une personne
+    # (D-ADM-028) aux admins actifs de la structure, chacun dans sa langue,
+    # dès la demande : ils peuvent la valider ou la refuser jusqu'à
+    # l'échéance, après laquelle le super-admin la confirme seul.
+    def self.held(approval : Approval, recipients : Array(User)) : {Array(String), Array(String)}
+      notify(recipients, "demande") { |locale| held_text(approval, locale) }
+    end
+
+    # Annonce d'une nouvelle clé publique de sauvegarde du cabinet
+    # (D-ADM-029) aux *autres* admins actifs du cabinet, chacun dans sa
+    # langue : auteur, heure, ancienne et nouvelle empreinte, marche à
+    # suivre si le changement n'est pas légitime (B-CRA-001).
+    def self.backup_key(change : KeyChange, recipients : Array(User)) : {Array(String), Array(String)}
+      notify(recipients, "nouvelle clé") { |locale| backup_key_text(change, locale) }
+    end
+
+    # Envoi d'un avis à chaque destinataire, dans sa langue. Un échec
+    # d'envoi ne défait pas le geste qui l'a provoqué : il est rendu, pour le
+    # journal d'audit. Rend les adresses avisées et celles en échec.
+    private def self.notify(recipients : Array(User), label : String, & : String -> {String, String}) : {Array(String), Array(String)}
       notified = [] of String
       failed = [] of String
       recipients.each do |recipient|
-        subject, body = recourse_text(approval, decider, recipient.locale.presence || "fr")
+        subject, body = yield(recipient.locale.presence || "fr")
         TextEmail.new(recipient.email.to_s, subject, body).deliver
         notified << recipient.email.to_s
       rescue ex
-        Log.warn { "avis de recours non envoyé à #{recipient.email} : #{ex.message}" }
+        Log.warn { "avis (#{label}) non envoyé à #{recipient.email} : #{ex.message}" }
         failed << recipient.email.to_s
       end
       {notified, failed}
+    end
+
+    # Objet et texte de l'avis d'une demande retenue dans une langue.
+    def self.held_text(approval : Approval, locale : String) : {String, String}
+      I18n.with_locale(Config::LOCALES.includes?(locale) ? locale : "fr") do
+        body = String.build do |io|
+          io << I18n.t("admin.emails.held.intro", reference: approval.reference.to_s, kind: I18n.t(approval.kind_key),
+            target: approval.target_name, structure: approval.target_firm.try(&.name.to_s) || "") << "\n\n"
+          io << I18n.t("admin.emails.held.requested_by", person: approval.requested_by.try(&.email.to_s) || "") << "\n"
+          if reason = approval.reason_text
+            io << I18n.t("admin.emails.held.reason", reason: reason) << "\n"
+          end
+          io << "\n" << I18n.t("admin.emails.held.deadline", time: Approvals.recourse_at(approval).to_s("%Y-%m-%d %H:%M UTC"),
+            hours: Config.recourse_delay.total_hours.to_i.to_s) << "\n"
+          io << Config.base_url << "/approvals\n"
+        end
+        {I18n.t("admin.emails.held.subject", reference: approval.reference.to_s), body}
+      end
+    end
+
+    # Changement de la clé publique de sauvegarde d'un cabinet.
+    record KeyChange, firm : Firm, author : User, previous : String, current : String, at : Time,
+      super_admins : Array(String)
+
+    # Objet et texte de l'annonce d'une nouvelle clé dans une langue.
+    def self.backup_key_text(change : KeyChange, locale : String) : {String, String}
+      I18n.with_locale(Config::LOCALES.includes?(locale) ? locale : "fr") do
+        author = change.author.email.to_s
+        previous = change.previous.empty? ? I18n.t("admin.emails.backup_key.none") : BackupCrypto.display_fingerprint(change.previous)
+        body = String.build do |io|
+          io << I18n.t("admin.emails.backup_key.intro", structure: change.firm.name.to_s, person: author,
+            time: change.at.to_s("%Y-%m-%d %H:%M UTC")) << "\n\n"
+          io << I18n.t("admin.emails.backup_key.previous", fingerprint: previous) << "\n"
+          io << I18n.t("admin.emails.backup_key.current", fingerprint: BackupCrypto.display_fingerprint(change.current)) << "\n\n"
+          io << I18n.t("admin.emails.backup_key.illegitimate", person: author,
+            super_admins: change.super_admins.join(", ").presence || "—") << "\n"
+          io << Config.base_url << "/firms/" << change.firm.pk << "/backups\n\n"
+          io << I18n.t("admin.emails.backup_key.audit") << "\n"
+        end
+        {I18n.t("admin.emails.backup_key.subject", structure: change.firm.name.to_s), body}
+      end
     end
 
     # Objet et texte de l'avis de recours dans une langue.

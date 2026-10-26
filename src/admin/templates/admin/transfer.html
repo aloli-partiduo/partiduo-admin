@@ -13,7 +13,7 @@
       <dt>{% translate "admin.transfers.from_to" %}</dt><dd>{{ approval.detail_text }}</dd>
       <dt>{% translate "admin.dossiers.fields.payer" %}</dt><dd>{{ approval.param_previous_payer }} → {{ approval.param_payer_name }}</dd>
       <dt>{% translate "admin.encryption.title" %}</dt><dd>{% translate encryption_from %} → {% translate encryption_to %}</dd>
-      <dt>{% translate "admin.reason" %}</dt><dd>{% if approval.reason %}{{ approval.reason }}{% else %}<span class="pd-muted">—</span>{% endif %}</dd>
+      <dt>{% translate "admin.reason" %}</dt><dd>{% if approval.reason_text %}{{ approval.reason_text }}{% else %}<span class="pd-muted">—</span>{% endif %}</dd>
       <dt>{% translate "admin.approvals.requested_by" %}</dt><dd>{{ approval.requested_by.email }}</dd>
       <dt>{% translate "admin.approvals.state" %}</dt><dd><span class="pd-state pd-state-{{ approval.state }}">{% translate approval.state_key %}</span></dd>
     </dl>

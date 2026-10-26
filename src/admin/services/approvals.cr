@@ -91,8 +91,9 @@ module PartiduoAdmin
       mode = ApprovalMode.mode(firm, now)
       approval = Approval.create!(kind: kind, reference: Secrets.reference("DV"), firm: firm,
         params: params.to_json, reason: reason.strip, requested_by: user, expires_at: now + Config::APPROVAL_TTL, mode: mode)
-      Audit.log(user, "approval.request", target: approval,
-        detail: {"kind" => kind, "firm" => firm.name.to_s, "target" => target, "mode" => mode})
+      detail = {"kind" => kind, "firm" => firm.name.to_s, "target" => target, "mode" => mode}
+      announce_held(approval, mode, detail)
+      Audit.log(user, "approval.request", target: approval, detail: detail)
       Outcome(Approval).new(approval)
     end
 
@@ -105,8 +106,51 @@ module PartiduoAdmin
       mode = ApprovalMode.mode_for(dossier, now)
       approval = Approval.create!(kind: kind, reference: Secrets.reference("DV"), dossier: dossier,
         params: params.to_json, reason: reason.strip, requested_by: user, expires_at: now + Config::APPROVAL_TTL, mode: mode)
-      Audit.log(user, "approval.request", target: approval, detail: {"kind" => kind, "dossier" => dossier.slug.to_s, "mode" => mode})
+      detail = {"kind" => kind, "dossier" => dossier.slug.to_s, "mode" => mode}
+      announce_held(approval, mode, detail)
+      Audit.log(user, "approval.request", target: approval, detail: detail)
       Outcome(Approval).new(approval)
+    end
+
+    # --- Demande du super-admin sur une structure à une personne (D-ADM-028) ---
+
+    # Demande *retenue* : faite par un super-admin habilité à la confirmer
+    # seul, sur une structure dont il n'est pas membre (cabinet,
+    # gestionnaire indépendant) et qui a des admins actifs. Elle attend le
+    # délai du dernier recours (D-ADM-024, `recourse_at`) : jusque-là, un
+    # admin actif de la structure la valide ou la refuse ; ensuite seulement,
+    # le super-admin la confirme seul. Le parc sans cabinet, structure des
+    # super-admins, n'est pas concerné. Lu à chaque décision : demandeur,
+    # structure et admins relus en base.
+    def self.held?(approval : Approval) : Bool
+      return false if approval.transfer?
+      requester = User.filter(id: approval.requested_by_id).first
+      firm = approval.target_firm
+      return false if requester.nil? || firm.nil?
+      held_firm?(requester, firm) && habilitated?(requester, approval)
+    end
+
+    # Les demandes de `user` sur `firm` sont-elles retenues ? (Écrans : la
+    # confirmation seule n'est pas proposée aussitôt.)
+    def self.held_firm?(user : User, firm : Firm) : Bool
+      return false if !user.super_admin? || firm.fleet?
+      User.filter(firm_id: firm.pk, role: Config::FIRM_ADMIN, active: true).exists?
+    end
+
+    # Le demandeur attend-il encore l'échéance pour confirmer seul ?
+    def self.confirm_waiting?(user : User, approval : Approval, now : Time = Config.now) : Bool
+      approval.state == "pending" && approval.requested_by_id == user.pk && held?(approval) && now < recourse_at(approval)
+    end
+
+    # Demande retenue enregistrée : les admins actifs de la structure en
+    # sont avisés par courriel, dans leur langue, dès la demande ; adresses
+    # avisées et échéance au journal d'audit (`approval.request`).
+    private def self.announce_held(approval : Approval, mode : String, detail : Hash(String, String)) : Nil
+      return unless mode == ApprovalMode::SINGLE && held?(approval)
+      notified, failed = Mailer.held(approval, firm_admins(approval.target_firm!))
+      detail["held_until"] = recourse_at(approval).to_s("%Y-%m-%d %H:%M")
+      detail["notified"] = notified.join(',')
+      detail["notice_failed"] = failed.join(',') unless failed.empty?
     end
 
     # Le demandeur peut-il confirmer seul ? Structure réglée sur « une
@@ -117,7 +161,9 @@ module PartiduoAdmin
       return false if approval.transfer?
       return false unless approval.state == "pending" && approval.requested_by_id == user.pk
       return false unless habilitated?(user, approval)
-      ApprovalMode.mode(approval.target_firm!, now) == ApprovalMode::SINGLE
+      return false unless ApprovalMode.mode(approval.target_firm!, now) == ApprovalMode::SINGLE
+      # Demande retenue (D-ADM-028) : pas avant l'échéance.
+      !confirm_waiting?(user, approval, now)
     end
 
     # Habilité à décider de cette demande : admin du cabinet du dossier ou
@@ -235,6 +281,35 @@ module PartiduoAdmin
     # et de la durée légale sont ceux de la validation à deux.
     def self.confirm_alone(user : User, approval : Approval, strong_recent : Bool, confirmation : String,
                            now : Time = Config.now) : Outcome(Task)
+      if failure = confirm_refusal(user, approval, now)
+        return failure
+      end
+      held = held?(approval)
+      return Outcome(Task).failure("reauth", "admin.errors.approval.reauth") unless strong_recent
+      # Admins avisés de la confirmation d'une demande retenue : ceux de la
+      # structure avant la décision.
+      notified = held ? firm_admins(approval.target_firm!) : [] of User
+      return confirm_firm_alone(user, approval, confirmation, now, notified, held) if approval.firm_target?
+      dossier = approval.dossier!
+      expected = approval.kind == "delete" ? dossier.slug.to_s : "yes"
+      unless confirmation.strip == expected
+        key = approval.kind == "delete" ? "admin.errors.approval.confirmation_slug" : "admin.errors.approval.confirmation"
+        return Outcome(Task).failure("confirmation", key)
+      end
+      outcome = issue(user, approval, [user.email.to_s], ApprovalMode::SINGLE, now)
+      if outcome.ok?
+        confirmed_alone(user, approval, {"kind" => approval.kind.to_s, "dossier" => dossier.slug.to_s,
+                                         "mode" => ApprovalMode::SINGLE}, notified, held)
+      end
+      outcome
+    end
+
+    # Refus de la confirmation seule avant la ré-authentification : demande
+    # close, transfert, autre demandeur, demandeur non habilité, structure à
+    # deux personnes ; demande retenue du super-admin avant l'échéance
+    # (D-ADM-028 : les admins de la structure ont jusque-là pour la valider
+    # ou la refuser).
+    private def self.confirm_refusal(user : User, approval : Approval, now : Time) : Outcome(Task)?
       if failure = open_failure(approval, now)
         return failure
       end
@@ -244,31 +319,32 @@ module PartiduoAdmin
       if ApprovalMode.mode(approval.target_firm!, now) != ApprovalMode::SINGLE
         return Outcome(Task).failure("base", "admin.errors.approval.dual_required")
       end
-      return Outcome(Task).failure("reauth", "admin.errors.approval.reauth") unless strong_recent
-      return confirm_firm_alone(user, approval, confirmation, now) if approval.firm_target?
-      dossier = approval.dossier!
-      expected = approval.kind == "delete" ? dossier.slug.to_s : "yes"
-      unless confirmation.strip == expected
-        key = approval.kind == "delete" ? "admin.errors.approval.confirmation_slug" : "admin.errors.approval.confirmation"
-        return Outcome(Task).failure("confirmation", key)
-      end
-      outcome = issue(user, approval, [user.email.to_s], ApprovalMode::SINGLE, now)
+      Outcome(Task).failure("base", "admin.errors.approval.confirm_wait") if held?(approval) && now < recourse_at(approval)
+    end
+
+    # Demande de structure confirmée seule (D-ADM-023) : case cochée.
+    private def self.confirm_firm_alone(user : User, approval : Approval, confirmation : String, now : Time,
+                                        notified : Array(User), held : Bool) : Outcome(Task)
+      return Outcome(Task).failure("confirmation", "admin.errors.approval.confirmation") unless confirmation.strip == "yes"
+      outcome = apply_firm(user, approval, ApprovalMode::SINGLE, now)
       if outcome.ok?
-        Audit.log(user, "approval.confirm_alone", target: approval,
-          detail: {"kind" => approval.kind.to_s, "dossier" => dossier.slug.to_s, "mode" => ApprovalMode::SINGLE})
+        confirmed_alone(user, approval, {"kind" => approval.kind.to_s, "firm" => approval.firm!.name.to_s,
+                                         "mode" => ApprovalMode::SINGLE}, notified, held)
       end
       outcome
     end
 
-    # Demande de structure confirmée seule (D-ADM-023) : case cochée.
-    private def self.confirm_firm_alone(user : User, approval : Approval, confirmation : String, now : Time) : Outcome(Task)
-      return Outcome(Task).failure("confirmation", "admin.errors.approval.confirmation") unless confirmation.strip == "yes"
-      outcome = apply_firm(user, approval, ApprovalMode::SINGLE, now)
-      if outcome.ok?
-        Audit.log(user, "approval.confirm_alone", target: approval,
-          detail: {"kind" => approval.kind.to_s, "firm" => approval.firm!.name.to_s, "mode" => ApprovalMode::SINGLE})
+    # Trace de la confirmation seule ; celle d'une demande retenue, faite
+    # après l'échéance sans décision d'un admin de la structure, est un
+    # dernier recours (D-ADM-028) : tracée et annoncée comme tel.
+    private def self.confirmed_alone(user : User, approval : Approval, detail : Hash(String, String),
+                                     notified : Array(User), held : Bool) : Nil
+      if held
+        detail["requested_by"] = user.email.to_s
+        recourse_done(user, approval, detail, notified)
+      else
+        Audit.log(user, "approval.confirm_alone", target: approval, detail: detail)
       end
-      outcome
     end
 
     # Demande encore ouverte ? Sinon la clé du refus (transfert, D-ADM-027).

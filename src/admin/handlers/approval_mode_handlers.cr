@@ -102,8 +102,20 @@ module PartiduoAdmin
         handler.flash["info"] = I18n.t("admin.dual_approval.requested_single", reference: approval.reference.to_s)
         return handler.go("/approvals/#{approval.pk}/confirm")
       end
-      handler.flash["success"] = I18n.t("admin.approvals.requested", reference: approval.reference.to_s)
+      unless held_notice(handler, approval)
+        handler.flash["success"] = I18n.t("admin.approvals.requested", reference: approval.reference.to_s)
+      end
       handler.go(Approvals.back_path(approval))
+    end
+
+    # Demande retenue du super-admin (D-ADM-028) : le message dit que les
+    # admins de la structure sont prévenus, et l'échéance. Vrai si c'en est
+    # une.
+    def self.held_notice(handler : ScreenHandler, approval : Approval) : Bool
+      return false unless Approvals.confirm_waiting?(handler.user, approval)
+      handler.flash["info"] = I18n.t("admin.dual_approval.requested_held", reference: approval.reference.to_s,
+        time: Approvals.recourse_at(approval).to_s("%Y-%m-%d %H:%M UTC"))
+      true
     end
 
     private def approval! : Approval
@@ -124,6 +136,7 @@ module PartiduoAdmin
         "mode"               => ApprovalMode.mode(approval.target_firm!, now),
         "pending"            => approval.state == "pending" && approval.expires_at! > now,
         "can_confirm"        => Approvals.can_confirm_alone?(user, approval, now),
+        "held_until"         => Approvals.confirm_waiting?(user, approval, now) ? Approvals.recourse_at(approval).to_s("%Y-%m-%d %H:%M UTC") : nil,
         "needs_admin"        => !Approvals.habilitated?(user, approval),
         "recent"             => Auth::Sessions.recent_strong?(session, now),
         "strong_at"          => strong_at.try(&.to_s("%H:%M")),

@@ -231,6 +231,14 @@ module PartiduoAdmin
 
     # Dépôt (ou remplacement) de la clé publique du cabinet. Les sauvegardes
     # déjà prises gardent la clé de leur prise (empreinte affichée).
+    #
+    # Immédiat (une clé compromise se remplace sans attendre, D-ADM-025),
+    # mais annoncé (D-ADM-029, risque B-CRA-001 : un admin qui déposerait
+    # sa propre clé) : les *autres* admins actifs du cabinet reçoivent par
+    # courriel, dans leur langue, l'auteur, l'heure, l'ancienne et la
+    # nouvelle empreinte, et la marche à suivre si le changement n'est pas
+    # légitime. Adresses avisées au journal d'audit (`backup_key.deposit`) ;
+    # un échec d'envoi ne défait pas le dépôt.
     def self.deposit_key(user : User, firm : Firm, pem : String) : Outcome(Firm)
       return Outcome(Firm).failure("base", "admin.errors.forbidden") unless can_deposit_key?(user, firm)
       key = begin
@@ -238,14 +246,29 @@ module PartiduoAdmin
       rescue BackupCrypto::Error
         return Outcome(Firm).failure("public_key", "admin.errors.encryption.public_key")
       end
-      previous = firm.backup_key_fingerprint.to_s
+      previous = firm.reload.backup_key_fingerprint.to_s
+      now = Config.now
       firm.backup_public_key = key.pem
       firm.backup_key_fingerprint = key.fingerprint
-      firm.backup_key_set_at = Config.now
+      firm.backup_key_set_at = now
       firm.save!
-      Audit.log(user, "backup_key.deposit", target: firm,
-        detail: {"fingerprint" => key.fingerprint, "previous" => previous, "bits" => key.bits.to_s})
+      detail = {"fingerprint" => key.fingerprint, "previous" => previous, "bits" => key.bits.to_s}
+      announce_key(user, firm, previous, key.fingerprint, now, detail) unless previous == key.fingerprint
+      Audit.log(user, "backup_key.deposit", target: firm, detail: detail)
       Outcome(Firm).new(firm)
+    end
+
+    # Annonce de la nouvelle empreinte aux autres admins actifs du cabinet
+    # (jamais à l'auteur) ; les super-admins actifs sont nommés comme
+    # recours.
+    private def self.announce_key(user : User, firm : Firm, previous : String, current : String, now : Time,
+                                  detail : Hash(String, String)) : Nil
+      others = User.filter(firm_id: firm.pk, role: Config::FIRM_ADMIN, active: true).exclude(id: user.pk).order("email").to_a
+      supers = User.filter(role: Config::SUPER_ADMIN, active: true).order("email").map(&.email.to_s)
+      change = Mailer::KeyChange.new(firm, user, previous, current, now, supers)
+      notified, failed = Mailer.backup_key(change, others)
+      detail["notified"] = notified.join(',')
+      detail["notice_failed"] = failed.join(',') unless failed.empty?
     end
 
     # --- Paramètres des tâches --------------------------------------------------

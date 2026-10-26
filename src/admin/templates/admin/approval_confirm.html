@@ -1,4 +1,4 @@
-{# SPDX-License-Identifier: AGPL-3.0-or-later. Confirmation d'une opération sensible par le demandeur seul (structure réglée sur « une personne », DECISIONS D-VAL2-004) : ré-authentification forte récente, puis confirmation explicite. Cible : un dossier, ou une structure sans dossier (D-ADM-023). #}{% extend "admin/base.html" %}
+{# SPDX-License-Identifier: AGPL-3.0-or-later. Confirmation d'une opération sensible par le demandeur seul (structure réglée sur « une personne », DECISIONS D-VAL2-004) : ré-authentification forte récente, puis confirmation explicite. Cible : un dossier, ou une structure sans dossier (D-ADM-023). Demande retenue du super-admin : échéance montrée à la place du formulaire (D-ADM-028). #}{% extend "admin/base.html" %}
 {% block title %}{% translate "admin.dual_approval.confirm_title" %}{% endblock title %}
 {% block crumbs %}<li><a href="{% url 'approvals' %}">{% translate "admin.approvals.title" %}</a></li><li>{{ approval.reference }}</li>{% endblock crumbs %}
 {% block heading %}{% translate "admin.dual_approval.confirm_title" %} · {% translate approval.kind_key %}{% endblock heading %}
@@ -11,7 +11,7 @@
     <dt>{% translate "admin.approvals.kind" %}</dt><dd>{% translate approval.kind_key %}{% if dossier %}{% if approval.param_email %} · {{ approval.param_email }}{% endif %}{% elsif approval.target_label %} · {{ approval.target_label }}{% endif %}{% if firm %}{% if approval.param_replaces %} ({% translate "admin.administrators.replacing" %} {{ approval.param_replaces }}){% endif %}{% endif %}{% if approval.detail_text %} — {{ approval.detail_text }}{% endif %}</dd>
     {% if dossier %}<dt>{% translate "admin.tasks.dossier" %}</dt><dd><a href="{% url 'dossier' id: dossier.id %}">{{ dossier.slug }}</a> — {{ dossier.label }}</dd>
     {% else %}<dt>{% translate "admin.approvals.firm_target" %}</dt><dd>{{ firm.name }}</dd>{% endif %}
-    <dt>{% translate "admin.reason" %}</dt><dd>{% if approval.reason %}{{ approval.reason }}{% else %}<span class="pd-muted">—</span>{% endif %}</dd>
+    <dt>{% translate "admin.reason" %}</dt><dd>{% if approval.reason_text %}{{ approval.reason_text }}{% else %}<span class="pd-muted">—</span>{% endif %}</dd>
     <dt>{% translate "admin.dual_approval.mode" %}</dt><dd><span class="pd-mode pd-mode-{{ mode }}">{% if mode == "dual" %}{% translate "admin.dual_approval.modes.dual" %}{% else %}{% translate "admin.dual_approval.modes.single" %}{% endif %}</span></dd>
     <dt>{% translate "admin.approvals.state" %}</dt><dd><span class="pd-state pd-state-{{ approval.state }}">{% translate approval.state_key %}</span></dd>
   </dl>
@@ -23,6 +23,8 @@
 <p class="notification is-light is-warning" role="status">{% translate "admin.dual_approval.now_dual" %}</p>
 {% elsif needs_admin %}
 <p class="notification is-light is-warning" role="status">{% translate "admin.dual_approval.needs_admin" %}</p>
+{% elsif held_until %}
+<p class="notification is-light is-info" role="status">{% translate "admin.dual_approval.held" time: held_until %}</p>
 {% else %}
 {% include "admin/_reauth.html" %}
 

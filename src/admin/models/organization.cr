@@ -18,6 +18,13 @@ module PartiduoAdmin
     field :siren, :string, max_size: 9, blank: true, default: ""
     field :email, :string, max_size: 254, blank: true, default: ""
     field :active, :bool, default: true
+
+    # Adresse affichée, `nil` si vide : une chaîne vide est vraie dans un
+    # gabarit de Marten.
+    def email_text : String?
+      email.to_s.presence
+    end
+
     # Chiffrement des sauvegardes de ses dossiers (D-CHF-001) : `none`,
     # `server` ou `cabinet` ; valeur par défaut, surchargeable par dossier.
     field :backup_encryption, :string, max_size: 16, default: "exploitation"
@@ -141,6 +148,12 @@ module PartiduoAdmin
 
     def firm_name : String
       firm.try(&.name) || ""
+    end
+
+    # Structure affichée, `nil` sans structure (super-admin) : une chaîne
+    # vide est vraie dans un gabarit de Marten.
+    def firm_label : String?
+      firm_name.to_s.presence
     end
   end
 

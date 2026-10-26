@@ -359,14 +359,16 @@ module PartiduoAdmin
        pieces: picker(kind, [] of String, regime), piece_errors: piece_errors(t)}
     end
 
-    # Fil des étapes : numéro, titre, lien vers une étape déjà atteinte.
-    private def track(draft : WizardDraft, number : Int32) : Array(Hash(String, String | Bool))
+    # Fil des étapes : numéro, titre, lien vers une étape déjà atteinte
+    # (`nil` sinon : une chaîne vide est vraie dans un gabarit de Marten, et
+    # faisait de l'étape en cours un lien vide).
+    private def track(draft : WizardDraft, number : Int32) : Array(Hash(String, String | Bool?))
       locked = Wizards.locked(draft)
       Wizards.steps(draft).each_with_index.map do |code, index|
         position = index + 1
         open = position <= draft.furthest && position != number && position > locked
         {"number" => position.to_s, "key" => "admin.wizards.steps.#{code}", "current" => position == number,
-         "done" => position < number, "link" => open ? "/wizards/#{draft.kind!}?step=#{position}" : ""}
+         "done" => position < number, "link" => open ? "/wizards/#{draft.kind!}?step=#{position}" : nil}
       end.to_a
     end
   end

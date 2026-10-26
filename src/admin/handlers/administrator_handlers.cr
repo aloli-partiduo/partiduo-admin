@@ -90,6 +90,7 @@ module PartiduoAdmin
         "is_fleet"    => firm.fleet?,
         "gated"       => Administrators.firm_gated?(firm),
         "mode"        => ApprovalMode.mode(firm),
+        "held"        => Approvals.held_firm?(user, firm),
         "pending"     => pending,
         "reason"      => field("reason"),
       }, status: status)
@@ -149,8 +150,10 @@ module PartiduoAdmin
         handler.flash["info"] = I18n.t("admin.dual_approval.requested_single", reference: approval.reference.to_s)
         return handler.go("/approvals/#{approval.pk}/confirm")
       end
-      key = approval.mode == ApprovalMode::DUAL ? "admin.approvals.requested" : "admin.dual_approval.requested_admin"
-      handler.flash["success"] = I18n.t(key, reference: approval.reference.to_s)
+      unless ApprovalConfirmHandler.held_notice(handler, approval)
+        key = approval.mode == ApprovalMode::DUAL ? "admin.approvals.requested" : "admin.dual_approval.requested_admin"
+        handler.flash["success"] = I18n.t(key, reference: approval.reference.to_s)
+      end
       handler.go("/dossiers/#{dossier.pk}/admins")
     end
 
@@ -160,21 +163,23 @@ module PartiduoAdmin
       manage = Access.can?(user, :administrators, dossier) && dossier.state == "active"
       own = user.email.to_s.downcase
       page("admin/dossier_admins.html", {
-        "dossier"       => dossier,
-        "rows"          => rows.map { |row| {"admin" => row, "is_self" => row.email == own, "pending" => row.state != "active", "last" => active.size <= 1} },
-        "manage"        => manage,
-        "can_refresh"   => Access.can?(user, :refresh_administrators, dossier) && dossier.state == "active",
-        "replaceable"   => active.map(&.email.to_s),
-        "pending"       => Approval.filter(dossier_id: dossier.pk, state: "pending", kind__in: %w[admin_add admin_remove admin_invite]).order("-id").to_a,
-        "tasks"         => Task.filter(dossier_id: dossier.pk, kind__in: %w[instance.admin_add instance.admin_remove instance.admins]).order("-id").to_a.first(10),
-        "approval_mode" => ApprovalMode.mode_for(dossier),
-        "limit"         => Administrators::LIMIT,
-        "email"         => field("email"),
-        "reason"        => field("reason"),
-        "errors"        => errors.values.flatten.empty? ? nil : errors,
-        "email_errors"  => errs(errors, "email") + errs(errors, "replaces") + errs(errors, "replace_removal"),
-        "reason_errors" => errs(errors, "reason"),
-        "base_errors"   => errs(errors, "base"),
+        "dossier"        => dossier,
+        "rows"           => rows.map { |row| {"admin" => row, "is_self" => row.email == own, "pending" => row.state != "active", "last" => active.size <= 1} },
+        "manage"         => manage,
+        "can_refresh"    => Access.can?(user, :refresh_administrators, dossier) && dossier.state == "active",
+        "replaceable"    => active.map(&.email.to_s),
+        "pending"        => Approval.filter(dossier_id: dossier.pk, state: "pending", kind__in: %w[admin_add admin_remove admin_invite]).order("-id").to_a,
+        "tasks"          => Task.filter(dossier_id: dossier.pk, kind__in: %w[instance.admin_add instance.admin_remove instance.admins]).order("-id").to_a.first(10),
+        "approval_mode"  => ApprovalMode.mode_for(dossier),
+        "confirms_alone" => Access.can?(user, :approve, dossier) && !Approvals.held_firm?(user, dossier.firm!),
+        "held"           => Approvals.held_firm?(user, dossier.firm!),
+        "limit"          => Administrators::LIMIT,
+        "email"          => field("email"),
+        "reason"         => field("reason"),
+        "errors"         => errors.values.flatten.empty? ? nil : errors,
+        "email_errors"   => errs(errors, "email") + errs(errors, "replaces") + errs(errors, "replace_removal"),
+        "reason_errors"  => errs(errors, "reason"),
+        "base_errors"    => errs(errors, "base"),
       }, status: status)
     end
   end

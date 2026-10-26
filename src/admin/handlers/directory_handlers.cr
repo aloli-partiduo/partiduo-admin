@@ -186,6 +186,7 @@ module PartiduoAdmin
         "kinds"     => kinds,
         "gated"     => Administrators.firm_gated?(firm),
         "mode"      => ApprovalMode.mode(firm),
+        "held"      => Approvals.held_firm?(user, firm),
         "team_size" => ApprovalMode.team_size(firm).to_s,
         "pending"   => ApprovalMode.pending(firm).select { |approval| Approval::STRUCTURE_KINDS.includes?(approval.kind) },
         "errors"    => errs(errors, "base") + errs(errors, "kind"),

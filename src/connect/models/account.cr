@@ -163,5 +163,11 @@ module PartiduoConnect
     field :ip, :string, max_size: 64, blank: true, default: ""
     field :detail, :text, blank: true, default: ""
     field :created_at, :date_time, auto_now_add: true
+
+    # Application affichée, `nil` sans application : une chaîne vide est
+    # vraie dans un gabarit de Marten.
+    def client_text : String?
+      client_id.to_s.presence
+    end
   end
 end

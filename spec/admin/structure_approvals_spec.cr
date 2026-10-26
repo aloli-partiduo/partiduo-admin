@@ -95,15 +95,20 @@ describe "Désactivation, réactivation et nature d'une structure soumises à va
     approval = Firms.request_active(root, firm, false, "fin de contrat").value!
     approval.kind.should eq("firm_disable")
     firm.reload.active.should be_true
-    Approvals.can_confirm_alone?(root, approval).should be_true
-    Approvals.confirm_alone(root, approval, true, "yes").ok?.should be_true
+    # Demande retenue (D-ADM-028) : l'admin du cabinet peut la valider ou
+    # la refuser jusqu'à l'échéance ; le super-admin la confirme seul ensuite.
+    Approvals.can_confirm_alone?(root, approval).should be_false
+    Approvals.confirm_alone(root, approval, true, "yes").errors["base"].should eq(["admin.errors.approval.confirm_wait"])
+    firm.reload.active.should be_true
+    Approvals.can_confirm_alone?(root, approval, AdminSpec.recourse_time).should be_true
+    Approvals.confirm_alone(root, approval, true, "yes", AdminSpec.recourse_time).ok?.should be_true
     firm.reload.active.should be_false
     admin.reload.can_sign_in?.should be_false
     PartiduoAdmin::Session.filter(user_id: admin.pk, revoked_at__isnull: true).exists?.should be_false
     PartiduoAdmin::AuditEntry.filter(action: "firm.disable", target_id: firm.pk).last!.detail.to_s.should contain(approval.reference.to_s)
     # Réactivation : de même.
     back = Firms.request_active(root, firm, true).value!
-    Approvals.confirm_alone(root, back, true, "yes").ok?.should be_true
+    Approvals.confirm_alone(root, back, true, "yes", AdminSpec.recourse_time).ok?.should be_true
     firm.reload.active.should be_true
     # Sans équipe : aussitôt.
     empty = AdminSpec.firm("Cabinet Sans Équipe")
@@ -137,7 +142,7 @@ describe "Désactivation, réactivation et nature d'une structure soumises à va
     I18n.with_locale("fr") { approval.detail_text }.should eq("Cabinet → Gestionnaire indépendant")
     # Attaque : cible modifiée — un gestionnaire arrive entre la demande et la décision.
     manager = AdminSpec.user(Cfg::FILE_MANAGER, firm)
-    Approvals.confirm_alone(root, approval, true, "yes").errors["kind"].should eq(["admin.errors.firm.independent_single"])
+    Approvals.confirm_alone(root, approval, true, "yes", AdminSpec.recourse_time).errors["kind"].should eq(["admin.errors.firm.independent_single"])
     approval.reload.state.should eq("expired")
     firm.reload.kind.should eq("cabinet")
     PartiduoAdmin::Directory.set_active(admin, manager, false).should be_true
@@ -145,11 +150,11 @@ describe "Désactivation, réactivation et nature d'une structure soumises à va
     # Attaque : état de la structure changé entre-temps (désactivée).
     firm.active = false
     firm.save!
-    Approvals.confirm_alone(root, again, true, "yes").errors["base"].should eq(["admin.errors.approval.target_changed"])
+    Approvals.confirm_alone(root, again, true, "yes", AdminSpec.recourse_time).errors["base"].should eq(["admin.errors.approval.target_changed"])
     firm.active = true
     firm.save!
     third = Firms.request_kind(root, firm, "independent").value!
-    Approvals.confirm_alone(root, third, true, "yes").ok?.should be_true
+    Approvals.confirm_alone(root, third, true, "yes", AdminSpec.recourse_time).ok?.should be_true
     firm.reload.kind.should eq("independent")
     PartiduoAdmin::AuditEntry.filter(action: "firm.kind", target_id: firm.pk).count.should eq(1)
     # Expirée au bout de sept jours.
@@ -168,8 +173,10 @@ describe "Désactivation, réactivation et nature d'une structure soumises à va
     browser.get("/firms").html.should contain(%(href="/firms/#{firm.pk}/settings"))
     requested = browser.post("/firms/#{firm.pk}/settings", {"command" => "disable", "reason" => "fin"})
     approval = PartiduoAdmin::Approval.filter(firm_id: firm.pk, kind: "firm_disable").first!
-    requested.headers["Location"].should eq("/approvals/#{approval.pk}/confirm")
-    browser.get("/approvals/#{approval.pk}/confirm").html.should contain("Je confirme la désactivation de la structure")
+    # Demande retenue jusqu'à l'échéance (D-ADM-028) : retour à la fiche,
+    # page de confirmation qui donne l'échéance.
+    requested.headers["Location"].should eq("/firms/#{firm.pk}/settings")
+    browser.get("/approvals/#{approval.pk}/confirm").html.should contain("Les admins de la structure ont été prévenus par courriel")
     Firms.request_kind(root, firm, "independent").value!
     Cfg::LOCALES.each do |locale|
       root.locale = locale

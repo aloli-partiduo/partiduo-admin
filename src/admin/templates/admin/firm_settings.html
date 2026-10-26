@@ -14,7 +14,7 @@
       <dt>{% translate "admin.administrators.title" %}</dt><dd><a href="{% url 'firm_admins' id: firm.id %}">{% translate "admin.administrators.manage" %}<span class="is-sr-only"> — {{ firm.name }}</span></a></dd>
       <dt>{% translate "admin.encryption.title" %}</dt><dd><a href="{% url 'firm_backups' id: firm.id %}">{% translate firm.backup_encryption_key %}<span class="is-sr-only"> — {{ firm.name }}</span></a></dd>
     </dl>
-    <p class="help mt-2">{% if gated %}{% if mode == "dual" %}{% translate "admin.firms.settings.gated_dual" %}{% else %}{% translate "admin.firms.settings.gated_single" %}{% endif %}{% else %}{% translate "admin.firms.settings.not_gated" %}{% endif %}</p>
+    <p class="help mt-2">{% if gated %}{% if mode == "dual" %}{% translate "admin.firms.settings.gated_dual" %}{% elsif held %}{% translate "admin.firms.settings.gated_held" %}{% else %}{% translate "admin.firms.settings.gated_single" %}{% endif %}{% else %}{% translate "admin.firms.settings.not_gated" %}{% endif %}</p>
   </section>
 
   {% if is_fleet %}
@@ -53,7 +53,7 @@
 {% if pending %}
 <section class="pd-panel" aria-labelledby="pd-firm-pending-title">
   <h2 id="pd-firm-pending-title">{% translate "admin.firm_approvals.pending_title" %}</h2>
-  <ul>{% for approval in pending %}<li><span class="pd-state pd-state-pending">{% translate "admin.firm_approvals.waiting" %}</span> <span class="pd-mono">{{ approval.reference }}</span> — {% translate approval.kind_key %}{% if approval.detail_text %} ({{ approval.detail_text }}){% endif %} · {{ approval.requested_by.email }}{% if approval.reason %} · {{ approval.reason }}{% endif %} · <a href="{% url 'approvals' %}">{% translate "admin.approvals.title" %}</a></li>{% endfor %}</ul>
+  <ul>{% for approval in pending %}<li><span class="pd-state pd-state-pending">{% translate "admin.firm_approvals.waiting" %}</span> <span class="pd-mono">{{ approval.reference }}</span> — {% translate approval.kind_key %}{% if approval.detail_text %} ({{ approval.detail_text }}){% endif %} · {{ approval.requested_by.email }}{% if approval.reason_text %} · {{ approval.reason_text }}{% endif %} · <a href="{% url 'approvals' %}">{% translate "admin.approvals.title" %}</a></li>{% endfor %}</ul>
 </section>
 {% endif %}
 {% endblock content %}

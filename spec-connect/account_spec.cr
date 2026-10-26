@@ -170,6 +170,11 @@ describe "connect : comptes" do
     browser = ConnectSpec.signed_in(account)
     page = browser.get("/account")
     page.html.should contain("auth.login")
+    # Entrée sans application : ni séparateur ni nom vide (une chaîne vide
+    # est vraie dans un gabarit de Marten).
+    PartiduoConnect::AuditEntry.new(client_id: "").client_text.should be_nil
+    PartiduoConnect::AuditEntry.new(client_id: "partiduo-app").client_text.should eq("partiduo-app")
+    page.html.should_not contain(" · </td>")
     expect_raises(Exception) do
       PartiduoConnect::AuditEntry.filter(account_id: account.pk).update(action: "falsifie")
     end

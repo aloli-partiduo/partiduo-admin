@@ -833,7 +833,9 @@ refus et le retrait restent possibles (ils ne lèvent aucune protection).
 valident comme les admins d'un cabinet valident pour le leur (une demande
 qui touche un compte de super-admin en relève). La confirmation seule du
 demandeur (structure à une personne, D-VAL2-004) n'est pas un recours :
-inchangée. La ligne de commande `approval-mode-single` (D-ADM-023) reste
+inchangée — sauf quand le demandeur est le super-admin lui-même, sur une
+structure dont il n'est pas membre : elle attend alors le même délai
+(D-ADM-028). La ligne de commande `approval-mode-single` (D-ADM-023) reste
 le recours du parc sans cabinet.
 
 *Écartées.* Un délai compté depuis la dernière connexion des admins du
@@ -937,7 +939,8 @@ et après (`Approval#detail_text`). Sept langues.
 compromise doit pouvoir être remplacée sans attendre. Le risque — un admin
 qui déposerait sa propre clé — reste celui de D-CHF-008 (B-CRA-001) ; à
 soumettre (empreinte de la nouvelle clé annoncée aux autres admins, par
-exemple).
+exemple). _Tranché le 26 octobre 2026 : nouvelle empreinte annoncée aux
+autres admins (D-ADM-029)._
 
 *Specs* : `spec/admin/encryption_weaken_spec.cr` — ordre, geste direct
 refusé, confirmation seule, rotation et renforcement immédiats, validation
@@ -1128,8 +1131,8 @@ demande est close (`approval.stale`, des deux côtés).
   le chiffrement de l'accueil, première sauvegarde que l'accueil peut
   restaurer seul ; les anciennes restent restaurables par l'origine sur
   demande (hors console) ou par l'exploitant pour la clé d'exploitation.
-  À soumettre : un re-chiffrement assisté des capsules dans le
-  navigateur de l'admin d'origine.
+  Re-chiffrement assisté des capsules dans le navigateur de l'admin
+  d'origine : *reporté* le 26 octobre 2026 (ci-dessous).
 * *Administrateurs du dossier* (`DossierAdmin`, instance) : inchangés.
 * *Demandes en attente sur le dossier* : closes (décidées dans l'ancienne
   structure, elles ne doivent pas l'être par la nouvelle), trace
@@ -1167,3 +1170,171 @@ demandeur et structure étrangère par le service et par la base, rejeu,
 refus, expiration, cible modifiée, chiffrement jamais affaibli et clé de
 l'accueil exigée), écrans et assistant dans les sept langues ;
 `translations_spec` parcourt l'assistant et la page du transfert.
+
+*Travail reporté : re-chiffrement assisté des sauvegardes d'un dossier
+transféré* (décision de l'utilisateur du 26 octobre 2026, aucun code).
+Les sauvegardes « clé du cabinet » prises avant un transfert restent
+lisibles par la seule structure d'origine. Les re-chiffrer pour la clé de
+l'accueil demanderait :
+
+* la *clé privée d'origine dans le navigateur de son administrateur*
+  (jamais transmise, D-CHF-005, comme `backup-keys.js` pour une
+  restauration), avec sa phrase de passe ;
+* *capsule par capsule* : pour chaque sauvegarde, ouvrir la capsule (clé
+  de la sauvegarde) dans ce navigateur, la re-sceller pour la clé publique
+  de l'accueil, et ne renvoyer que la nouvelle capsule ; le fichier de la
+  sauvegarde n'est pas re-chiffré (la clé de la sauvegarde ne change pas) ;
+* côté console : une page réservée à un admin actif de l'origine, qui
+  liste les sauvegardes du dossier transféré encore scellées pour sa clé ;
+  la nouvelle capsule acceptée seulement si elle est scellée pour
+  l'empreinte de l'accueil, la capsule d'origine gardée ; s'assurer
+  qu'elle protège bien la même clé de sauvegarde n'est possible que par
+  une restauration test faite avec la clé de l'accueil (la console n'a
+  aucune clé privée), à prévoir ; manifeste signé et empreintes inchangés
+  (D-CHF-014) ; trace par capsule au journal des deux structures ;
+* l'accord de l'origine (son admin fait le geste) ; l'accueil n'a rien à
+  fournir que sa clé publique déjà déposée.
+
+Tant que ce travail n'est pas fait : sauvegarde prise aussitôt après le
+transfert avec le chiffrement de l'accueil, anciennes sauvegardes
+restaurables par l'origine sur demande (hors console).
+
+=== D-ADM-028 — Demande du super-admin sur une structure à une personne : délai avant sa confirmation seule (26 octobre 2026)
+
+Décision de l'utilisateur du 26 octobre 2026, recommandation qui prolonge
+D-ADM-023 et D-ADM-024. Version 0.1.65. ADR-008 D3 est amendé
+(partiduo-docs).
+
+*Constat.* Sur un cabinet réglé sur « une personne », le super-admin qui
+faisait lui-même une demande (désactiver un compte d'admin, désactiver la
+structure, ajouter un administrateur à un dossier, recours d'accès…) la
+confirmait seul, aussitôt (D-ADM-023, D-ADM-026) : l'opérateur du parc
+agissait sur un cabinet sans que personne du cabinet ne le sache avant.
+D-ADM-024 ne retardait que la *validation* d'une demande d'autrui.
+
+*Règle.* Une demande est *retenue* (`Approvals.held?`) quand son
+demandeur est un super-admin habilité à la confirmer seul, sur une
+structure dont il n'est pas membre — cabinet ou gestionnaire indépendant
+— qui a au moins un admin actif. Elle attend le délai du dernier recours
+(`Config.recourse_delay`, `PARTIDUO_ADMIN_RECOURSE_DELAY_HOURS`, 48 heures
+par défaut, compté depuis la demande, `Approvals.recourse_at`) :
+
+* *pendant le délai*, un admin actif de la structure la *valide* ou la
+  *refuse* (validation ordinaire, `Approvals.approve` ou `reject` ; mode
+  « deux personnes » inscrit, puisque deux personnes ont décidé) ;
+  `confirm_alone` la refuse au super-admin (`approval.confirm_wait`),
+  `can_confirm_alone?` est faux ;
+* *passé le délai sans réponse*, le super-admin la confirme seul, après
+  ré-authentification forte récente et case cochée, comme avant ; la
+  confirmation est un dernier recours : tracée `approval.recourse` (mode
+  `single`, délai, heure de la demande, adresses avisées) et annoncée aux
+  admins actifs par le courriel du recours (`Mailer.recourse`) ;
+* *avis dès la demande* : chaque admin actif de la structure reçoit un
+  courriel dans sa langue (`Mailer.held`) — référence, nature et cible de
+  la demande, demandeur, motif, échéance (UTC), lien vers « Opérations
+  sensibles » ; adresses avisées et échéance dans la trace
+  `approval.request` (`notified`, `held_until`, `notice_failed`) ; un
+  échec d'envoi ne défait pas la demande ;
+* *écrans* : « Opérations sensibles » donne « Confirmation seule possible
+  à partir du » et l'heure à la place du lien « Confirmer », et une
+  explication de la règle ; la page « Confirmer seul » montre l'échéance à
+  la place du formulaire ; après la demande, le message dit que les admins
+  sont prévenus et donne l'heure (plus de passage direct à la
+  confirmation) ; notes du mode (fiche du dossier, administrateurs du
+  dossier, admins de la structure, fiche de la structure, assistant
+  d'invitation) et bouton « Demander la validation » adaptés.
+
+*Lu à la décision.* Demandeur, structure et admins relus en base à chaque
+décision, comme le mode (D-VAL2-006) : un réglage du délai changé vaut
+pour les demandes en attente.
+
+*Hors règle.* Le parc sans cabinet (structure des super-admins, qui en
+sont membres) ; une structure sans admin actif (personne à prévenir ni pour
+décider : confirmation aussitôt, comme avant) ; les demandes des admins de
+la structure ; une structure réglée sur deux personnes (D-ADM-024
+inchangé) ; les demandes que le super-admin ne confirme jamais seul
+(affaiblissement du chiffrement, D-ADM-025) et le transfert (D-ADM-027).
+
+*Écartées.* Un délai propre, distinct de celui du recours : deux réglages
+pour une même idée (le temps laissé à la structure). Une simple annonce
+sans délai : la structure apprendrait le geste une fois fait.
+
+*Specs* : `spec/admin/held_requests_spec.cr` — avis dès la demande aux
+admins actifs dans leur langue et jamais au super-admin, trace ; *attaque :
+le super-admin confirme seul avant le délai*, ré-authentifié et case
+cochée, à la dernière minute comprise (refusé, rien n'est fait) ;
+confirmation à l'échéance tracée `approval.recourse` et annoncée ;
+validation et refus par un admin du cabinet pendant le délai ; demande d'un
+dossier ; cabinet sans admin ; demandes d'un admin et parc sans cabinet non
+retenus ; écrans (heure, page de confirmation, envoi direct du formulaire).
+Aucun envoi réel : file capturée de Marten (`Marten::Spec.delivered_emails`).
+`structure_approvals_spec` suit la nouvelle règle.
+
+=== D-ADM-029 — Nouvelle clé du cabinet annoncée aux autres admins (26 octobre 2026)
+
+Décision de l'utilisateur du 26 octobre 2026, point laissé « à soumettre »
+par D-ADM-025, en réponse au risque B-CRA-001 (D-CHF-008 : un admin du
+cabinet dépose sa propre clé et lit seul les sauvegardes suivantes).
+Version 0.1.65. ADR-008 D3 est amendé (partiduo-docs).
+
+*Règle.* Le dépôt de la clé publique de sauvegarde du cabinet — premier
+dépôt ou rotation — reste *immédiat* (une clé compromise se remplace sans
+attendre). À chaque dépôt qui change l'empreinte, les *autres* admins
+actifs du cabinet reçoivent un courriel dans leur langue
+(`Mailer.backup_key`) : qui a changé la clé (adresse) et quand (UTC),
+l'ancienne empreinte (« aucune » au premier dépôt) et la nouvelle, et la
+marche à suivre si le changement n'est pas légitime — contacter l'auteur
+et le super-admin (adresses des super-admins actifs), puis redéposer une
+clé publique connue du cabinet (lien vers l'écran du chiffrement). Jamais
+à l'auteur, ni aux comptes désactivés, gestionnaires de dossiers,
+super-admins ou admins d'autres structures. La même clé redéposée n'est
+pas annoncée (rien n'a changé).
+
+*Journal d'audit.* La trace `backup_key.deposit` porte, en plus des deux
+empreintes, les adresses avisées (`notified`) et celles dont l'envoi a
+échoué (`notice_failed`) ; un échec d'envoi ne défait pas le dépôt.
+L'écran du dépôt le dit (« Les autres admins actifs du cabinet reçoivent
+par courriel… »). Sept langues.
+
+*Limite.* Un cabinet d'un seul admin (gestionnaire indépendant) n'a
+personne à prévenir : le risque y est nul, il est seul à lire. Un admin
+qui écarterait d'abord les autres passe par une demande (D-ADM-023,
+D-ADM-026).
+
+*Specs* : `spec/admin/key_announce_spec.cr` — premier dépôt et rotation :
+*courriel envoyé aux autres admins actifs et pas à l'auteur* (ni compte
+désactivé, gestionnaire, autre cabinet, super-admin), en allemand et en
+français, empreintes, auteur, heure, recours ; trace ; même clé sans
+annonce ; échec d'envoi consigné ; écran. Aucun envoi réel (file
+capturée).
+
+=== D-ADM-030 — Champs facultatifs vides : `nil` pour les gabarits (26 octobre 2026)
+
+Défaut relevé le 26 octobre 2026 : dans « Opérations sensibles », un motif
+vide s'affichait vide au lieu de « — » ; une chaîne vide est *vraie* dans
+un `{% if %}` de Marten (seuls `nil`, `false` et `0` sont faux), comme une
+liste vide. Version 0.1.65.
+
+*Correction à la source.*
+
+* Valeurs passées aux gabarits (`ScreenHandler#page` de la console,
+  `BaseHandler#page` de connect) : une chaîne vide passe comme `nil`,
+  comme une liste vide depuis le début.
+* Attributs des modèles affichés sous condition : méthodes qui rendent
+  `nil` pour une valeur vide (`presence`) — `Approval#reason_text` (motif ;
+  « Opérations sensibles », « Confirmer seul », page du transfert,
+  demandes en attente de la fiche de la structure et du chiffrement),
+  `Firm#email_text` (liste des structures), `Dossier#extensions_text`
+  (liste des dossiers), `User#firm_label` (page du compte d'un
+  super-admin) ; connect : `AuditEntry#client_text` (journal du compte).
+  Mêmes règles que `FormField#help`, `Task#error_text`,
+  `Approval#param_email` déjà en place.
+* Fil des étapes des assistants : lien `nil` (et non une chaîne vide) pour
+  l'étape en cours et celles non atteintes, qui s'affichaient comme un lien
+  vide.
+
+*Specs* : `spec/admin/blank_display_spec.cr` (« — » dans « Opérations
+sensibles » et sur « Confirmer seul », aucun séparateur orphelin sur la
+fiche de la structure, la liste des structures, des dossiers, la page du
+compte, aucun lien vide dans un assistant) ; `spec-connect/account_spec`
+(journal sans application).

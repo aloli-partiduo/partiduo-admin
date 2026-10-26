@@ -137,7 +137,7 @@
     <form method="post" action="{% url 'dossier_request' id: dossier.id, kind: 'delete' %}">
       {% csrf_input %}
       <div class="field"><label class="label" for="pd-delete-reason">{% translate "admin.reason" %}</label><div class="control"><textarea class="textarea" id="pd-delete-reason" name="reason" rows="2" required></textarea></div></div>
-      <button class="button is-danger" type="submit">{% if approval_mode == "single" %}{% translate "admin.dual_approval.request_single" %}{% else %}{% translate "admin.approvals.request" %}{% endif %}</button>
+      <button class="button is-danger" type="submit">{% if approval_mode == "single" %}{% if confirms_alone %}{% translate "admin.dual_approval.request_single" %}{% else %}{% translate "admin.approvals.request" %}{% endif %}{% else %}{% translate "admin.approvals.request" %}{% endif %}</button>
     </form>
   </section>
   {% endif %}

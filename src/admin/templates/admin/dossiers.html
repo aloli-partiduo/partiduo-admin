@@ -14,7 +14,7 @@
   <thead><tr><th scope="col">{% translate "admin.dossiers.fields.slug" %}</th><th scope="col">{% translate "admin.dossiers.fields.label" %}</th><th scope="col">{% translate "admin.dossiers.fields.regime" %}</th><th scope="col">{% translate "admin.dossiers.fields.modules" %}</th><th scope="col">{% translate "admin.dossiers.fields.package" %}</th><th scope="col">{% translate "admin.dossiers.fields.version" %}</th><th scope="col">{% translate "admin.dossiers.fields.state" %}</th><th scope="col">{% translate "admin.dossiers.fields.firm" %}</th><th scope="col">{% translate "admin.dossiers.fields.payer" %}</th></tr></thead>
   <tbody>{% for dossier in dossiers %}<tr>
     <th scope="row"><a href="{% url 'dossier' id: dossier.id %}" class="pd-mono">{{ dossier.slug }}</a>{% include "admin/_open_dossier.html" %}</th>
-    <td>{{ dossier.label }}</td><td>{{ dossier.regime|upcase }}</td><td>{{ dossier.modules }}{% if dossier.extensions %} + {{ dossier.extensions }}{% endif %}</td>
+    <td>{{ dossier.label }}</td><td>{{ dossier.regime|upcase }}</td><td>{{ dossier.modules }}{% if dossier.extensions_text %} + {{ dossier.extensions_text }}{% endif %}</td>
     <td class="pd-mono">{{ dossier.package_name }}</td><td class="pd-mono">{{ dossier.version|default:"—" }}</td>
     <td><span class="pd-state pd-state-{{ dossier.state }}">{% translate dossier.state_key %}</span></td>
     <td>{{ dossier.firm_name }}</td><td>{{ dossier.payer_name }}</td>

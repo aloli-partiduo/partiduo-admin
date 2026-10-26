@@ -6,7 +6,7 @@
   <h2 id="pd-level-title">{% translate "admin.account.level_title" %}</h2>
   <dl class="pd-dl">
     <dt>{% translate "admin.account.email" %}</dt><dd>{{ account.email }}</dd>
-    <dt>{% translate "admin.account.role" %}</dt><dd>{% translate account.role_key %}{% if account.firm_name %} — {{ account.firm_name }}{% endif %}</dd>
+    <dt>{% translate "admin.account.role" %}</dt><dd>{% translate account.role_key %}{% if account.firm_label %} — {{ account.firm_label }}{% endif %}</dd>
     <dt>{% translate "admin.account.level" %}</dt><dd>{{ level }} / {{ required }}</dd>
   </dl>
   {% if missing %}<div class="notification is-warning is-light mt-3" role="status"><p>{% translate "admin.account.missing" %}</p><ul>{% for item in missing %}<li>{% translate item %}</li>{% endfor %}</ul></div>{% endif %}
