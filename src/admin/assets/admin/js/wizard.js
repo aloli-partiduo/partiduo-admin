@@ -20,7 +20,15 @@
   }
 
   document.addEventListener("DOMContentLoaded", focusStep);
-  document.addEventListener("htmx:afterSettle", focusStep);
+  // Rafraîchissement de l'attente de l'exécutant (D-ADM-022) : le focus
+  // reste où il est.
+  document.addEventListener("htmx:afterSettle", function (event) {
+    var target = event.detail && event.detail.target;
+    if (target && target.id === "pd-wizard-live") {
+      return;
+    }
+    focusStep();
+  });
   document.addEventListener("htmx:beforeSwap", function (event) {
     var source = event.detail.elt;
     if (event.detail.xhr && event.detail.xhr.status === 422 && source && source.closest && source.closest("[data-pd-wizard]")) {

@@ -60,6 +60,23 @@ private def signed_in(role : String, firm : PartiduoAdmin::Firm? = nil) : Partid
   end)
 end
 
+# Brouillons des assistants d'opérations (D-ADM-022) pour chaque compte
+# super-admin : toutes leurs étapes deviennent atteignables, dans chaque
+# langue (chaque compte a son brouillon).
+private def seed_wizard(kind : String, data : Hash(String, String | Array(String)), reached : Int32) : Nil
+  PartiduoAdmin::User.filter(role: Config::SUPER_ADMIN).each do |user|
+    draft = PartiduoAdmin::Wizards.draft(user, kind)
+    draft.data = data.to_json
+    draft.step = 1
+    draft.reached = reached
+    draft.save!
+  end
+end
+
+private def wizard_steps(kind : String, steps : Range(Int32, Int32)) : Array(String)
+  steps.map { |number| "/wizards/#{kind}?step=#{number}" }
+end
+
 private def anonymous : PartiduoTranslations::Visitor
   visitor(PartiduoTranslations::LOCALES.to_h { |locale| {locale, AdminSpec::Browser.new(locale)} }, cookie: true)
 end
@@ -91,6 +108,34 @@ describe "Traductions de toutes les pages de la console (fr, en, nl, de, es, it,
     root = signed_in(Config::SUPER_ADMIN)
     explorer.crawl(root, "super-administrateur")
     explorer.visit_placeholders(root, "super-administrateur, objets inconnus")
+
+    # Chaque étape des assistants d'opérations (D-ADM-022).
+    other_server, _ = AdminSpec.server
+    suspended = AdminSpec.dossier(firm, server, state: "suspended", slug: "nord-suspendu")
+    variant = "super-administrateur, étapes des assistants"
+    seed_wizard("server", {"name" => "srv-etapes", "hostname" => "etapes.example.net", "domain" => "partiduo.localhost"} of String => String | Array(String), 2)
+    explorer.visit(root, variant, wizard_steps("server", 1..2))
+    seed_wizard("server", {"server_id" => other_server.pk.to_s} of String => String | Array(String), 5)
+    explorer.visit(root, variant, wizard_steps("server", 3..5))
+    restore = {"dossier_id" => active.pk.to_s, "backup_id" => backup.pk.to_s, "target" => "new", "new_slug" => "nord-copie"} of String => String | Array(String)
+    seed_wizard("restore", restore, 5)
+    explorer.visit(root, variant, wizard_steps("restore", 1..5))
+    {"exploitation", "cabinet"}.each do |mode|
+      sealed = PartiduoAdmin::Backup.create!(dossier: active, kind: "manual", state: "done", path: "srv/nord-actif/backup-#{mode}.dump.age",
+        sha256: "0" * 64, taken_at: SPEC_NOW - 2.days, origin: server.name.to_s, encryption_mode: mode, recipient: "age1pq1exemple",
+        capsule: Base64.strict_encode("capsule"), keep_until: SPEC_NOW + 30.days)
+      seed_wizard("restore", restore.merge({"backup_id" => sealed.pk.to_s, "target" => "replace"} of String => String | Array(String)), 6)
+      explorer.visit(root, "#{variant}, clé #{mode}", wizard_steps("restore", 4..6))
+    end
+    seed_wizard("move", {"dossier_id" => suspended.pk.to_s, "server_id" => other_server.pk.to_s, "reason" => "nouveau serveur"} of String => String | Array(String), 4)
+    explorer.visit(root, variant, wizard_steps("move", 1..4))
+    seed_wizard("archive", {"dossier_id" => active.pk.to_s, "reason" => "fin de mission"} of String => String | Array(String), 3)
+    explorer.visit(root, variant, wizard_steps("archive", 1..3))
+    {Config::FILE_MANAGER, Config::FIRM_ADMIN}.each do |role|
+      seed_wizard("user", {"email" => "etapes-#{role}@demo.fr", "first_name" => "Eva", "last_name" => "Étapes", "role" => role,
+                           "firm_id" => firm.pk.to_s, "dossier_ids" => [active.pk.to_s], "locale" => "nl"} of String => String | Array(String), 5)
+      explorer.visit(root, "#{variant}, #{role}", wizard_steps("user", 1..5))
+    end
     firm_admin = signed_in(Config::FIRM_ADMIN, firm)
     explorer.crawl(firm_admin, "administrateur de cabinet")
 

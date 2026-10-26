@@ -19,13 +19,20 @@ module PartiduoAdmin
     # Invitation d'un utilisateur de l'administration (amorçage, création,
     # réémission).
     def self.invitation(user : User, url : String) : Nil
-      I18n.with_locale(user.locale.presence || "fr") do
+      subject, body = invitation_text(user.locale.presence || "fr", url)
+      TextEmail.new(user.email.to_s, subject, body).deliver
+    end
+
+    # Objet et texte de l'invitation dans une langue : le courriel envoyé,
+    # et son aperçu dans l'assistant d'invitation (D-ADM-022).
+    def self.invitation_text(locale : String, url : String) : {String, String}
+      I18n.with_locale(Config::LOCALES.includes?(locale) ? locale : "fr") do
         body = String.build do |io|
           io << I18n.t("admin.emails.invitation.intro") << "\n\n" << url << "\n\n"
           io << I18n.t("admin.emails.invitation.expires", days: Config::INVITATION_TTL.days.to_s) << "\n"
           io << I18n.t("admin.emails.ignore") << "\n"
         end
-        TextEmail.new(user.email.to_s, I18n.t("admin.emails.invitation.subject"), body).deliver
+        {I18n.t("admin.emails.invitation.subject"), body}
       end
     end
 

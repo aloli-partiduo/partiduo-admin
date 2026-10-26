@@ -32,7 +32,7 @@
         <ul class="menu-list" aria-labelledby="pd-menu-fleet">
           <li><a href="{% url 'dashboard' %}">{% translate "admin.dashboard.title" %}</a></li>
           <li><a href="{% url 'dossiers' %}">{% translate "admin.dossiers.title" %}</a></li>
-          {% if wizard_dossier %}<li><a href="{% url 'wizards' %}">{% translate "admin.wizards.title" %}</a></li>{% elsif wizard_firm %}<li><a href="{% url 'wizards' %}">{% translate "admin.wizards.title" %}</a></li>{% endif %}
+          {% if wizard_links %}<li><a href="{% url 'wizards' %}">{% translate "admin.wizards.title" %}</a></li>{% endif %}
           <li><a href="{% url 'approvals' %}"><span>{% translate "admin.approvals.title" %}</span>{% if pending_approvals %}<span class="pd-count">{{ pending_approvals }}</span>{% endif %}</a></li>
           <li><a href="{% url 'tasks' %}">{% translate "admin.tasks.title" %}</a></li>
           <li><a href="{% url 'alerts' %}"><span>{% translate "admin.alerts.title" %}</span>{% if open_alerts %}<span class="pd-count">{{ open_alerts }}</span>{% endif %}</a></li>

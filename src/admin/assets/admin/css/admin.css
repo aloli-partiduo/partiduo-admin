@@ -178,6 +178,12 @@ fieldset.pd-fieldset legend { font-weight: 600; margin-block-end: .35rem; }
 .pd-summary h3 { display: flex; justify-content: space-between; gap: .5rem; font-weight: 600; margin-block-end: .4rem; }
 .pd-admin-remove { display: flex; flex-wrap: wrap; gap: .5rem; align-items: flex-end; }
 .pd-admin-remove .field { margin: 0; }
+/* Informations d'une étape d'assistant d'opération (D-ADM-022). */
+.pd-wizard-info { margin-block: 0 1rem; padding: .75rem 1rem; border: 1px solid var(--pd-rule); border-radius: var(--bulma-radius); }
+.pd-wizard-info h3 { font-weight: 600; margin-block-end: .5rem; }
+.pd-wizard-info dd { white-space: pre-line; }
+.pd-wizard-note { margin-block: .5rem 0; padding: .6rem .9rem; }
+.pd-dashboard-wizards { display: flex; flex-wrap: wrap; gap: .5rem; }
 .pd-wizard-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(16rem, 1fr)); gap: 1rem; margin-block-end: 1.5rem; }
 /* Bouton par défaut d'une étape (touche Entrée : Suivant), hors de la vue. */
 .pd-default-submit { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); border: 0; padding: 0; }

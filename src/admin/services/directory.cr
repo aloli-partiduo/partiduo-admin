@@ -37,7 +37,7 @@ module PartiduoAdmin
 
     # Structure d'un utilisateur invité : aucune pour un super-admin, celle
     # de l'admin de cabinet qui invite.
-    private def self.invited_firm_id(actor : User?, input : UserInput) : Int64?
+    def self.invited_firm_id(actor : User?, input : UserInput) : Int64?
       firm_id = input.role == Config::SUPER_ADMIN ? nil : input.firm_id
       actor && actor.firm_admin? ? PartiduoAdmin.id?(actor.firm_id) : firm_id
     end
@@ -120,11 +120,17 @@ module PartiduoAdmin
     # Affectation d'un dossier à un gestionnaire (ADR-008 D2).
     def self.assign(actor : User, manager : User, dossier : Dossier) : Bool
       return false unless manager.file_manager? && Access.can_manage_user?(actor, manager)
-      return false unless Access.can?(actor, :approve, dossier) && dossier.firm_id == manager.firm_id
+      return false unless assignable?(actor, dossier, manager.firm_id)
       return true if Assignment.filter(user_id: manager.pk, dossier_id: dossier.pk).exists?
       Assignment.create!(user: manager, dossier: dossier)
       Audit.log(actor, "assignment.add", target: dossier, detail: {"manager" => manager.email.to_s})
       true
+    end
+
+    # Dossier que cet acteur peut confier à un gestionnaire de la structure
+    # `firm_id` (affectation, assistant d'invitation, D-ADM-022).
+    def self.assignable?(actor : User, dossier : Dossier, firm_id) : Bool
+      Access.can?(actor, :approve, dossier) && !firm_id.nil? && dossier.firm_id == firm_id
     end
 
     def self.unassign(actor : User, manager : User, dossier : Dossier) : Bool
@@ -260,17 +266,24 @@ module PartiduoAdmin
 
     # Crée un serveur ; le jeton de l'exécutant est rendu une seule fois.
     def self.create_server(actor : User, name : String, hostname : String, domain : String) : Outcome({Server, String})
-      return Outcome({Server, String}).failure("base", "admin.errors.forbidden") unless Access.fleet?(actor)
-      return Outcome({Server, String}).failure("name", "admin.errors.invalid") unless name.matches?(/\A[a-z0-9][a-z0-9-]{0,63}\z/)
-      return Outcome({Server, String}).failure("name", "admin.errors.server.taken") if Server.filter(name: name).exists?
-      return Outcome({Server, String}).failure("hostname", "admin.errors.required") if hostname.strip.empty?
-      unless domain.matches?(/\A[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)+\z/)
-        return Outcome({Server, String}).failure("domain", "admin.errors.invalid")
+      if refused = server_refusal(actor, name, hostname, domain)
+        return Outcome({Server, String}).failure(*refused)
       end
       token = Secrets.token
       server = Server.create!(name: name, hostname: hostname.strip, domain: domain, token_digest: Secrets.digest(token))
       Audit.log(actor, "server.create", target: server)
       Outcome({Server, String}).new({server, token})
+    end
+
+    # Premier refus de la déclaration d'un serveur (champ, clé), sans rien
+    # créer : formulaire et assistant (D-ADM-022).
+    def self.server_refusal(actor : User, name : String, hostname : String, domain : String) : {String, String}?
+      return {"base", "admin.errors.forbidden"} unless Access.fleet?(actor)
+      return {"name", "admin.errors.invalid"} unless name.matches?(/\A[a-z0-9][a-z0-9-]{0,63}\z/)
+      return {"name", "admin.errors.server.taken"} if Server.filter(name: name).exists?
+      return {"hostname", "admin.errors.required"} if hostname.strip.empty?
+      return {"domain", "admin.errors.invalid"} unless domain.matches?(/\A[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)+\z/)
+      nil
     end
 
     def self.rotate_token(actor : User, server : Server) : String?

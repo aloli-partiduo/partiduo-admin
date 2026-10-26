@@ -297,10 +297,14 @@
     var status = form.querySelector("[data-pd-unlock-status]");
     var field = form.querySelector("[data-pd-data-key]");
     var secrets = form.querySelectorAll("[data-pd-key-file], [data-pd-key-text], [data-pd-key-pass]");
-    var button = form.querySelector("button[type=submit]");
+    var button = form.querySelector("button[type=submit]:not([data-pd-unlock-skip])");
     if (!subtle || !window.TextEncoder) { say(status, form.dataset.msgUnsupported, true); if (button) button.disabled = true; return; }
     form.addEventListener("submit", function (event) {
       if (field.value) return;
+      // Assistant de restauration (D-ADM-022) : Précédent, Abandonner et
+      // les gestes de l'étape partent sans ouvrir la capsule.
+      var submitter = event.submitter;
+      if (submitter && submitter.hasAttribute("data-pd-unlock-skip")) return;
       event.preventDefault();
       var pass = form.querySelector("[data-pd-key-pass]");
       readKeyText(form).then(function (text) {
@@ -322,7 +326,10 @@
           field.value = backupKey;
           // La clé privée et la phrase de passe ne partent jamais.
           Array.prototype.forEach.call(secrets, function (input) { input.value = ""; });
-          form.submit();
+          // Le bouton choisi part avec le formulaire (nav=finish de
+          // l'assistant) quand le navigateur sait le faire.
+          if (submitter && form.requestSubmit) form.requestSubmit(submitter);
+          else form.submit();
         });
       }).catch(function (error) {
         say(status, error && error.message === "wrong" ? form.dataset.msgWrongKey : form.dataset.msgBadKey, true);

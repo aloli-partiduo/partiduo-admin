@@ -2,7 +2,7 @@
 {% block title %}{% translate "admin.users.title" %}{% endblock title %}
 {% block crumbs %}<li>{% translate "admin.users.title" %}</li>{% endblock crumbs %}
 {% block heading %}{% translate "admin.users.title" %}{% endblock heading %}
-{% block actions %}<a class="button is-primary" href="{% url 'user_new' %}">{% translate "admin.users.new" %}</a>{% endblock actions %}
+{% block actions %}{% if wizard_user %}<a class="button is-primary" href="{% url 'wizard' kind: 'user' %}">{% translate "admin.wizards.user.new" %}</a>{% endif %}<a class="button" href="{% url 'user_new' %}">{% translate "admin.wizards.advanced_dossier" %}</a>{% endblock actions %}
 {% block content %}
 <form method="get" action="{% url 'users' %}" class="pd-inline mb-4" role="search">
   <div class="field"><label class="label" for="pd-q">{% translate "admin.search" %}</label><div class="control"><input class="input" id="pd-q" name="q" type="search" value="{{ q }}" aria-describedby="pd-q-help"></div><p class="help" id="pd-q-help">{% translate "admin.users.search_help" %}</p></div>

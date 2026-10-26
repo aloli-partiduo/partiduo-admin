@@ -4,19 +4,31 @@ require "json"
 
 module PartiduoAdmin
   # Assistants des parcours courants (D-ADM-018) : déclarer un cabinet,
-  # créer un entrepreneur, créer un foyer. Étapes numérotées, saisies
-  # gardées côté serveur (`WizardDraft`), contrôles et création par les
-  # services des formulaires (`Directory`, `Fleet`) : aucune règle n'est
-  # écrite ici. Rien n'est créé avant la validation finale.
+  # créer un entrepreneur, créer un foyer ; ajouter un serveur, restaurer,
+  # déplacer, archiver un dossier, inviter un utilisateur (D-ADM-022,
+  # `wizard_operations.cr`). Étapes numérotées, saisies gardées côté
+  # serveur (`WizardDraft`), contrôles et création par les services des
+  # formulaires (`Directory`, `Fleet`) : aucune règle n'est écrite ici. Rien
+  # n'est créé avant la validation finale.
   module Wizards
     alias Errors = Fleet::Errors
 
-    KINDS = %w[firm company household]
+    KINDS = %w[firm company household server restore move archive user]
 
+    # Étapes de chaque parcours. Serveur : la validation est au
+    # récapitulatif (le jeton de l'exécutant n'existe qu'une fois le serveur
+    # déclaré), le raccordement, la vérification et les capacités suivent.
+    # Restauration : l'étape de la clé n'existe que pour une sauvegarde
+    # chiffrée (`steps(draft)`).
     STEPS = {
       "firm"      => %w[identity admins options summary],
       "company"   => %w[identity activity modules attachment admins summary],
       "household" => %w[identity modules attachment admins summary],
+      "server"    => %w[identity summary connect check capabilities],
+      "restore"   => %w[dossier backup target check summary key],
+      "move"      => %w[dossier server consequences summary],
+      "archive"   => %w[dossier consequences summary],
+      "user"      => %w[identity role dossiers language summary],
     }
 
     # Profils d'un entrepreneur (étape « activité ») : modules proposés au
@@ -46,28 +58,49 @@ module PartiduoAdmin
           payer_contact_email server_id backup_schedule backup_retention_days],
         "admins" => %w[admin_email],
       },
+      "server"  => {"identity" => %w[name hostname domain]},
+      "restore" => {"dossier" => %w[dossier_id], "backup" => %w[backup_id], "target" => %w[target new_slug]},
+      "move"    => {"dossier" => %w[dossier_id], "server" => %w[server_id], "consequences" => %w[reason]},
+      "archive" => {"dossier" => %w[dossier_id], "consequences" => %w[reason]},
+      "user"    => {"identity" => %w[email first_name last_name], "role" => %w[role firm_id], "language" => %w[locale]},
     }
 
     LISTS = {
       "firm"    => {"admins" => %w[admin_email admin_first_name admin_last_name admin_locale]},
       "dossier" => {"modules" => %w[modules extensions], "admins" => %w[extra_admins]},
+      "user"    => {"dossiers" => %w[dossier_ids]},
     }
 
     def self.family(kind : String) : String
-      kind == "firm" ? "firm" : "dossier"
+      case kind
+      when "firm"                 then "firm"
+      when "company", "household" then "dossier"
+      else                             kind
+      end
     end
 
     def self.steps(kind : String) : Array(String)
       STEPS[kind]
     end
 
+    # Étapes de ce brouillon : sans celle de la clé pour la restauration
+    # d'une sauvegarde en clair.
+    def self.steps(draft : WizardDraft) : Array(String)
+      kind = draft.kind!.to_s
+      return STEPS[kind] unless kind == "restore"
+      sealed = restore_dossier_of(draft).try { |dossier| restore_backup(draft, dossier) }.try(&.sealed) || false
+      sealed ? STEPS[kind] : STEPS[kind] - %w[key]
+    end
+
     # Assistant ouvert à l'utilisateur : déclarer un cabinet, le
     # super-admin ; créer un dossier, qui peut en créer dans une structure.
     def self.allowed?(user : User, kind : String) : Bool
       case kind
-      when "firm"                 then Access.fleet?(user)
-      when "company", "household" then !user.file_manager? && Access.firms(user).filter(active: true).exists?
-      else                             false
+      when "firm", "server"             then Access.fleet?(user)
+      when "company", "household"       then !user.file_manager? && Access.firms(user).filter(active: true).exists?
+      when "restore", "archive", "user" then !user.file_manager?
+      when "move"                       then user.super_admin?
+      else                                   false
       end
     end
 
@@ -96,23 +129,30 @@ module PartiduoAdmin
     # Étape où se range une erreur d'un service.
     def self.step_of(kind : String, field : String) : String
       group = family(kind)
+      if special = operation_step_of(kind, field)
+        return special
+      end
       return "modules" if group == "dossier" && (field.starts_with?("family.") || field == "kind")
       return "admins" if field.starts_with?("admins") || field == "extra_admins"
       return "attachment" if group == "dossier" && field.starts_with?("payer")
       SCALARS[group].each { |step, names| return step if names.includes?(field) }
-      LISTS[group].each { |step, names| return step if names.includes?(field) }
+      LISTS[group]?.try(&.each { |step, names| return step if names.includes?(field) })
       "summary"
     end
 
     # Erreurs de la saisie entière (services des formulaires), sans rien
     # créer.
     def self.errors(user : User, draft : WizardDraft) : Errors
-      draft.kind! == "firm" ? firm_errors(user, draft) : dossier_errors(user, draft)
+      case draft.kind!
+      when "firm"                 then firm_errors(user, draft)
+      when "company", "household" then dossier_errors(user, draft)
+      else                             operation_errors(user, draft)
+      end
     end
 
     # Erreurs des étapes jusqu'à `step` compris.
     def self.errors_until(user : User, draft : WizardDraft, step : String) : Errors
-      order = steps(draft.kind!)
+      order = steps(draft)
       limit = order.index(step) || 0
       errors(user, draft).select { |field, _| (order.index(step_of(draft.kind!, field)) || order.size) <= limit }
     end

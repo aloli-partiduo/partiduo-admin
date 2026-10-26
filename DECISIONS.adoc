@@ -548,3 +548,100 @@ ORDER BY d.slug;
 
 La même requête, dans la base de chaque instance (la liste de la console
 peut différer de l'ensemble actif réel), est donnée par D-AMD-043 du cœur.
+
+=== D-ADM-022 — Assistants des opérations du parc (26 octobre 2026)
+
+Demande de l'utilisateur : réaliser les assistants proposés par D-ADM-018
+(ajouter un serveur, restaurer, déplacer, archiver un dossier, inviter un
+utilisateur). Version 0.1.58.
+
+*Choix communs.* Mêmes principes que D-ADM-018 : brouillon `WizardDraft`
+par utilisateur et par parcours (reprise d'un navigateur à l'autre),
+étapes numérotées, Précédent, Suivant, récapitulatif avec « Modifier »,
+HTMX avec repli sans JavaScript, focus sur le titre de l'étape. Chaque
+étape est jugée par les contrôles des services des formulaires, extraits
+sans changer leur comportement pour être appelés sans rien enregistrer :
+`Directory.server_refusal`, `Fleet.restore_refusal`,
+`Fleet.restore_copy_refusal`, `Fleet.restored_backup`,
+`Fleet.move_dossier_refusal`, `Fleet.move_server_refusal`,
+`Fleet.move_reason_refusal`, `Fleet.move_busy_refusal`,
+`Fleet.lifecycle_refusal`, `Directory.invite_errors`,
+`Directory.assignable?`, `Mailer.invitation_text`. La validation appelle
+les services des formulaires (`Directory.create_server`, `Fleet.restore`,
+`Fleet.move`, `Fleet.lifecycle`, `Directory.invite_user`,
+`Directory.assign`), donc les mêmes tâches de l'exécutant ; protocole
+inchangé. Les formulaires restent (« Formulaire complet »). Accès : menu
+« Assistants », tableau de bord (bloc « Assistants »), listes des serveurs,
+des dossiers et des utilisateurs, fiche du dossier (`?dossier=` : le
+dossier est retenu, l'assistant s'ouvre à l'étape suivante). Logique dans
+`src/admin/services/wizard_operations.cr`, présentation dans
+`WizardOperationForm` (blocs d'information, notes, gestes d'étape).
+
+* *Ajouter un serveur* : identité, récapitulatif, raccordement,
+  vérification, capacités. Le jeton n'existe qu'une fois le serveur
+  déclaré : la validation est au récapitulatif (`Directory.create_server`),
+  le jeton est montré dans la seule réponse de la validation (jamais dans
+  le brouillon), avec l'adresse de l'administration et la commande de
+  `partiduo-agent` ; « Régénérer le jeton » (`Directory.rotate_token`) s'il
+  n'a pas été copié. Identité et récapitulatif ne se rouvrent plus.
+  Vérification : Suivant refusé tant que l'exécutant ne s'est pas présenté
+  (`last_seen_at`), étape rafraîchie toutes les cinq secondes par HTMX
+  (focus inchangé). Capacités : version et mode de l'exécutant (à blanc
+  signalé), disque (« Demander un premier contrôle » :
+  `Supervision.enqueue`), quota Let's Encrypt du domaine, clé de signature
+  (`BackupEncryption.add_signing_key` ; son absence est signalée : aucune
+  restauration possible, D-CHF-018).
+* *Restaurer un dossier* : dossier, sauvegarde, cible (instance neuve,
+  remplacement, et « déplacement » pour un dossier suspendu que le
+  super-admin déplace), vérification, récapitulatif, et pour une sauvegarde
+  chiffrée « Clé et validation ». Vérification : signature telle que
+  l'administration la connaît (clé du manifeste, clés déclarées du serveur
+  d'origine, révocation avant la prise ; l'exécutant la revérifie avant
+  toute lecture), intégrité, chiffrement et clé qui sera demandée. La clé
+  d'une sauvegarde chiffrée accompagne la seule requête de validation,
+  jamais le brouillon (D-CHF-005) : clé du cabinet utilisée dans le
+  navigateur (`backup-keys.js`, qui laisse passer Précédent et Abandonner
+  et renvoie le bouton choisi), clé de sauvegarde collée par l'exploitant
+  (capsule téléchargée). L'étape de la clé n'existe que pour une
+  sauvegarde chiffrée (`Wizards.steps(draft)`).
+* *Déplacer un dossier* (ADR-013 D7) : dossier suspendu, serveur d'accueil,
+  conséquences (procédure en quatre temps, nom basculé aussitôt, dossier
+  injoignable jusqu'à la restauration, ancienne instance et sauvegardes
+  conservées, attente de cinq minutes, alerte si aucune sauvegarde n'a été
+  prise depuis la suspension), motif, récapitulatif. La validation fait la
+  bascule (`Fleet.move`) puis prépare l'assistant de restauration du même
+  dossier, cible « déplacement » : la procédure enchaîne deux gestes
+  existants, sans les fondre.
+* *Archiver un dossier* : dossier, conséquences (instance arrêtée,
+  chiffrement de l'archive, conservation dix ans, données conservées —
+  ADR-006 D2 —, restauration de l'archive possible, suppression définitive
+  seulement après la durée légale), motif exigé comme au formulaire de la
+  fiche, récapitulatif (`Fleet.lifecycle`).
+* *Inviter un utilisateur* : identité, rôle et structure, dossiers confiés
+  (gestionnaire de dossiers seulement ; les admins voient tous ceux de leur
+  structure), langue, récapitulatif avec l'aperçu du courriel d'invitation
+  dans la langue choisie. La langue de l'utilisateur est celle de ses
+  courriels ; la langue d'affichage reste tenue par connect (D-ADM-015).
+  Invitation puis affectations dans une transaction ; code de création du
+  compte connect montré une fois.
+* *Validation* : restauration, déplacement et archivage ne sont pas des
+  opérations sensibles au sens de D-VAL2-001 (suppression définitive,
+  recours d'accès, administrateurs du dossier). Le récapitulatif montre le
+  réglage de la structure du dossier et le dit ; la validation exige une
+  case « J'ai pris connaissance des conséquences ».
+
+*Parcours absents de la console, non inventés.* Le déplacement d'un
+dossier vers une autre *structure* (cabinet) n'existe pas : aucun service
+ne change `firm_id` d'un dossier (droits, donneur d'ordre, administrateurs,
+journal d'audit en dépendent). Proposition : un service
+`Fleet.transfer(user, dossier, firm, payer)` réservé au super-admin, avec
+l'accord des deux structures (opération sensible à une ou deux personnes
+de chaque côté), le donneur d'ordre choisi dans la structure d'arrivée,
+les gestionnaires de l'ancienne retirés, trace dans les deux journaux.
+Le retrait de l'ancienne instance après un déplacement reste manuel
+(fiche d'exploitation).
+
+*À trancher.* Faut-il ranger la restauration en remplacement, le
+déplacement et l'archivage parmi les opérations sensibles (validation à
+deux selon la structure) ? Difficulté : la clé d'une sauvegarde chiffrée
+n'est jamais conservée, la personne qui valide devrait donc la fournir.

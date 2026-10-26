@@ -1,21 +1,66 @@
-{# SPDX-License-Identifier: AGPL-3.0-or-later. Étape d'un assistant (DECISIONS D-ADM-018) : fil des étapes numérotées, titre de l'étape annoncé et focalisé, champs de l'étape, Précédent et Suivant, récapitulatif avant la validation. Sans JavaScript : formulaire classique ; avec HTMX, l'étape remplace le contenu (wizard.js place le focus). Rien n'est créé avant la validation finale. #}{% extend "admin/base.html" %}
+{# SPDX-License-Identifier: AGPL-3.0-or-later. Étape d'un assistant (DECISIONS D-ADM-018, D-ADM-022) : fil des étapes numérotées, titre de l'étape annoncé et focalisé, informations et avertissements de l'étape, champs, gestes propres à l'étape, Précédent et Suivant, récapitulatif avant la validation. Clé d'une sauvegarde chiffrée : clé du cabinet utilisée dans ce navigateur (backup-keys.js), jamais envoyée ; clé de sauvegarde collée par l'exploitant, jamais gardée dans le brouillon. Sans JavaScript : formulaire classique ; avec HTMX, l'étape remplace le contenu (wizard.js place le focus). Rien n'est créé avant la validation finale. #}{% extend "admin/base.html" %}
 {% block title %}{% translate "admin.wizards.step_of" number: number, total: total %} : {% translate step_key %} · {% translate title_key %}{% endblock title %}
 {% block crumbs %}<li><a href="{% url 'wizards' %}">{% translate "admin.wizards.title" %}</a></li><li>{% translate title_key %}</li>{% endblock crumbs %}
 {% block heading %}{% translate title_key %}{% endblock heading %}
 {% block content %}
 <script src="{% asset 'admin/js/wizard.js' %}" defer></script>
 {% if step == "modules" %}<script src="{% asset 'admin/js/pieces.js' %}" defer></script>{% endif %}
+{% if unlock %}{% if unlock.cabinet %}<script src="{% asset 'admin/js/backup-keys.js' %}" defer></script>{% endif %}{% endif %}
 <nav aria-label="{% translate 'admin.wizards.track' %}">
   <ol class="pd-steps">{% for item in track %}<li{% if item.current %} aria-current="step"{% elsif item.done %} class="pd-step-done"{% endif %}><span class="pd-step-number">{{ item.number }}</span> {% if item.link %}<a href="{{ item.link }}">{% translate item.key %}</a>{% else %}<span>{% translate item.key %}</span>{% endif %}{% if item.done %}<span class="is-sr-only"> — {% translate "admin.wizards.done" %}</span>{% endif %}</li>{% endfor %}</ol>
 </nav>
-<form method="post" action="{% url 'wizard' kind: kind %}" class="pd-panel" novalidate data-pd-wizard{% if step == "modules" %} data-pd-pieces-form{% endif %}{% if boost %} hx-boost="true" hx-target="#pd-content" hx-select="#pd-content" hx-swap="outerHTML show:window:top"{% endif %} aria-labelledby="pd-step-title">
+<form method="post" action="{% url 'wizard' kind: kind %}" class="pd-panel" novalidate data-pd-wizard{% if step == "modules" %} data-pd-pieces-form{% endif %}{% if unlock %}{% if unlock.cabinet %} data-pd-unlock data-capsule="{{ unlock.backup.capsule }}" data-fingerprint="{{ unlock.backup.key_fingerprint }}" data-msg-working="{% translate 'admin.encryption.js.working' %}" data-msg-bad-key="{% translate 'admin.encryption.js.bad_key' %}" data-msg-wrong-key="{% translate 'admin.encryption.js.wrong_key' %}" data-msg-missing="{% translate 'admin.encryption.js.missing_key' %}" data-msg-unsupported="{% translate 'admin.encryption.js.unsupported' %}"{% endif %}{% endif %}{% if boost %} hx-boost="true" hx-target="#pd-content" hx-select="#pd-content" hx-swap="outerHTML show:window:top"{% endif %} aria-labelledby="pd-step-title">
   {% csrf_input %}
   <input type="hidden" name="step" value="{{ number }}">
-  {% if not last %}<button class="pd-default-submit" type="submit" name="nav" value="next" tabindex="-1" aria-hidden="true">{% translate "admin.wizards.next" %}</button>{% endif %}
+  {% if not finishing %}<button class="pd-default-submit" type="submit" name="nav" value="next" tabindex="-1" aria-hidden="true">{% translate "admin.wizards.next" %}</button>{% endif %}
   <h2 class="pd-subtitle pd-step-title" id="pd-step-title" tabindex="-1" autofocus data-pd-step-focus>{% translate "admin.wizards.step_of" number: number, total: total %} : {% translate step_key %}</h2>
   <p class="help mb-4" id="pd-step-help">{% translate step_help %}</p>
   {% include "admin/_base_errors.html" %}
+
+  {% if summary %}<div class="pd-summary">{% for section in summary %}<section aria-labelledby="pd-summary-{{ section.number }}">
+    <h3 id="pd-summary-{{ section.number }}"><span>{{ section.number }}. {% translate section.key %}</span> <a href="{{ section.link }}">{% translate "admin.wizards.edit" %}<span class="is-sr-only"> — {% translate section.key %}</span></a></h3>
+    <dl class="pd-dl">{% for entry in section.items %}<dt>{{ entry.label }}</dt><dd>{{ entry.value }}</dd>{% endfor %}</dl>
+  </section>{% endfor %}</div>
+  <p class="notification is-info is-light mt-4">{% translate "admin.wizards.nothing_yet" %}</p>{% endif %}
+
+  {% if token %}<div class="pd-wizard-info" role="status">
+    <p class="mb-2"><strong>{% translate "admin.wizards.server.created" %}</strong> {% translate "admin.servers.token_once" %}</p>
+    <p class="pd-token mb-3" tabindex="0" aria-label="{% translate 'admin.servers.token_title' %}">{{ token }}</p>
+  </div>{% endif %}
+
+  {% if sections %}<div id="pd-wizard-live"{% if poll %} hx-get="{{ poll }}" hx-trigger="every 5s" hx-select="#pd-wizard-live" hx-target="this" hx-swap="outerHTML"{% endif %}>{% for section in sections %}<section class="pd-wizard-info" aria-labelledby="pd-info-{{ loop.index }}">
+    <h3 id="pd-info-{{ loop.index }}">{{ section.title }}</h3>
+    {% if section.items %}<dl class="pd-dl">{% for entry in section.items %}<dt>{{ entry.label }}</dt><dd>{{ entry.value }}</dd>{% endfor %}</dl>{% endif %}
+    {% if section.notes %}{% for note in section.notes %}<p class="notification is-{{ note.level }} is-light pd-wizard-note"{% if poll %} role="status"{% endif %}>{{ note.text }}</p>{% endfor %}{% endif %}
+  </section>{% endfor %}</div>{% endif %}
+
+  {% if unlock %}<section class="pd-wizard-info" aria-labelledby="pd-unlock-title">
+    <h3 id="pd-unlock-title">{% if unlock.cabinet %}{% translate "admin.encryption.unlock.form_title" %}{% else %}{% translate "admin.encryption.unlock.exploitation_title" %}{% endif %}</h3>
+    {% if unlock.cabinet %}<dl class="pd-dl mb-3"><dt>{% translate "admin.encryption.unlock.required_key" %}</dt><dd class="pd-mono pd-fingerprint">{{ unlock.fingerprint }}</dd></dl>
+    {% if unlock.older_key %}<p class="notification is-warning is-light">{% translate "admin.encryption.unlock.older_key" %}</p>{% endif %}
+    <p class="mb-3">{% translate "admin.encryption.unlock.privacy" %}</p>
+    <input type="hidden" name="data_key" value="" data-pd-data-key>
+    {# Champs sans attribut name : jamais envoyés au serveur. #}
+    <div class="field"><label class="label" for="pd-unlock-file">{% translate "admin.encryption.unlock.key_file" %}</label><div class="control"><input class="input" id="pd-unlock-file" type="file" accept=".pem,.key,.txt,application/x-pem-file" data-pd-key-file></div></div>
+    <div class="field"><label class="label" for="pd-unlock-text">{% translate "admin.encryption.unlock.key_text" %}</label><div class="control"><textarea class="textarea pd-mono" id="pd-unlock-text" rows="4" spellcheck="false" autocomplete="off" data-pd-key-text></textarea></div></div>
+    <div class="field"><label class="label" for="pd-unlock-pass">{% translate "admin.encryption.passphrase" %}</label><div class="control"><input class="input" id="pd-unlock-pass" type="password" autocomplete="off" aria-describedby="pd-unlock-pass-help" data-pd-key-pass></div><p class="help" id="pd-unlock-pass-help">{% translate "admin.encryption.unlock.passphrase_help" %}</p></div>
+    {% if unlock.has_errors %}<p class="help is-danger" id="pd-unlock-error">{% for error in unlock.errors %}{{ error }} {% endfor %}</p>{% endif %}
+    <p class="pd-status mb-3" role="status" aria-live="polite" data-pd-unlock-status></p>
+    <noscript><p class="notification is-warning is-light">{% translate "admin.encryption.unlock.noscript" %}</p></noscript>
+    {% else %}<dl class="pd-dl mb-3"><dt>{% translate "admin.encryption.unlock.capsule_keys" %}</dt><dd class="pd-mono">{{ unlock.capsule_keys }}</dd></dl>
+    <ol class="mb-3 pd-steps">
+      <li>{% translate "admin.encryption.unlock.step_download" %} <a class="button is-small" href="{% url 'backup_capsule' id: unlock.backup.id %}" download>{{ unlock.backup.capsule_name }}</a></li>
+      <li>{% translate "admin.encryption.unlock.step_open" %}<pre class="pd-mono mt-1" tabindex="0">age -d -i exploitation.age {{ unlock.backup.capsule_name }}</pre></li>
+      <li>{% translate "admin.encryption.unlock.step_paste" %}</li>
+    </ol>
+    <p class="mb-3">{% translate "admin.encryption.unlock.privacy_exploitation" %}</p>
+    <div class="field"><label class="label" for="pd-unlock-backup-key">{% translate "admin.encryption.unlock.backup_key" %}</label><div class="control"><input class="input pd-mono" id="pd-unlock-backup-key" name="data_key" type="password" required autocomplete="off" spellcheck="false" placeholder="AGE-SECRET-KEY-PQ-1…" aria-describedby="pd-unlock-backup-key-help{% if unlock.has_errors %} pd-unlock-error{% endif %}"{% if unlock.has_errors %} aria-invalid="true"{% endif %}></div><p class="help" id="pd-unlock-backup-key-help">{% translate "admin.encryption.unlock.backup_key_help" %}</p>
+    {% if unlock.has_errors %}<p class="help is-danger" id="pd-unlock-error">{% for error in unlock.errors %}{{ error }} {% endfor %}</p>{% endif %}</div>
+    {% endif %}
+  </section>{% endif %}
+
   {% if fields %}{% for field in fields %}{% include "admin/_field.html" %}{% endfor %}{% endif %}
+  {% if actions %}<div class="buttons mt-2">{% for action in actions %}<button class="button" type="submit" name="nav" value="{{ action.value }}" data-pd-unlock-skip>{% translate action.key %}</button>{% endfor %}</div>{% endif %}
 
   {% if step == "modules" %}{% include "admin/_pieces.html" %}{% endif %}
 
@@ -41,18 +86,12 @@
     <button class="button is-small" type="submit" name="nav" value="more">{% translate "admin.wizards.admins.more" %}</button>
   </fieldset>{% endif %}
 
-  {% if summary %}<div class="pd-summary">{% for section in summary %}<section aria-labelledby="pd-summary-{{ section.number }}">
-    <h3 id="pd-summary-{{ section.number }}"><span>{{ section.number }}. {% translate section.key %}</span> <a href="{{ section.link }}">{% translate "admin.wizards.edit" %}<span class="is-sr-only"> — {% translate section.key %}</span></a></h3>
-    <dl class="pd-dl">{% for entry in section.items %}<dt>{{ entry.label }}</dt><dd>{{ entry.value }}</dd>{% endfor %}</dl>
-  </section>{% endfor %}</div>
-  <p class="notification is-info is-light mt-4">{% translate "admin.wizards.nothing_yet" %}</p>{% endif %}
-
   <div class="pd-wizard-nav">
     <div class="buttons">
-      {% if not first %}<button class="button" type="submit" name="nav" value="previous">{% translate "admin.wizards.previous" %}</button>{% endif %}
-      {% if last %}<button class="button is-primary" type="submit" name="nav" value="finish">{% translate "admin.wizards.finish" %}</button>{% else %}<button class="button is-primary" type="submit" name="nav" value="next">{% translate "admin.wizards.next" %}</button>{% endif %}
+      {% if not first %}<button class="button" type="submit" name="nav" value="previous" data-pd-unlock-skip>{% translate "admin.wizards.previous" %}</button>{% endif %}
+      {% if finishing %}<button class="button is-primary" type="submit" name="nav" value="finish">{% translate finish_key %}</button>{% else %}<button class="button is-primary" type="submit" name="nav" value="next">{% translate "admin.wizards.next" %}</button>{% endif %}
     </div>
-    <button class="button is-light" type="submit" name="nav" value="cancel" formnovalidate>{% translate "admin.wizards.cancel" %}</button>
+    <button class="button is-light" type="submit" name="nav" value="cancel" formnovalidate data-pd-unlock-skip>{% translate "admin.wizards.cancel" %}</button>
   </div>
 </form>
 {% endblock content %}

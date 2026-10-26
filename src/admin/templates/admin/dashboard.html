@@ -7,6 +7,10 @@
   <h2 id="pd-counts-title" class="is-sr-only">{% translate "admin.dossiers.title" %}</h2>
   <div class="pd-kpis">{% for item in counts %}<a class="pd-kpi" href="{% url 'dossiers' %}?state={{ item.state }}"><span>{% translate item.key %}</span><strong>{{ item.count }}</strong></a>{% endfor %}</div>
 </section>
+{% if wizard_links %}<section class="pd-panel" aria-labelledby="pd-dashboard-wizards-title">
+  <h2 id="pd-dashboard-wizards-title">{% translate "admin.wizards.title" %}</h2>
+  <div class="pd-dashboard-wizards">{% for link in wizard_links %}<a class="button" href="{% url 'wizard' kind: link.kind %}">{% translate link.key %}</a>{% endfor %}<a class="button is-text" href="{% url 'wizards' %}">{% translate "admin.wizards.all" %}</a></div>
+</section>{% endif %}
 <div class="pd-grid">
   <section class="pd-panel" aria-labelledby="pd-alerts-title">
     <h2 id="pd-alerts-title">{% translate "admin.alerts.title" %}</h2>

@@ -57,6 +57,7 @@
     <button class="button" type="submit">{% translate "admin.actions.restore" %}</button>
   </form>
   <p class="help">{% translate "admin.restore.help" %}</p>
+  {% if wizard_restore %}<p class="mt-2"><a class="button is-small" href="{% url 'wizard' kind: 'restore' %}?dossier={{ dossier.id }}">{% translate "admin.wizards.restore.guided" %}<span class="is-sr-only"> — {{ dossier.slug }}</span></a></p>{% endif %}
 </section>
 {% endif %}
 
@@ -72,6 +73,7 @@
     <button class="button is-warning" type="submit">{% translate "admin.move.submit" %}</button>
   </form>
   {% else %}<p class="pd-muted">{% translate "admin.move.no_server" %}</p>{% endif %}
+  {% if wizard_move %}<p class="mt-2"><a class="button is-small" href="{% url 'wizard' kind: 'move' %}?dossier={{ dossier.id }}">{% translate "admin.wizards.move.guided" %}<span class="is-sr-only"> — {{ dossier.slug }}</span></a></p>{% endif %}
 </section>
 {% endif %}
 
@@ -100,6 +102,7 @@
       <div class="field"><label class="label" for="pd-archive-reason">{% translate "admin.reason" %}</label><div class="control"><input class="input" id="pd-archive-reason" name="reason" type="text" required></div></div>
       <button class="button is-warning" type="submit">{% translate "admin.actions.archive" %}</button>
     </form>
+    {% if wizard_archive %}<p class="mt-2"><a class="button is-small" href="{% url 'wizard' kind: 'archive' %}?dossier={{ dossier.id }}">{% translate "admin.wizards.archive.guided" %}<span class="is-sr-only"> — {{ dossier.slug }}</span></a></p>{% endif %}
   </section>
   {% endif %}
   {% if can.access %}

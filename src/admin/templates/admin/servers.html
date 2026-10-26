@@ -2,6 +2,7 @@
 {% block title %}{% translate "admin.servers.title" %}{% endblock title %}
 {% block crumbs %}<li>{% translate "admin.servers.title" %}</li>{% endblock crumbs %}
 {% block heading %}{% translate "admin.servers.title" %}{% endblock heading %}
+{% block actions %}{% if wizard_server %}<a class="button is-primary" href="{% url 'wizard' kind: 'server' %}">{% translate "admin.wizards.server.new" %}</a>{% endif %}{% endblock actions %}
 {% block content %}
 {% if servers %}<div class="table-container"><table class="table is-fullwidth is-striped">
   <caption class="is-sr-only">{% translate "admin.servers.title" %}</caption>
@@ -20,7 +21,8 @@
   </form>{% endfor %}
 </section>{% endif %}
 <form method="post" action="{% url 'servers' %}" class="pd-panel mt-4" novalidate>
-  <h2 class="title is-6">{% translate "admin.servers.new" %}</h2>
+  <h2 class="title is-6">{% translate "admin.servers.new" %} · {% translate "admin.wizards.advanced_dossier" %}</h2>
+  <p class="help mb-2">{% translate "admin.wizards.server.advanced" %}</p>
   {% csrf_input %}
   {% if errors %}<div class="notification is-danger is-light" role="alert">{% for field, messages in errors %}{% for message in messages %}<p>{{ message }}</p>{% endfor %}{% endfor %}</div>{% endif %}
   <div class="pd-inline">

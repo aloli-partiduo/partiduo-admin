@@ -225,6 +225,11 @@ module PartiduoAdmin
         # de l'admin de cabinet (D-ADM-017).
         context["wizard_firm"] = Wizards.allowed?(current, "firm")
         context["wizard_dossier"] = Wizards.allowed?(current, "company")
+        # Assistants d'opérations ouverts (D-ADM-022) : tableau de bord,
+        # listes et menu.
+        wizards = Wizards::KINDS.select { |kind| Wizards.allowed?(current, kind) }
+        context["wizard_links"] = wizards.empty? ? nil : wizards.map { |kind| {"kind" => kind, "key" => "admin.wizards.#{kind}.new"} }
+        %w[server restore move archive user].each { |kind| context["wizard_#{kind}"] = wizards.includes?(kind) }
         context["open_alerts"] = Alerts.visible(current).count
         context["pending_approvals"] = Approvals.visible(current).filter(state: "pending").count
       end

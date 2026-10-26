@@ -223,9 +223,10 @@ module PartiduoAdmin
     }
 
     def self.lifecycle(user : User, dossier : Dossier, action : String, reason : String = "") : Outcome(Task)
-      kind, from = TRANSITIONS[action]? || return Outcome(Task).failure("base", "admin.errors.invalid")
-      return Outcome(Task).failure("base", "admin.errors.forbidden") unless Access.can?(user, action_symbol(action), dossier)
-      return Outcome(Task).failure("base", "admin.errors.dossier.state") unless from.split('|').includes?(dossier.state)
+      if refused = lifecycle_refusal(user, dossier, action)
+        return Outcome(Task).failure(*refused)
+      end
+      kind, _ = TRANSITIONS[action]
       params = Tasks.dossier_params(dossier)
       params["reason"] = any(reason.presence || action)
       if action == "archive"
@@ -236,6 +237,17 @@ module PartiduoAdmin
       task = Tasks.enqueue(kind, dossier.server!, params, user, dossier)
       Audit.log(user, "dossier.#{action}", target: dossier, detail: {"reason" => reason})
       Outcome(Task).new(task)
+    end
+
+    # Premier refus d'une action du cycle de vie (champ, clé), sans rien
+    # enregistrer : celui du formulaire et des étapes d'un assistant
+    # (D-ADM-022). Archive : clé du cabinet exigée par son chiffrement.
+    def self.lifecycle_refusal(user : User, dossier : Dossier, action : String) : {String, String}?
+      _, from = TRANSITIONS[action]? || return {"base", "admin.errors.invalid"}
+      return {"base", "admin.errors.forbidden"} unless Access.can?(user, action_symbol(action), dossier)
+      return {"base", "admin.errors.dossier.state"} unless from.split('|').includes?(dossier.state)
+      return {"base", "admin.errors.encryption.no_key"} if action == "archive" && BackupEncryption.task_settings(dossier).nil?
+      nil
     end
 
     private def self.action_symbol(action : String) : Symbol
@@ -352,7 +364,7 @@ module PartiduoAdmin
     end
 
     # Refus d'une restauration (champ, clé), avant de chercher la sauvegarde.
-    private def self.restore_refusal(user : User, dossier : Dossier, target : String) : {String, String}?
+    def self.restore_refusal(user : User, dossier : Dossier, target : String) : {String, String}?
       return {"base", "admin.errors.forbidden"} unless Access.can?(user, :restore, dossier)
       return {"target", "admin.errors.invalid"} unless %w[move new replace].includes?(target)
       return {"base", "admin.errors.dossier.state"} unless %w[active suspended].includes?(dossier.state)
@@ -373,16 +385,10 @@ module PartiduoAdmin
     # retrait de l'ancienne instance.
     def self.move(user : User, dossier : Dossier, server_id : Int64?, reason : String,
                   now : Time = Config.now) : Outcome(Dossier)
-      return Outcome(Dossier).failure("base", "admin.errors.forbidden") unless user.super_admin?
-      return Outcome(Dossier).failure("base", "admin.errors.dossier.state") unless dossier.state == "suspended"
-      target = server_id.try { |id| Server.filter(id: id, active: true).first }
-      if target.nil? || target.pk == dossier.server_id
-        return Outcome(Dossier).failure("server_id", "admin.errors.dossier.move_server")
-      end
-      return Outcome(Dossier).failure("reason", "admin.errors.required") if reason.strip.size < 5
-      if Task.filter(dossier_id: dossier.pk, state__in: %w[pending running]).exists?
-        return Outcome(Dossier).failure("base", "admin.errors.dossier.busy")
-      end
+      refused = move_dossier_refusal(user, dossier) || move_server_refusal(dossier, server_id) ||
+                move_reason_refusal(reason) || move_busy_refusal(dossier)
+      return Outcome(Dossier).failure(*refused) if refused
+      target = Server.get!(id: server_id)
       origin = dossier.server!
       dossier.server = target
       dossier.save!
@@ -392,15 +398,38 @@ module PartiduoAdmin
       Outcome(Dossier).new(dossier)
     end
 
+    # Refus d'un déplacement, par partie (le service et chaque étape de
+    # l'assistant, D-ADM-022) : super-admin et dossier suspendu ; serveur
+    # actif autre que le sien ; aucune tâche en cours sur le dossier.
+    def self.move_dossier_refusal(user : User, dossier : Dossier) : {String, String}?
+      return {"base", "admin.errors.forbidden"} unless user.super_admin?
+      return {"base", "admin.errors.dossier.state"} unless dossier.state == "suspended"
+      nil
+    end
+
+    def self.move_server_refusal(dossier : Dossier, server_id : Int64?) : {String, String}?
+      target = server_id.try { |id| Server.filter(id: id, active: true).first }
+      return {"server_id", "admin.errors.dossier.move_server"} if target.nil? || target.pk == dossier.server_id
+      nil
+    end
+
+    def self.move_reason_refusal(reason : String) : {String, String}?
+      reason.strip.size < 5 ? {"reason", "admin.errors.required"} : nil
+    end
+
+    def self.move_busy_refusal(dossier : Dossier) : {String, String}?
+      return {"base", "admin.errors.dossier.busy"} if Task.filter(dossier_id: dossier.pk, state__in: %w[pending running]).exists?
+      nil
+    end
+
     # Instance neuve d'une restauration : dossier créé (état `creating`),
     # sous-domaine et hôte dans les paramètres ; ou champ et motif du refus.
     private def self.restore_copy(user : User, dossier : Dossier, backup : Backup, new_slug : String,
                                   params : Tasks::Params) : {String, String?}
+      if refused = restore_copy_refusal(dossier, new_slug)
+        return {refused[0], refused[1].as(String?)}
+      end
       slug = new_slug.strip.downcase
-      return {"new_slug", "admin.errors.dossier.slug"} unless Protocol.valid_slug?(slug)
-      return {"new_slug", "admin.errors.dossier.slug_taken"} if Dossier.filter(slug: slug).exists?
-      # Instance neuve : un certificat de plus, compté comme à la création.
-      return {"base", "admin.errors.dossier.quota"} if LetsEncrypt.quota_reached?(dossier.server!.domain.to_s, Config.now)
       copy = Dossier.create!(slug: slug, label: dossier.label, regime: dossier.regime, locale: dossier.locale, kind: dossier.kind,
         siren: dossier.siren, vat_number: dossier.vat_number, modules: dossier.modules, extensions: dossier.extensions,
         admin_email: dossier.admin_email, server: dossier.server!, firm: dossier.firm!, payer: dossier.payer!,
@@ -416,7 +445,20 @@ module PartiduoAdmin
       {"", nil}
     end
 
-    private def self.restored_backup(dossier : Dossier, date : Time, backup_id : Int64?) : Backup?
+    # Refus d'une instance neuve (champ, clé) : sous-domaine valide et
+    # libre, quota de certificats du domaine.
+    def self.restore_copy_refusal(dossier : Dossier, new_slug : String) : {String, String}?
+      slug = new_slug.strip.downcase
+      return {"new_slug", "admin.errors.dossier.slug"} unless Protocol.valid_slug?(slug)
+      return {"new_slug", "admin.errors.dossier.slug_taken"} if Dossier.filter(slug: slug).exists?
+      # Instance neuve : un certificat de plus, compté comme à la création.
+      return {"base", "admin.errors.dossier.quota"} if LetsEncrypt.quota_reached?(dossier.server!.domain.to_s, Config.now)
+      nil
+    end
+
+    # Sauvegarde que reprend une restauration : celle désignée
+    # (`backup_id`), sinon la dernière prise à la date.
+    def self.restored_backup(dossier : Dossier, date : Time, backup_id : Int64?) : Backup?
       return backup_for(dossier, date) if backup_id.nil?
       Backup.filter(id: backup_id, dossier_id: dossier.pk, state__in: %w[done verified]).first
     end
