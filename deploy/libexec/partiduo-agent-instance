@@ -28,8 +28,8 @@
 # Paquet d'une instance : celui installé sur le serveur (pkg, lisible sans
 # root). Un paquet explicite (création, restauration en instance neuve) doit
 # être celui-là ; sans paquet explicite (« - »), l'instance doit être
-# déclarée dans partiduo_instances (rc.conf, lisible sans root). Sinon :
-# refus.
+# déclarée dans partiduo_app_instances (rc.conf, lisible sans root ;
+# partiduo_instances avant D-PKG-013 de partiduo-app). Sinon : refus.
 set -eu
 PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 export PATH
@@ -78,7 +78,8 @@ DROPDB=/usr/local/bin/dropdb
 PG_DUMP=/usr/local/bin/pg_dump
 PG_RESTORE=/usr/local/bin/pg_restore
 TAR=/usr/bin/tar
-# Essais : préfixe des chemins système (/usr/local/lib). Vide en production.
+# Essais : préfixe des chemins système (/usr/local/lib, /usr/local/etc/rc.d).
+# Vide en production.
 SYSTEM_ROOT=""
 # shellcheck disable=SC1090
 . "$CONF"
@@ -113,6 +114,20 @@ rc_value() {
   "$SYSRC" -n "$1" 2>/dev/null | tr '\t\n' '  ' || true
 }
 
+# Script rc.d des paquets (lisible sans root) : partiduo_app (D-PKG-013 de
+# partiduo-app) ; partiduo pour un paquet antérieur. Même règle que
+# partiduo-agent-root.
+rc_name() {
+  if [ -e "$SYSTEM_ROOT/usr/local/etc/rc.d/partiduo_app" ]; then
+    echo partiduo_app
+  elif [ -e "$SYSTEM_ROOT/usr/local/etc/rc.d/partiduo" ]; then
+    echo partiduo
+  else
+    echo partiduo_app
+  fi
+}
+RC_NAME=$(rc_name)
+
 # Paquet installé sur le serveur : app (partiduo-app) ou devel
 # (partiduo-app-devel). Les deux s'excluent et s'installent aux mêmes
 # emplacements : une seule version par serveur.
@@ -127,13 +142,13 @@ installed_package() {
 }
 
 # Paquet qui sert l'instance $1 : celui du serveur ; $2 : paquet attendu
-# (app, devel) ou « - » (instance déclarée dans partiduo_instances).
+# (app, devel) ou « - » (instance déclarée dans ${RC_NAME}_instances).
 resolve_package() {
   explicit="$2"
   case "$explicit" in app | devel | -) ;; *) die "paquet refusé" ;; esac
   installed=$(installed_package) || exit 2
   if [ "$explicit" = - ]; then
-    case " $(rc_value partiduo_instances) " in
+    case " $(rc_value "${RC_NAME}_instances") " in
       *" $1 "*) ;;
       *) die "instance non déclarée dans rc.conf : $1" ;;
     esac

@@ -1324,8 +1324,9 @@ module PartiduoAgent
       InstanceReply.new(code, JSON.parse(reply_line(output, errors)))
     end
 
-    # start, stop : `service partiduo[_devel] start|stop <slug>` par
-    # l'enveloppe racine ; puis l'état, par le code de sortie de
+    # start, stop : `service partiduo_app start|stop <slug>` par l'enveloppe
+    # racine (`partiduo` sur un paquet antérieur à D-ADM-032, qu'elle lit sur
+    # le serveur) ; puis l'état, par le code de sortie de
     # `service … status <slug>` (0 : l'instance tourne).
     def service(slug : String, command : String) : String
       guard_slug!(slug)

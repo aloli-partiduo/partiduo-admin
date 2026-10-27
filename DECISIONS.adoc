@@ -1386,3 +1386,42 @@ dans les trois avis ; repli sur l'adresse d'expédition, jamais sur les
 destinataires des alertes ; aucune adresse de super-admin dans les
 courriels envoyés, dans les sept langues ; `held_requests_spec`,
 `recourse_spec` et `key_announce_spec` suivent la règle.
+
+=== D-ADM-032 — Enveloppes de l'exécutant : script rc.d `partiduo_app`, et `partiduo` pendant la transition (27 octobre 2026)
+
+Décision de l'utilisateur du 27 octobre 2026 (D-PKG-013 de partiduo-app).
+Version 0.1.68.
+
+*Constat.* Le script `rc.d` des instances (paquets `partiduo-app` et
+`partiduo-app-devel`) s'appelle désormais `partiduo_app`, réglages
+`partiduo_app_enable` et `partiduo_app_instances`, au lieu de `partiduo`.
+Les enveloppes de l'exécutant (`partiduo-agent-root`,
+`partiduo-agent-instance`) écrivaient le nom en dur.
+
+*Règle.* Chaque enveloppe lit le nom sur le serveur, à chaque appel :
+`partiduo_app` si `/usr/local/etc/rc.d/partiduo_app` existe, sinon
+`partiduo` si `/usr/local/etc/rc.d/partiduo` existe, sinon `partiduo_app`.
+`service`, `install` et `remove` pilotent ce script, et la déclaration de
+l'instance se lit et s'écrit dans ses réglages (`<nom>_instances`,
+`<nom>_enable`). Un exécutant à jour pilote donc un serveur dont le paquet
+n'est pas encore mis à jour, puis le même serveur une fois le paquet mis à
+jour, sans redémarrer. L'inverse (exécutant ancien, paquet renommé) n'est
+pas couvert : l'ancienne enveloppe appelle `service partiduo`, que le
+paquet ne fournit plus, et lit `partiduo_instances`, que le paquet a
+recopié puis retiré ; le paquet `partiduo-app` avertit à la mise à jour si
+l'enveloppe installée ne connaît pas `partiduo_app`.
+
+*Protocole.* Inchangé (`API_VERSION` 3.3.0) : la console demande
+`start`, `stop` ou `status` d'un dossier, jamais un nom de service. Les
+règles `sudoers` ne nomment que les deux enveloppes : inchangées.
+
+*Ordre de déploiement.* `partiduo-agent` (ou `-devel`) d'abord, puis
+`partiduo-app` (ou `-devel`), puis `service partiduo_app restart` sur le
+serveur. La console (`partiduo-admin`) n'a pas d'ordre imposé.
+
+*Specs* : `spec/agent/closure_spec.cr` — banc des enveloppes avec le script
+`partiduo_app` (déclaration, démarrage, retrait) ; serveur au script
+`partiduo` (instance déclarée dans `partiduo_instances`, `service partiduo
+start|stop|status`, installation et retrait qui écrivent `partiduo_*`),
+puis le même banc après le passage, piloté sous `partiduo_app`. `sh -n` et
+shellcheck des enveloppes. Rien n'a tourné sur FreeBSD.

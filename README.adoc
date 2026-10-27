@@ -530,7 +530,9 @@ d'instance, `partiduo-provision`, bases, sauvegardes, sous le compte des
 instances, propriétaire des bases). Une seule version par serveur : le
 paquet qui sert les instances est celui qui y est installé (`partiduo-app`
 ou `partiduo-app-devel`, exclusifs, aux mêmes emplacements), et les
-instances sont déclarées dans `partiduo_instances` (`rc.conf`) ; les
+instances sont déclarées dans `partiduo_app_instances` (`rc.conf`, script
+`rc.d` `partiduo_app` ; `partiduo_instances` et `partiduo` sur un serveur
+dont le paquet est antérieur au renommage, D-ADM-032) ; les
 enveloppes refusent un paquet absent du serveur, ou une instance non
 déclarée quand la tâche ne précise pas de paquet. `--domain` est
 obligatoire : l'hôte et la base de chaque tâche sont recalculés depuis le
@@ -939,8 +941,8 @@ de `partiduo-provision` : environnement `/usr/local/etc/partiduo/<dossier>.env`
 (root:partiduo 0640, relu et validé clé par clé), données
 `/var/db/partiduo/<dossier>` (pièces jointes dans `media/`), journal
 `/var/log/partiduo/<dossier>.log`, déclaration dans `rc.conf`
-(`partiduo_instances`, `partiduo_enable=YES`),
-`service partiduo start <dossier>`, tâche quotidienne
+(`partiduo_app_instances`, `partiduo_app_enable=YES`),
+`service partiduo_app start <dossier>`, tâche quotidienne
 `/usr/local/etc/cron.d/partiduo-<dossier>`, vhost
 `/usr/local/etc/nginx/partiduo/<dossier>.conf` et certificat Let's Encrypt
 par acme.sh, comme sur le parc beryl et selon les conventions du port

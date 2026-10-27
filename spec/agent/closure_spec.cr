@@ -410,7 +410,10 @@ private def helper_bench(dir : String) : String
   File.write(File.join(root, "usr", "local", "etc", "nginx", "nginx.conf"), "http {\n  include partiduo/*.conf;\n}\n")
   Dir.mkdir_p(File.join(dir, "backups"))
   File.write(File.join(dir, "pkg.partiduo-app"), "")
-  File.write(File.join(dir, "rc.conf"), %(partiduo_instances="demo"\n))
+  # Script rc.d du paquet : partiduo_app (D-PKG-013 de partiduo-app).
+  Dir.mkdir_p(File.join(root, "usr", "local", "etc", "rc.d"))
+  File.write(File.join(root, "usr", "local", "etc", "rc.d", "partiduo_app"), "#!/bin/sh\n", perm: 0o555)
+  File.write(File.join(dir, "rc.conf"), %(partiduo_app_instances="demo"\n))
   conf = File.join(dir, "helpers.conf")
   File.write(conf, <<-CONF)
     DOMAIN=partiduo.test
@@ -554,6 +557,45 @@ describe "partiduo-agent : scripts enveloppes de sudo (D-AFN-002)" do
     FileUtils.rm_rf(dir) if dir
   end
 
+  it "pilotent encore le script rc.d partiduo d'un paquet antérieur à partiduo_app (D-ADM-032)" do
+    dir = File.join(Dir.tempdir, "partiduo-helpers-#{Random::Secure.hex(4)}")
+    conf = helper_bench(dir)
+    rc_d = File.join(dir, "root", "usr", "local", "etc", "rc.d")
+    # Serveur pas encore mis à jour : script partiduo, réglages partiduo_*.
+    File.delete(File.join(rc_d, "partiduo_app"))
+    File.write(File.join(rc_d, "partiduo"), "#!/bin/sh\n", perm: 0o555)
+    File.write(File.join(dir, "rc.conf"), %(partiduo_instances="demo"\npartiduo_enable="YES"\n))
+
+    helper("partiduo-agent-instance", conf, ["cli", "demo", "-", "-", "status"])[0].should eq(0)
+    helper("partiduo-agent-instance", conf, ["cli", "neuve", "-", "-", "status"])[2].should contain("non déclarée")
+    helper("partiduo-agent-root", conf, ["service", "demo", "start"])[0].should eq(0)
+    helper("partiduo-agent-root", conf, ["service", "demo", "status"])[0].should eq(0)
+    instance_env(dir, "neuve", 8164)
+    code, _, errors = helper("partiduo-agent-root", conf, ["install", "neuve", "app"])
+    errors.should eq("")
+    code.should eq(0)
+    rc_conf = File.read(File.join(dir, "rc.conf"))
+    rc_conf.should contain(%(partiduo_instances="demo neuve"))
+    rc_conf.should_not contain("partiduo_app")
+    calls = File.read_lines(File.join(dir, "calls"))
+    calls.should contain("service partiduo start demo")
+    calls.should contain("service partiduo start neuve")
+    helper("partiduo-agent-root", conf, ["remove", "neuve"])[0].should eq(0)
+    File.read(File.join(dir, "rc.conf")).should contain(%(partiduo_instances="demo"\n))
+    File.read_lines(File.join(dir, "calls")).should contain("service partiduo stop neuve")
+
+    # Paquet mis à jour (pkg-install a recopié les réglages) : partiduo_app,
+    # sans redémarrer l'exécutant.
+    File.delete(File.join(rc_d, "partiduo"))
+    File.write(File.join(rc_d, "partiduo_app"), "#!/bin/sh\n", perm: 0o555)
+    File.write(File.join(dir, "rc.conf"), %(partiduo_app_instances="demo"\npartiduo_app_enable="YES"\n))
+    helper("partiduo-agent-instance", conf, ["cli", "demo", "-", "-", "status"])[0].should eq(0)
+    helper("partiduo-agent-root", conf, ["service", "demo", "stop"])[0].should eq(0)
+    File.read_lines(File.join(dir, "calls")).last.should eq("service partiduo_app stop demo")
+  ensure
+    FileUtils.rm_rf(dir) if dir
+  end
+
   it "lancent les programmes depuis /, jamais depuis le répertoire privé de l'exécutant" do
     dir = File.join(Dir.tempdir, "partiduo-helpers-#{Random::Secure.hex(4)}")
     conf = helper_bench(dir)
@@ -578,8 +620,9 @@ describe "partiduo-agent : scripts enveloppes de sudo (D-AFN-002)" do
     errors.should eq("")
     code.should eq(0)
     rc_conf = File.read(File.join(dir, "rc.conf"))
-    rc_conf.should contain(%(partiduo_instances="demo neuve"))
-    rc_conf.should contain(%(partiduo_enable="YES"))
+    rc_conf.should contain(%(partiduo_app_instances="demo neuve"))
+    rc_conf.should contain(%(partiduo_app_enable="YES"))
+    rc_conf.should_not contain("partiduo_instances")
     File.read(File.join(dir, "etc", "neuve.env")).should contain("PARTIDUO_MEDIA_ROOT=#{dir}/data/neuve/media")
     Dir.exists?(File.join(dir, "data", "neuve", "media")).should be_true
     Dir.exists?(File.join(root, "var", "log", "partiduo")).should be_true
@@ -588,7 +631,7 @@ describe "partiduo-agent : scripts enveloppes de sudo (D-AFN-002)" do
       "#{root}/usr/local/lib/partiduo/bin/partiduo-manage invoicing_month_end\n")
     File.read(File.join(root, "usr", "local", "etc", "nginx", "partiduo", "neuve.conf")).should contain("127.0.0.1:8163")
     calls = File.read_lines(File.join(dir, "calls"))
-    calls.should contain("service partiduo start neuve")
+    calls.should contain("service partiduo_app start neuve")
     calls.last.should eq("service nginx reload")
     # Certificat par acme.sh (conventions du parc beryl et du port FreeBSD) :
     # vhost d'amorçage, émission sous l'utilisateur d'acme.sh dans CERT_HOME,
@@ -618,9 +661,9 @@ describe "partiduo-agent : scripts enveloppes de sudo (D-AFN-002)" do
     # Rejouée : ni doublon dans rc.conf, ni redémarrage, ni réémission
     # (acme.sh --issue rend 2 : certificat encore valide).
     helper("partiduo-agent-root", conf, ["install", "neuve", "-"])[0].should eq(0)
-    File.read(File.join(dir, "rc.conf")).should contain(%(partiduo_instances="demo neuve"\n))
+    File.read(File.join(dir, "rc.conf")).should contain(%(partiduo_app_instances="demo neuve"\n))
     calls = File.read_lines(File.join(dir, "calls"))
-    calls.count("service partiduo start neuve").should eq(1)
+    calls.count("service partiduo_app start neuve").should eq(1)
     calls.count(issue).should eq(2)
     calls.count(install_cert).should eq(2)
 

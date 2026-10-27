@@ -7,8 +7,8 @@
 # commentées : celles par défaut.
 DOMAIN=partiduo.app
 # Environnement et données des instances : ceux que lit le script rc.d des
-# paquets (partiduo-app ou partiduo-app-devel, même script partiduo) ; ne pas
-# les changer.
+# paquets (partiduo-app ou partiduo-app-devel, même script partiduo_app) ;
+# ne pas les changer.
 #ETC_DIR=/usr/local/etc/partiduo
 #DATA_DIR=/var/db/partiduo
 # Compte système des instances et rôle PostgreSQL propriétaire des bases
